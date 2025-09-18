@@ -38,7 +38,9 @@ import {
     Style
 } from "@/common/components/mainPage/style.ts";
 import {Particles} from "@/common/components/mainPage/Particles.tsx";
-import {FC} from "react";
+import {FC, useState} from "react";
+import {LoginModal} from "@/common/components/mainPage/modals/LoginModal.tsx";
+import {RegisterModal} from "@/common/components/mainPage/modals/RegisterModal.tsx";
 
 // Глобальные стили с подключением шрифтов
 export const GlobalStyles = () => (
@@ -71,11 +73,57 @@ export const GlobalStyles = () => (
 );
 
 export const MainPage: FC = () => {
+
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+
+    const openLoginModal = () => {
+        setIsLoginModalOpen(true);
+        document.body.style.overflow = 'hidden';
+    };
+
+    const openRegisterModal = () => {
+        setIsRegisterModalOpen(true);
+        document.body.style.overflow = 'hidden';
+    };
+
+    const closeLoginModal = () => {
+        setIsLoginModalOpen(false);
+        document.body.style.overflow = 'auto';
+    };
+
+    const closeRegisterModal = () => {
+        setIsRegisterModalOpen(false);
+        document.body.style.overflow = 'auto';
+    };
+
+    const switchToRegister = () => {
+        closeLoginModal();
+        setTimeout(() => openRegisterModal(), 300);
+    };
+
+    const switchToLogin = () => {
+        closeRegisterModal();
+        setTimeout(() => openLoginModal(), 300);
+    };
+
     return (
         <RootPage>
             <CommonWrapper>
                 <AlignContentContainer>
                     <Style>
+                        <LoginModal
+                            isOpen={isLoginModalOpen}
+                            onClose={closeLoginModal}
+                            onSwitchToRegister={switchToRegister}
+                        />
+
+                        <RegisterModal
+                            isOpen={isRegisterModalOpen}
+                            onClose={closeRegisterModal}
+                            onSwitchToLogin={switchToLogin}
+                        />
+                        
                         <GlobalStyles/>
 
                         <Particles/>
@@ -88,8 +136,8 @@ export const MainPage: FC = () => {
                                         <BeaverIcon>🐾</BeaverIcon>
                                     </Logo>
                                     <AuthButtons>
-                                        <AuthButton variant="login">Войти</AuthButton>
-                                        <AuthButton variant="register">Регистрация</AuthButton>
+                                        <AuthButton variant="login" onClick={openLoginModal}>Войти</AuthButton>
+                                        <AuthButton variant="register" onClick={openRegisterModal}>Регистрация</AuthButton>
                                     </AuthButtons>
                                 </HeaderContent>
                             </Container>

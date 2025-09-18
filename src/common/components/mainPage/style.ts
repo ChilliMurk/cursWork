@@ -117,6 +117,7 @@ export const AuthButtons = styled.div`
 
 interface AuthButtonProps {
     variant: 'login' | 'register';
+    onClick?: () => void;
 }
 
 export const AuthButton = styled.a<AuthButtonProps>`
