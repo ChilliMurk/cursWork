@@ -30,6 +30,7 @@ import {
     CustomNavLink
 } from "@/common/components/userDashboard/style.ts";
 import {TeamsPage} from "@/modules/user/teams/components/TeamsPage.tsx";
+import {EventsPage} from "@/modules/user/events/components/EventsPage.tsx";
 
 const GlobalStyles = () => (
     <>
@@ -125,6 +126,20 @@ export const UserDashboard: FC = () => {
                                 <span>Главная</span>
                             </CustomNavLink>
                         </NavItem>
+
+                        {/*<NavItem>*/}
+                        {/*    <CustomNavLink*/}
+                        {/*        isActive={activeSection === 'events'}*/}
+                        {/*        onClick={(e) => {*/}
+                        {/*            e.preventDefault();*/}
+                        {/*            handleSectionChange('events');*/}
+                        {/*        }}*/}
+                        {/*    >*/}
+                        {/*        <span className="nav-icon"><i className="fas fa-calendar-alt"></i></span>*/}
+                        {/*        <span>События</span>*/}
+                        {/*    </CustomNavLink>*/}
+                        {/*</NavItem>*/}
+
                         <NavItem>
                             <CustomNavLink
                                 isActive={activeSection === 'events'}
@@ -137,20 +152,6 @@ export const UserDashboard: FC = () => {
                                 <span>События</span>
                             </CustomNavLink>
                         </NavItem>
-
-
-                        {/*<NavItem>*/}
-                        {/*    <CustomNavLink*/}
-                        {/*        isActive={activeSection === 'teams'}*/}
-                        {/*        onClick={(e) => {*/}
-                        {/*            e.preventDefault();*/}
-                        {/*            handleSectionChange('teams');*/}
-                        {/*        }}*/}
-                        {/*    >*/}
-                        {/*        <span className="nav-icon"><i className="fas fa-users"></i></span>*/}
-                        {/*        <span>Команды</span>*/}
-                        {/*    </CustomNavLink>*/}
-                        {/*</NavItem>*/}
 
                         <NavItem>
                             <CustomNavLink
@@ -214,7 +215,7 @@ export const UserDashboard: FC = () => {
                     <TopHeader>
                         <PageTitle>
                             {activeSection === 'main' && <>Главная </>}
-                            {activeSection === 'events' && <>События </>}
+                            {activeSection === 'events' && <>События и турниры </>}
                             {activeSection === 'teams' && <>Команды </>}
                             {activeSection === 'help' && <>Помощь </>}
                             {activeSection === 'stats' && <>Статистика </>}
@@ -245,31 +246,22 @@ export const UserDashboard: FC = () => {
                             </DevelopmentMessage>
                         </DashboardSection>
 
-                        <DashboardSection id="events-section" isActive={activeSection === 'events'}>
-                            <DevelopmentMessage>
-                                <DevIcon>
-                                    <i className="fas fa-calendar-plus"></i>
-                                </DevIcon>
-                                <DevTitle>События в разработке</DevTitle>
-                                <DevText>
-                                    Раздел с турнирами и событиями скоро будет доступен. Мы готовим для вас
-                                    увлекательные соревнования и мероприятия.
-                                </DevText>
-                            </DevelopmentMessage>
-                        </DashboardSection>
-
-                        {/*<DashboardSection id="teams-section" isActive={activeSection === 'teams'}>*/}
+                        {/*<DashboardSection id="events-section" isActive={activeSection === 'events'}>*/}
                         {/*    <DevelopmentMessage>*/}
                         {/*        <DevIcon>*/}
-                        {/*            <i className="fas fa-users-gear"></i>*/}
+                        {/*            <i className="fas fa-calendar-plus"></i>*/}
                         {/*        </DevIcon>*/}
-                        {/*        <DevTitle>Команды в разработке</DevTitle>*/}
+                        {/*        <DevTitle>События в разработке</DevTitle>*/}
                         {/*        <DevText>*/}
-                        {/*            Система управления командами и участниками находится в разработке.*/}
-                        {/*            Скоро вы сможете создавать и присоединяться к командам.*/}
+                        {/*            Раздел с турнирами и событиями скоро будет доступен. Мы готовим для вас*/}
+                        {/*            увлекательные соревнования и мероприятия.*/}
                         {/*        </DevText>*/}
                         {/*    </DevelopmentMessage>*/}
                         {/*</DashboardSection>*/}
+
+                        <DashboardSection id="events-section" isActive={activeSection === 'events'}>
+                            <EventsPage />
+                        </DashboardSection>
 
                         <DashboardSection id="teams-section" isActive={activeSection === 'teams'}>
                             <TeamsPage />
