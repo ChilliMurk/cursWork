@@ -1,55 +1,42 @@
 import { Global, css } from '@emotion/react';
-import styled from '@emotion/styled';
-//import { colors, fonts } from './theme'; // Импортируем константы стилей
-
-// Импорты переопределений компонентов (если используете UI библиотеку)
-//import { ModalOverride } from './overrides/ModalOverride';
-//import { DatePickerOverride } from './overrides/DatePickerOverride';
-//import { FormOverride } from './overrides/FormOverride';
-//import { TableOverride } from './overrides/TableOverride';
 
 import {colors, mainFont} from "./StyleConstants";
-import React from 'react';
 
 export const GlobalStyles = () => (
     <>
         <Global
             styles={css`
-        * {
-          box-sizing: border-box;
-          margin: 0;
-          padding: 0;
-          
-          /* Убираем стрелки у input[type="number"] */
-          &::-webkit-outer-spin-button,
-          &::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-          }
-          
-          &[type='number'] {
-            -moz-appearance: textfield;
-          }
-        }
+                * {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
 
-       /* html {
-          font-size: 16px;
-          scroll-behavior: smooth;
-        }*/
+                    /* Убираем стрелки у input[type="number"] */
 
-        body, button {
-          position: relative;
-            font-family: ${mainFont};
-        }
+                    &::-webkit-outer-spin-button,
+                    &::-webkit-inner-spin-button {
+                        -webkit-appearance: none;
+                        margin: 0;
+                    }
 
-        a {
-          color: ${colors.mainBlue};
-          text-decoration: none;
+                    &[type='number'] {
+                        -moz-appearance: textfield;
+                    }
+                }
 
-          &:hover {
-              text-decoration: none;
-          }
-        }
+                body, button {
+                    position: relative;
+                    font-family: ${mainFont};
+                }
+
+                a {
+                    color: ${colors.mainBlue};
+                    text-decoration: none;
+
+                    &:hover {
+                        text-decoration: none;
+                    }
+                }
 
                 h1 {
                     font-size: 24px;
@@ -101,7 +88,7 @@ export const GlobalStyles = () => (
                     align-items: center;
                     justify-content: center;
                 }
-      `}
+            `}
 />
 
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import {MainPage} from "./common/components/mainPage/MainPage";
 import {GlobalStyles} from "./common/styles/GlobalStyles";
 import {RoutesProvider} from "./router/RoutesProvider";
