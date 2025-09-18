@@ -29,6 +29,7 @@ import {
     UserStatusTop,
     CustomNavLink
 } from "@/common/components/userDashboard/style.ts";
+import {TeamsPage} from "@/modules/user/teams/components/TeamsPage.tsx";
 
 const GlobalStyles = () => (
     <>
@@ -136,6 +137,21 @@ export const UserDashboard: FC = () => {
                                 <span>События</span>
                             </CustomNavLink>
                         </NavItem>
+
+
+                        {/*<NavItem>*/}
+                        {/*    <CustomNavLink*/}
+                        {/*        isActive={activeSection === 'teams'}*/}
+                        {/*        onClick={(e) => {*/}
+                        {/*            e.preventDefault();*/}
+                        {/*            handleSectionChange('teams');*/}
+                        {/*        }}*/}
+                        {/*    >*/}
+                        {/*        <span className="nav-icon"><i className="fas fa-users"></i></span>*/}
+                        {/*        <span>Команды</span>*/}
+                        {/*    </CustomNavLink>*/}
+                        {/*</NavItem>*/}
+
                         <NavItem>
                             <CustomNavLink
                                 isActive={activeSection === 'teams'}
@@ -148,6 +164,8 @@ export const UserDashboard: FC = () => {
                                 <span>Команды</span>
                             </CustomNavLink>
                         </NavItem>
+
+
                         <NavItem>
                             <CustomNavLink
                                 isActive={activeSection === 'help'}
@@ -240,17 +258,21 @@ export const UserDashboard: FC = () => {
                             </DevelopmentMessage>
                         </DashboardSection>
 
+                        {/*<DashboardSection id="teams-section" isActive={activeSection === 'teams'}>*/}
+                        {/*    <DevelopmentMessage>*/}
+                        {/*        <DevIcon>*/}
+                        {/*            <i className="fas fa-users-gear"></i>*/}
+                        {/*        </DevIcon>*/}
+                        {/*        <DevTitle>Команды в разработке</DevTitle>*/}
+                        {/*        <DevText>*/}
+                        {/*            Система управления командами и участниками находится в разработке.*/}
+                        {/*            Скоро вы сможете создавать и присоединяться к командам.*/}
+                        {/*        </DevText>*/}
+                        {/*    </DevelopmentMessage>*/}
+                        {/*</DashboardSection>*/}
+
                         <DashboardSection id="teams-section" isActive={activeSection === 'teams'}>
-                            <DevelopmentMessage>
-                                <DevIcon>
-                                    <i className="fas fa-users-gear"></i>
-                                </DevIcon>
-                                <DevTitle>Команды в разработке</DevTitle>
-                                <DevText>
-                                    Система управления командами и участниками находится в разработке.
-                                    Скоро вы сможете создавать и присоединяться к командам.
-                                </DevText>
-                            </DevelopmentMessage>
+                            <TeamsPage />
                         </DashboardSection>
 
                         <DashboardSection id="help-section" isActive={activeSection === 'help'}>
