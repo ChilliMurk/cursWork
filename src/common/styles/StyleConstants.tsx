@@ -26,6 +26,4 @@ export const colors = {
     buttonActiveBackground: 'rgba(12, 79, 191, 1)',
     mainDarkBlue: 'rgba(12, 79, 191, 1)',
     mainDisable: 'rgba(188, 188, 188, 1)',
-
-
 };

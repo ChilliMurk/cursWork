@@ -151,7 +151,6 @@ export const AuthButton = styled.a<AuthButtonProps>`
   `}
 `;
 
-// Hero Section
 export const HeroSection = styled.section`
     min-height: 90vh;
     display: flex;
@@ -269,7 +268,6 @@ export const FloatingIcon = styled.div`
     }
 `;
 
-// Stats Section
 export const StatsSection = styled.section`
     background-color: #132f4c;
     padding: 60px 0;
@@ -310,7 +308,6 @@ export const StatLabel = styled.div`
     color: #e0e0e0;
 `;
 
-// Features Section
 export const FeaturesSection = styled.section`
     padding: 80px 0;
     background-color: #0a1929;
@@ -365,7 +362,6 @@ export const FeatureDescription = styled.p`
     color: #e0e0e0;
 `;
 
-// Beaver Section
 export const BeaverSection = styled.section`
     padding: 80px 0;
     background: linear-gradient(to right, #132f4c, #0a1929);
@@ -412,7 +408,6 @@ export const Beaver = styled.div`
     }
 `;
 
-// Footer
 export const Footer = styled.footer`
     background-color: #1a1a1a;
     padding: 40px 0;
@@ -453,7 +448,6 @@ export const Copyright = styled.p`
     font-size: 0.9rem;
 `;
 
-// Particles
 export const ParticlesContainer = styled.div`
     position: absolute;
     top: 0;

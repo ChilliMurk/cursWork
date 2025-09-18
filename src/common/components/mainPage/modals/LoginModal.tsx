@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import {FC} from 'react';
 import {
     ForgotPassword, FormFooter, FormFooterLink,
     FormGroup, FormInput, FormLabel, FormOptions, FormSubmit,
@@ -9,17 +9,33 @@ import {
     ModalSubtitle,
     ModalTitle, RememberMe
 } from "@/common/components/mainPage/modals/style.ts";
+import {loginSuccess} from "@/store/reducers/authSlice.ts";
+import {useAppDispatch} from "@/common/hooks/useAppSelector.ts";
 
 interface LoginModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSwitchToRegister: () => void;
+    onSuccess: () => void;
 }
 
-export const LoginModal: FC<LoginModalProps> = ({ isOpen, onClose, onSwitchToRegister }) => {
+export const LoginModal: FC<LoginModalProps> = ({isOpen, onClose, onSwitchToRegister, onSuccess}) => {
+
+    const dispatch = useAppDispatch();
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Login submitted');
+
+        // Временная имитация успешной авторизации
+        const mockUser = {
+            id: '1',
+            email: 'test@example.com',
+            name: 'Test User'
+        };
+
+        dispatch(loginSuccess({user: mockUser}));
+        onClose();
+        onSuccess();
     };
 
     return (
@@ -51,14 +67,15 @@ export const LoginModal: FC<LoginModalProps> = ({ isOpen, onClose, onSwitchToReg
                     </FormGroup>
                     <FormOptions>
                         <RememberMe>
-                            <input type="checkbox" id="rememberMe" />
+                            <input type="checkbox" id="rememberMe"/>
                             <label htmlFor="rememberMe">Запомнить меня</label>
                         </RememberMe>
                         <ForgotPassword href="#">Забыли пароль?</ForgotPassword>
                     </FormOptions>
                     <FormSubmit type="submit">Войти</FormSubmit>
                     <FormFooter>
-                        Нет аккаунта? <FormFooterLink href="#" onClick={onSwitchToRegister}>Зарегистрироваться</FormFooterLink>
+                        Нет аккаунта? <FormFooterLink href="#"
+                                                      onClick={onSwitchToRegister}>Зарегистрироваться</FormFooterLink>
                     </FormFooter>
                 </form>
             </Modal>

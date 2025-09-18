@@ -1,4 +1,4 @@
-import { Global, css } from '@emotion/react';
+import {Global, css} from '@emotion/react';
 
 import {colors, mainFont} from "./StyleConstants";
 
@@ -10,8 +10,6 @@ export const GlobalStyles = () => (
                     box-sizing: border-box;
                     margin: 0;
                     padding: 0;
-
-                    /* Убираем стрелки у input[type="number"] */
 
                     &::-webkit-outer-spin-button,
                     &::-webkit-inner-spin-button {
@@ -89,9 +87,6 @@ export const GlobalStyles = () => (
                     justify-content: center;
                 }
             `}
-/>
-
-
-</>
+        />
+    </>
 );
-

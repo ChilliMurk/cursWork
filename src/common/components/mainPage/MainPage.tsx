@@ -41,8 +41,8 @@ import {Particles} from "@/common/components/mainPage/Particles.tsx";
 import {FC, useState} from "react";
 import {LoginModal} from "@/common/components/mainPage/modals/LoginModal.tsx";
 import {RegisterModal} from "@/common/components/mainPage/modals/RegisterModal.tsx";
+import {useNavigate} from "react-router-dom";
 
-// Глобальные стили с подключением шрифтов
 export const GlobalStyles = () => (
     <>
         <Global styles={css`
@@ -73,6 +73,8 @@ export const GlobalStyles = () => (
 );
 
 export const MainPage: FC = () => {
+
+    const navigate = useNavigate();
 
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
@@ -107,6 +109,15 @@ export const MainPage: FC = () => {
         setTimeout(() => openLoginModal(), 300);
     };
 
+    const handleAuthSuccess = () => {
+        console.log('Auth success, navigating to /user');
+        navigate('/user');
+    };
+
+    const handleJoinClick = () => {
+        openRegisterModal();
+    };
+
     return (
         <RootPage>
             <CommonWrapper>
@@ -116,14 +127,16 @@ export const MainPage: FC = () => {
                             isOpen={isLoginModalOpen}
                             onClose={closeLoginModal}
                             onSwitchToRegister={switchToRegister}
+                            onSuccess={handleAuthSuccess}
                         />
 
                         <RegisterModal
                             isOpen={isRegisterModalOpen}
                             onClose={closeRegisterModal}
                             onSwitchToLogin={switchToLogin}
+                            onSuccess={handleAuthSuccess}
                         />
-                        
+
                         <GlobalStyles/>
 
                         <Particles/>
@@ -137,7 +150,8 @@ export const MainPage: FC = () => {
                                     </Logo>
                                     <AuthButtons>
                                         <AuthButton variant="login" onClick={openLoginModal}>Войти</AuthButton>
-                                        <AuthButton variant="register" onClick={openRegisterModal}>Регистрация</AuthButton>
+                                        <AuthButton variant="register"
+                                                    onClick={openRegisterModal}>Регистрация</AuthButton>
                                     </AuthButtons>
                                 </HeaderContent>
                             </Container>
@@ -153,7 +167,7 @@ export const MainPage: FC = () => {
                                         доминировать в киберспорте,
                                         оставляя за собой лишь щепки от вражеских стратегий.
                                     </HeroDescription>
-                                    <CTAButton>Присоединиться</CTAButton>
+                                    <CTAButton onClick={handleJoinClick}>Присоединиться</CTAButton>
                                 </HeroContent>
                             </Container>
                             <FloatingIcon>

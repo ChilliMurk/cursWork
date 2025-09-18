@@ -1,9 +1,10 @@
-import React from 'react';
+import { FC } from 'react';
+import { Outlet } from 'react-router-dom';
 
-export const UserModule = () => {
+export const UserModule: FC = () => {
     return (
         <div>
-аа
+            <Outlet />
         </div>
     );
 };
