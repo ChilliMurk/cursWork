@@ -1,9 +1,9 @@
-import { FC, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppDispatch } from "@/common/hooks/useAppSelector.ts";
-import { logout } from "@/store/reducers/authSlice.ts";
-import { css, Global } from "@emotion/react";
-import { Copyright, Particle, ParticlesContainer, SocialLink, SocialLinks } from "@/common/components/mainPage/style.ts";
+import {FC, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {useAppDispatch} from "@/common/hooks/useAppSelector.ts";
+import {logout} from "@/store/reducers/authSlice.ts";
+import {css, Global} from "@emotion/react";
+import {Copyright, Particle, ParticlesContainer, SocialLink, SocialLinks} from "@/common/components/mainPage/style.ts";
 import {
     AppContainer,
     ContentArea,
@@ -31,6 +31,7 @@ import {
 } from "@/common/components/userDashboard/style.ts";
 import {TeamsPage} from "@/modules/user/teams/components/TeamsPage.tsx";
 import {EventsPage} from "@/modules/user/events/components/EventsPage.tsx";
+import {ProfilePage} from "@/modules/user/profile/components/ProfilePage.tsx";
 
 const GlobalStyles = () => (
     <>
@@ -87,7 +88,7 @@ export const UserDashboard: FC = () => {
         const duration = Math.random() * 15 + 10;
         const delay = Math.random() * 5;
 
-        particles.push({ size, color, left, top, duration, delay });
+        particles.push({size, color, left, top, duration, delay});
     }
 
     return (
@@ -127,19 +128,6 @@ export const UserDashboard: FC = () => {
                             </CustomNavLink>
                         </NavItem>
 
-                        {/*<NavItem>*/}
-                        {/*    <CustomNavLink*/}
-                        {/*        isActive={activeSection === 'events'}*/}
-                        {/*        onClick={(e) => {*/}
-                        {/*            e.preventDefault();*/}
-                        {/*            handleSectionChange('events');*/}
-                        {/*        }}*/}
-                        {/*    >*/}
-                        {/*        <span className="nav-icon"><i className="fas fa-calendar-alt"></i></span>*/}
-                        {/*        <span>События</span>*/}
-                        {/*    </CustomNavLink>*/}
-                        {/*</NavItem>*/}
-
                         <NavItem>
                             <CustomNavLink
                                 isActive={activeSection === 'events'}
@@ -166,7 +154,6 @@ export const UserDashboard: FC = () => {
                             </CustomNavLink>
                         </NavItem>
 
-
                         <NavItem>
                             <CustomNavLink
                                 isActive={activeSection === 'help'}
@@ -191,6 +178,7 @@ export const UserDashboard: FC = () => {
                                 <span>Статистика</span>
                             </CustomNavLink>
                         </NavItem>
+
                         <NavItem>
                             <CustomNavLink
                                 isActive={activeSection === 'profile'}
@@ -203,6 +191,7 @@ export const UserDashboard: FC = () => {
                                 <span>Профиль</span>
                             </CustomNavLink>
                         </NavItem>
+
                     </NavList>
 
                     <LogoutButton onClick={handleLogout}>
@@ -246,25 +235,12 @@ export const UserDashboard: FC = () => {
                             </DevelopmentMessage>
                         </DashboardSection>
 
-                        {/*<DashboardSection id="events-section" isActive={activeSection === 'events'}>*/}
-                        {/*    <DevelopmentMessage>*/}
-                        {/*        <DevIcon>*/}
-                        {/*            <i className="fas fa-calendar-plus"></i>*/}
-                        {/*        </DevIcon>*/}
-                        {/*        <DevTitle>События в разработке</DevTitle>*/}
-                        {/*        <DevText>*/}
-                        {/*            Раздел с турнирами и событиями скоро будет доступен. Мы готовим для вас*/}
-                        {/*            увлекательные соревнования и мероприятия.*/}
-                        {/*        </DevText>*/}
-                        {/*    </DevelopmentMessage>*/}
-                        {/*</DashboardSection>*/}
-
                         <DashboardSection id="events-section" isActive={activeSection === 'events'}>
-                            <EventsPage />
+                            <EventsPage/>
                         </DashboardSection>
 
                         <DashboardSection id="teams-section" isActive={activeSection === 'teams'}>
-                            <TeamsPage />
+                            <TeamsPage/>
                         </DashboardSection>
 
                         <DashboardSection id="help-section" isActive={activeSection === 'help'}>
@@ -294,17 +270,9 @@ export const UserDashboard: FC = () => {
                         </DashboardSection>
 
                         <DashboardSection id="profile-section" isActive={activeSection === 'profile'}>
-                            <DevelopmentMessage>
-                                <DevIcon>
-                                    <i className="fas fa-user-cog"></i>
-                                </DevIcon>
-                                <DevTitle>Профиль в разработке</DevTitle>
-                                <DevText>
-                                    Настройки профиля и персонализация находятся в разработке. Скоро вы сможете
-                                    настроить аккаунт под свои preferences.
-                                </DevText>
-                            </DevelopmentMessage>
+                            <ProfilePage/>
                         </DashboardSection>
+
                     </ContentArea>
 
                     <MainFooter>
