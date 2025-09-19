@@ -17,7 +17,7 @@ import {
     TeamGameBadge,
     TeamHeader,
     TeamTitle
-} from "@/modules/user/teams/components/TeamDetailsPage/style.ts";
+} from "@/modules/user/teams/components/teamDetailsPage/style.ts";
 import {TeamMeta} from "@/modules/user/teams/components/style.ts";
 import {ActionButtons, CardTitle, PrimaryButton, SecondaryButton} from "@/modules/user/profile/components/style.ts";
 

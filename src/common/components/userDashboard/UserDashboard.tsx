@@ -33,7 +33,7 @@ import {TeamsPage} from "@/modules/user/teams/components/TeamsPage.tsx";
 import {EventsPage} from "@/modules/user/events/components/EventsPage.tsx";
 import {ProfilePage} from "@/modules/user/profile/components/ProfilePage.tsx";
 import {Team} from "@/modules/user/teams/components/mockTeams.tsx";
-import {TeamDetailsPage} from "@/modules/user/teams/components/TeamDetailsPage/TeamDetailsPage.tsx"; // Добавьте импорт
+import {TeamDetailsPage} from "@/modules/user/teams/components/teamDetailsPage/TeamDetailsPage.tsx"; // Добавьте импорт
 
 const GlobalStyles = () => (
     <>

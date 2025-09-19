@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import {mockTeams, Team} from "@/modules/user/teams/components/mockTeams.tsx";
+import { mockTeams, Team } from "@/modules/user/teams/components/mockTeams.tsx";
 import {
     CreateTeamButton, EmptyIcon, EmptyState, EmptyText,
     GameButton,
@@ -7,6 +7,8 @@ import {
     TeamsContainer,
     TeamsGrid
 } from "@/modules/user/teams/components/style.ts";
+import {CreateTeamPage} from "@/modules/user/teams/components/сreateTeamPage/CreateTeamPage.tsx";
+
 
 interface TeamsPageProps {
     onTeamSelect: (team: Team) => void;
@@ -16,24 +18,48 @@ const games = ["Все", "Counter-Strike 2", "Dota 2", "Valorant", "Mobile Legen
 
 export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
     const [selectedGame, setSelectedGame] = useState("Все");
-    const [teams] = useState<Team[]>(mockTeams);
+    const [teams, setTeams] = useState<Team[]>(mockTeams);
+    const [isCreating, setIsCreating] = useState(false); // Состояние для создания команды
 
     const filteredTeams = selectedGame === "Все"
         ? teams
         : teams.filter(team => team.game === selectedGame);
 
     const handleJoinTeam = (teamId: number, e: React.MouseEvent) => {
-        e.stopPropagation(); // Предотвращаем всплытие события
+        e.stopPropagation();
         alert(`Запрос на вступление в команду ${teamId} отправлен!`);
     };
 
-    const handleCreateTeam = () => {
-        alert("Переход к созданию команды");
+    const handleCreateTeamClick = () => {
+        setIsCreating(true);
+    };
+
+    const handleCancelCreate = () => {
+        setIsCreating(false);
+    };
+
+    const handleCreateTeam = (teamData: Omit<Team, 'id' | 'created' | 'members' | 'membersList'>) => {
+        const newTeam: Team = {
+            ...teamData,
+            id: Math.max(...teams.map(t => t.id)) + 1,
+            created: "Только что",
+            members: 1, // Создатель автоматически становится участником
+            membersList: ["CurrentUser"] // В реальном приложении берется из данных пользователя
+        };
+
+        setTeams(prev => [...prev, newTeam]);
+        setIsCreating(false);
+        alert(`Команда "${newTeam.name}" успешно создана!`);
     };
 
     const handleTeamClick = (team: Team) => {
         onTeamSelect(team);
     };
+
+    // Если идет процесс создания команды, показываем форму создания
+    if (isCreating) {
+        return <CreateTeamPage onCreateTeam={handleCreateTeam} onCancel={handleCancelCreate} />;
+    }
 
     return (
         <TeamsContainer>
@@ -49,7 +75,7 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
                 ))}
             </GameFilter>
 
-            <CreateTeamButton onClick={handleCreateTeam}>
+            <CreateTeamButton onClick={handleCreateTeamClick}>
                 Создать свою команду
             </CreateTeamButton>
 
@@ -80,7 +106,7 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
                             ? "Пока нет созданных команд. Станьте первым, создав свою команду!"
                             : `Нет команд по игре ${selectedGame}. Станьте первым, создав команду!`}
                     </EmptyText>
-                    <CreateTeamButton onClick={handleCreateTeam}>
+                    <CreateTeamButton onClick={handleCreateTeamClick}>
                         Создать команду
                     </CreateTeamButton>
                 </EmptyState>
