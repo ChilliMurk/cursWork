@@ -68,7 +68,7 @@ export const UserDashboard: FC = () => {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const [activeSection, setActiveSection] = useState('main');
-    const [selectedTeam, setSelectedTeam] = useState<Team | null>(null); // Добавьте состояние для выбранной команды
+    const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 
     const handleLogout = () => {
         dispatch(logout());

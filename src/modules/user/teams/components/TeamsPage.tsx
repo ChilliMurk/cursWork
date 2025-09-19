@@ -19,7 +19,7 @@ const games = ["Все", "Counter-Strike 2", "Dota 2", "Valorant", "Mobile Legen
 export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
     const [selectedGame, setSelectedGame] = useState("Все");
     const [teams, setTeams] = useState<Team[]>(mockTeams);
-    const [isCreating, setIsCreating] = useState(false); // Состояние для создания команды
+    const [isCreating, setIsCreating] = useState(false);
 
     const filteredTeams = selectedGame === "Все"
         ? teams
@@ -56,7 +56,6 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
         onTeamSelect(team);
     };
 
-    // Если идет процесс создания команды, показываем форму создания
     if (isCreating) {
         return <CreateTeamPage onCreateTeam={handleCreateTeam} onCancel={handleCancelCreate} />;
     }
