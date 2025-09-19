@@ -1,5 +1,5 @@
-import {FC, useState} from 'react';
-import {mockTeams} from "@/modules/user/teams/components/mockTeams.tsx";
+import { FC, useState } from 'react';
+import {mockTeams, Team} from "@/modules/user/teams/components/mockTeams.tsx";
 import {
     CreateTeamButton, EmptyIcon, EmptyState, EmptyText,
     GameButton,
@@ -8,19 +8,13 @@ import {
     TeamsGrid
 } from "@/modules/user/teams/components/style.ts";
 
-interface Team {
-    id: number;
-    name: string;
-    game: string;
-    members: number;
-    maxMembers: number;
-    description: string;
-    created: string;
+interface TeamsPageProps {
+    onTeamSelect: (team: Team) => void;
 }
 
 const games = ["Все", "Counter-Strike 2", "Dota 2", "Valorant", "Mobile Legend"];
 
-export const TeamsPage: FC = () => {
+export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
     const [selectedGame, setSelectedGame] = useState("Все");
     const [teams] = useState<Team[]>(mockTeams);
 
@@ -28,12 +22,17 @@ export const TeamsPage: FC = () => {
         ? teams
         : teams.filter(team => team.game === selectedGame);
 
-    const handleJoinTeam = (teamId: number) => {
+    const handleJoinTeam = (teamId: number, e: React.MouseEvent) => {
+        e.stopPropagation(); // Предотвращаем всплытие события
         alert(`Запрос на вступление в команду ${teamId} отправлен!`);
     };
 
     const handleCreateTeam = () => {
         alert("Переход к созданию команды");
+    };
+
+    const handleTeamClick = (team: Team) => {
+        onTeamSelect(team);
     };
 
     return (
@@ -57,7 +56,7 @@ export const TeamsPage: FC = () => {
             {filteredTeams.length > 0 ? (
                 <TeamsGrid>
                     {filteredTeams.map(team => (
-                        <TeamCard key={team.id}>
+                        <TeamCard key={team.id} onClick={() => handleTeamClick(team)}>
                             <TeamGame>{team.game}</TeamGame>
                             <TeamName>{team.name}</TeamName>
                             <TeamInfo>{team.description}</TeamInfo>
@@ -65,7 +64,7 @@ export const TeamsPage: FC = () => {
                                 <span>Участников: {team.members}/{team.maxMembers}</span>
                                 <span>Создана: {team.created}</span>
                             </TeamMeta>
-                            <JoinButton onClick={() => handleJoinTeam(team.id)}>
+                            <JoinButton onClick={(e) => handleJoinTeam(team.id, e)}>
                                 Вступить в команду
                             </JoinButton>
                         </TeamCard>

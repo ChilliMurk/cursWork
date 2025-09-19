@@ -32,6 +32,8 @@ import {
 import {TeamsPage} from "@/modules/user/teams/components/TeamsPage.tsx";
 import {EventsPage} from "@/modules/user/events/components/EventsPage.tsx";
 import {ProfilePage} from "@/modules/user/profile/components/ProfilePage.tsx";
+import {Team} from "@/modules/user/teams/components/mockTeams.tsx";
+import {TeamDetailsPage} from "@/modules/user/teams/components/TeamDetailsPage/TeamDetailsPage.tsx"; // Добавьте импорт
 
 const GlobalStyles = () => (
     <>
@@ -66,6 +68,7 @@ export const UserDashboard: FC = () => {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const [activeSection, setActiveSection] = useState('main');
+    const [selectedTeam, setSelectedTeam] = useState<Team | null>(null); // Добавьте состояние для выбранной команды
 
     const handleLogout = () => {
         dispatch(logout());
@@ -74,6 +77,15 @@ export const UserDashboard: FC = () => {
 
     const handleSectionChange = (section: string) => {
         setActiveSection(section);
+        setSelectedTeam(null); // Сбросить выбранную команду при смене раздела
+    };
+
+    const handleTeamSelect = (team: Team) => {
+        setSelectedTeam(team);
+    };
+
+    const handleBackToList = () => {
+        setSelectedTeam(null);
     };
 
     const particles = [];
@@ -205,7 +217,7 @@ export const UserDashboard: FC = () => {
                         <PageTitle>
                             {activeSection === 'main' && <>Главная </>}
                             {activeSection === 'events' && <>События и турниры </>}
-                            {activeSection === 'teams' && <>Команды </>}
+                            {activeSection === 'teams' && selectedTeam ? <>Команда: {selectedTeam.name}</> : <>Команды </>}
                             {activeSection === 'help' && <>Помощь </>}
                             {activeSection === 'stats' && <>Статистика </>}
                             {activeSection === 'profile' && <>Профиль </>}
@@ -240,7 +252,11 @@ export const UserDashboard: FC = () => {
                         </DashboardSection>
 
                         <DashboardSection id="teams-section" isActive={activeSection === 'teams'}>
-                            <TeamsPage/>
+                            {selectedTeam ? (
+                                <TeamDetailsPage team={selectedTeam} onBack={handleBackToList} />
+                            ) : (
+                                <TeamsPage onTeamSelect={handleTeamSelect} />
+                            )}
                         </DashboardSection>
 
                         <DashboardSection id="help-section" isActive={activeSection === 'help'}>
