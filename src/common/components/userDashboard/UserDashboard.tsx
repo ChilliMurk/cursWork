@@ -33,7 +33,8 @@ import {TeamsPage} from "@/modules/user/teams/components/TeamsPage.tsx";
 import {EventsPage} from "@/modules/user/events/components/EventsPage.tsx";
 import {ProfilePage} from "@/modules/user/profile/components/ProfilePage.tsx";
 import {Team} from "@/modules/user/teams/components/mockTeams.tsx";
-import {TeamDetailsPage} from "@/modules/user/teams/components/teamDetailsPage/TeamDetailsPage.tsx"; // Добавьте импорт
+import {TeamDetailsPage} from "@/modules/user/teams/components/teamDetailsPage/TeamDetailsPage.tsx";
+import {LogoutModal} from "@/common/components/mainPage/modals/logoutModal/LogoutModal.tsx";
 
 const GlobalStyles = () => (
     <>
@@ -69,15 +70,29 @@ export const UserDashboard: FC = () => {
     const navigate = useNavigate();
     const [activeSection, setActiveSection] = useState('main');
     const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     const handleLogout = () => {
         dispatch(logout());
         navigate('/');
     };
 
+    const handleLogoutClick = () => {
+        setShowLogoutModal(true);
+    };
+
+    const handleCancelLogout = () => {
+        setShowLogoutModal(false);
+    };
+
+    const handleConfirmLogout = () => {
+        setShowLogoutModal(false);
+        handleLogout();
+    };
+
     const handleSectionChange = (section: string) => {
         setActiveSection(section);
-        setSelectedTeam(null); // Сбросить выбранную команду при смене раздела
+        setSelectedTeam(null);
     };
 
     const handleTeamSelect = (team: Team) => {
@@ -119,6 +134,12 @@ export const UserDashboard: FC = () => {
                     />
                 ))}
             </ParticlesContainer>
+
+            <LogoutModal
+                isOpen={showLogoutModal}
+                onConfirm={handleConfirmLogout}
+                onCancel={handleCancelLogout}
+            />
 
             <AppContainer>
                 <Sidebar>
@@ -206,7 +227,7 @@ export const UserDashboard: FC = () => {
 
                     </NavList>
 
-                    <LogoutButton onClick={handleLogout}>
+                    <LogoutButton onClick={handleLogoutClick}>
                         <span className="nav-icon"><i className="fas fa-sign-out-alt"></i></span>
                         <span>Выйти</span>
                     </LogoutButton>
@@ -215,12 +236,12 @@ export const UserDashboard: FC = () => {
                 <MainContent>
                     <TopHeader>
                         <PageTitle>
-                            {activeSection === 'main' && <>Главная </>}
-                            {activeSection === 'events' && <>События и турниры </>}
-                            {activeSection === 'teams' && selectedTeam ? <>Команда: {selectedTeam.name}</> : <>Команды </>}
-                            {activeSection === 'help' && <>Помощь </>}
-                            {activeSection === 'stats' && <>Статистика </>}
-                            {activeSection === 'profile' && <>Профиль </>}
+                            {activeSection === 'main' && 'Главная'}
+                            {activeSection === 'events' && 'События и турниры'}
+                            {activeSection === 'teams' && (selectedTeam ? `Команда: ${selectedTeam.name}` : 'Команды')}
+                            {activeSection === 'help' && 'Помощь'}
+                            {activeSection === 'stats' && 'Статистика'}
+                            {activeSection === 'profile' && 'Профиль'}
                         </PageTitle>
 
                         <UserInfoTop>
@@ -253,9 +274,9 @@ export const UserDashboard: FC = () => {
 
                         <DashboardSection id="teams-section" isActive={activeSection === 'teams'}>
                             {selectedTeam ? (
-                                <TeamDetailsPage team={selectedTeam} onBack={handleBackToList} />
+                                <TeamDetailsPage team={selectedTeam} onBack={handleBackToList}/>
                             ) : (
-                                <TeamsPage onTeamSelect={handleTeamSelect} />
+                                <TeamsPage onTeamSelect={handleTeamSelect}/>
                             )}
                         </DashboardSection>
 

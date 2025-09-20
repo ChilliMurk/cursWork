@@ -1,5 +1,5 @@
-import { FC, useState } from 'react';
-import { mockTeams, Team } from "@/modules/user/teams/components/mockTeams.tsx";
+import {FC, useState} from 'react';
+import {mockTeams, Team} from "@/modules/user/teams/components/mockTeams.tsx";
 import {
     CreateTeamButton, EmptyIcon, EmptyState, EmptyText,
     GameButton,
@@ -8,7 +8,7 @@ import {
     TeamsGrid
 } from "@/modules/user/teams/components/style.ts";
 import {CreateTeamPage} from "@/modules/user/teams/components/сreateTeamPage/CreateTeamPage.tsx";
-
+import {JoinTeamModal} from "@/modules/user/events/components/eventDetailsPage/modals/joinTeamModal/JoinTeamModal.tsx";
 
 interface TeamsPageProps {
     onTeamSelect: (team: Team) => void;
@@ -16,18 +16,44 @@ interface TeamsPageProps {
 
 const games = ["Все", "Counter-Strike 2", "Dota 2", "Valorant", "Mobile Legend"];
 
-export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
+export const TeamsPage: FC<TeamsPageProps> = ({onTeamSelect}) => {
     const [selectedGame, setSelectedGame] = useState("Все");
     const [teams, setTeams] = useState<Team[]>(mockTeams);
     const [isCreating, setIsCreating] = useState(false);
+    const [joinModal, setJoinModal] = useState({
+        isOpen: false,
+        teamId: 0,
+        teamName: ''
+    });
 
     const filteredTeams = selectedGame === "Все"
         ? teams
         : teams.filter(team => team.game === selectedGame);
 
-    const handleJoinTeam = (teamId: number, e: React.MouseEvent) => {
+    const handleJoinClick = (teamId: number, teamName: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        alert(`Запрос на вступление в команду ${teamId} отправлен!`);
+        setJoinModal({
+            isOpen: true,
+            teamId,
+            teamName
+        });
+    };
+
+    const handleJoinTeam = (message: string) => {
+        alert(`Запрос на вступление в команду "${joinModal.teamName}" отправлен!\nВаше сообщение: ${message}`);
+        setJoinModal({
+            isOpen: false,
+            teamId: 0,
+            teamName: ''
+        });
+    };
+
+    const handleCloseModal = () => {
+        setJoinModal({
+            isOpen: false,
+            teamId: 0,
+            teamName: ''
+        });
     };
 
     const handleCreateTeamClick = () => {
@@ -43,8 +69,8 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
             ...teamData,
             id: Math.max(...teams.map(t => t.id)) + 1,
             created: "Только что",
-            members: 1, // Создатель автоматически становится участником
-            membersList: ["CurrentUser"] // В реальном приложении берется из данных пользователя
+            members: 1,
+            membersList: ["CurrentUser"]
         };
 
         setTeams(prev => [...prev, newTeam]);
@@ -57,7 +83,7 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
     };
 
     if (isCreating) {
-        return <CreateTeamPage onCreateTeam={handleCreateTeam} onCancel={handleCancelCreate} />;
+        return <CreateTeamPage onCreateTeam={handleCreateTeam} onCancel={handleCancelCreate}/>;
     }
 
     return (
@@ -78,6 +104,13 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
                 Создать свою команду
             </CreateTeamButton>
 
+            <JoinTeamModal
+                isOpen={joinModal.isOpen}
+                teamName={joinModal.teamName}
+                onClose={handleCloseModal}
+                onJoin={handleJoinTeam}
+            />
+
             {filteredTeams.length > 0 ? (
                 <TeamsGrid>
                     {filteredTeams.map(team => (
@@ -89,7 +122,7 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
                                 <span>Участников: {team.members}/{team.maxMembers}</span>
                                 <span>Создана: {team.created}</span>
                             </TeamMeta>
-                            <JoinButton onClick={(e) => handleJoinTeam(team.id, e)}>
+                            <JoinButton onClick={(e) => handleJoinClick(team.id, team.name, e)}>
                                 Вступить в команду
                             </JoinButton>
                         </TeamCard>
