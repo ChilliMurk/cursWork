@@ -1,4 +1,4 @@
-import {FC} from 'react';
+import {FC, useState} from 'react';
 import {
     FormFooter, FormFooterLink,
     FormGroup, FormInput, FormLabel, FormSubmit,
@@ -9,8 +9,9 @@ import {
     ModalSubtitle,
     ModalTitle
 } from "@/common/components/mainPage/modals/style.ts";
-import {loginSuccess} from "@/store/reducers/authSlice.ts";
 import {useAppDispatch} from "@/common/hooks/useAppSelector.ts";
+import {registerStart, registerSuccess, registerFailure} from '@/store/reducers/authSlice';
+import {useRegisterMutation} from "@/store/reducers/auth/auth.ts"; // импорт actions
 
 interface RegisterModalProps {
     isOpen: boolean;
@@ -20,22 +21,106 @@ interface RegisterModalProps {
 }
 
 export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitchToLogin, onSuccess}) => {
-
     const dispatch = useAppDispatch();
+    const [register, {isLoading, error}] = useRegisterMutation();
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const [formData, setFormData] = useState({
+        login: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+    });
 
-        // Временная имитация успешной авторизации
-        const mockUser = {
-            id: '1',
-            email: 'test@example.com',
-            name: 'Test User'
+    const [formErrors, setFormErrors] = useState({
+        login: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+    });
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const {id, value} = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [id]: value
+        }));
+
+        // Очищаем ошибки при изменении поля
+        setFormErrors(prev => ({
+            ...prev,
+            [id]: ''
+        }));
+    };
+
+    const validateForm = () => {
+        const errors = {
+            login: '',
+            email: '',
+            password: '',
+            confirmPassword: ''
         };
 
-        dispatch(loginSuccess({user: mockUser}));
-        onClose();
-        onSuccess();
+        let isValid = true;
+
+        if (!formData.login.trim()) {
+            errors.login = 'Имя пользователя обязательно';
+            isValid = false;
+        }
+
+        if (!formData.email.trim()) {
+            errors.email = 'Email обязателен';
+            isValid = false;
+        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+            errors.email = 'Некорректный email';
+            isValid = false;
+        }
+
+        if (!formData.password) {
+            errors.password = 'Пароль обязателен';
+            isValid = false;
+        } else if (formData.password.length < 6) {
+            errors.password = 'Пароль должен содержать минимум 6 символов';
+            isValid = false;
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+            errors.confirmPassword = 'Пароли не совпадают';
+            isValid = false;
+        }
+
+        setFormErrors(errors);
+        return isValid;
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!validateForm()) return;
+
+        try {
+            dispatch(registerStart());
+
+            const result = await register({
+                login: formData.login,
+                email: formData.email,
+                password: formData.password
+            }).unwrap();
+
+            dispatch(registerSuccess({
+                user: {
+                    id: result.id,
+                    email: result.email,
+                    name: result.login
+                }
+            }));
+
+            onClose();
+            onSuccess();
+
+        } catch (error: any) {
+            const errorMessage = error.data?.message || 'Ошибка регистрации';
+            dispatch(registerFailure(errorMessage));
+        }
     };
 
     return (
@@ -46,44 +131,83 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
                     <ModalTitle>Регистрация</ModalTitle>
                     <ModalSubtitle>Присоединяйтесь к нашей стае</ModalSubtitle>
                 </ModalHeader>
+
+                {error && (
+                    <div style={{
+                        color: '#ff6b6b',
+                        padding: '10px',
+                        marginBottom: '15px',
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        borderRadius: '8px'
+                    }}>
+                        {typeof error === 'string' ? error : 'Ошибка регистрации'}
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit}>
                     <FormGroup>
-                        <FormLabel htmlFor="registerUsername">Имя пользователя</FormLabel>
+                        <FormLabel htmlFor="login">Имя пользователя</FormLabel>
                         <FormInput
                             type="text"
-                            id="registerUsername"
+                            id="login"
                             placeholder="Придумайте имя"
+                            value={formData.login}
+                            onChange={handleInputChange}
                             required
                         />
+                        {formErrors.login &&
+                            <span style={{color: '#ff6b6b', fontSize: '0.9rem'}}>{formErrors.login}</span>}
                     </FormGroup>
+
                     <FormGroup>
-                        <FormLabel htmlFor="registerEmail">Email</FormLabel>
+                        <FormLabel htmlFor="email">Email</FormLabel>
                         <FormInput
                             type="email"
-                            id="registerEmail"
+                            id="email"
                             placeholder="your@email.com"
+                            value={formData.email}
+                            onChange={handleInputChange}
                             required
                         />
+                        {formErrors.email &&
+                            <span style={{color: '#ff6b6b', fontSize: '0.9rem'}}>{formErrors.email}</span>}
                     </FormGroup>
+
                     <FormGroup>
-                        <FormLabel htmlFor="registerPassword">Пароль</FormLabel>
+                        <FormLabel htmlFor="password">Пароль</FormLabel>
                         <FormInput
                             type="password"
-                            id="registerPassword"
+                            id="password"
                             placeholder="Придумайте пароль"
+                            value={formData.password}
+                            onChange={handleInputChange}
                             required
                         />
+                        {formErrors.password &&
+                            <span style={{color: '#ff6b6b', fontSize: '0.9rem'}}>{formErrors.password}</span>}
                     </FormGroup>
+
                     <FormGroup>
                         <FormLabel htmlFor="confirmPassword">Подтверждение пароля</FormLabel>
                         <FormInput
                             type="password"
                             id="confirmPassword"
                             placeholder="Повторите пароль"
+                            value={formData.confirmPassword}
+                            onChange={handleInputChange}
                             required
                         />
+                        {formErrors.confirmPassword &&
+                            <span style={{color: '#ff6b6b', fontSize: '0.9rem'}}>{formErrors.confirmPassword}</span>}
                     </FormGroup>
-                    <FormSubmit type="submit">Создать аккаунт</FormSubmit>
+
+                    <FormSubmit
+                        type="submit"
+                        disabled={isLoading}
+                    >
+                        {isLoading ? 'Регистрация...' : 'Создать аккаунт'}
+                    </FormSubmit>
+
                     <FormFooter>
                         Уже есть аккаунт? <FormFooterLink href="#" onClick={onSwitchToLogin}>Войти</FormFooterLink>
                     </FormFooter>
