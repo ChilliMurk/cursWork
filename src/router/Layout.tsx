@@ -10,13 +10,27 @@ export const Layout: FC = () => {
     const isAuthenticated = authState?.isAuthenticated ?? false;
 
     useEffect(() => {
-        // Проверка авторизации только для защищенных маршрутов
-        if (!isAuthenticated && location.pathname !== '/') {
-            navigate('/', {replace: true});
-        }
+        // // Проверка авторизации только для защищенных маршрутов
+        // if (!isAuthenticated && location.pathname !== '/') {
+        //     navigate('/', {replace: true});
+        // }
+        //
+        // // Если авторизован и на главной странице - перенаправляем в личный кабинет
+        // if (isAuthenticated && location.pathname === '/') {
+        //     navigate('/user', {replace: true});
+        // }
 
-        // Если авторизован и на главной странице - перенаправляем в личный кабинет
-        if (isAuthenticated && location.pathname === '/') {
+
+        // Временно отключено для скриншотов
+        // if (!isAuthenticated && location.pathname !== '/') {
+        //     navigate('/', {replace: true});
+        // }
+        // if (isAuthenticated && location.pathname === '/') {
+        //     navigate('/user', {replace: true});
+        // }
+
+        // Принудительно переходим в /user для скриншотов
+        if (location.pathname === '/') {
             navigate('/user', {replace: true});
         }
     }, [isAuthenticated, location.pathname, navigate]);

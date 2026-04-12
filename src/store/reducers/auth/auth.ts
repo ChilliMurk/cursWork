@@ -1,9 +1,24 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+// Интерфейс для регистрации (оставляем как есть)
 export interface RegisterRequest {
     login: string;
     email: string;
     password: string;
+}
+
+// Добавляем интерфейс для логина
+export interface LoginRequest {
+    login: string; // Может быть как email, так и логин
+    password: string;
+}
+
+export interface LoginResponse {
+    id: string;
+    login: string;
+    email: string;
+    name?: string;
+    token?: string; // Если API возвращает токен
 }
 
 export interface RegisterResponse {
@@ -29,7 +44,17 @@ export const authApi = createApi({
                 body: credentials,
             }),
         }),
+        // Добавляем endpoint для логина
+        login: builder.mutation<LoginResponse, LoginRequest>({
+            query: (credentials) => ({
+                url: 'auth/login', // Уточните правильный endpoint у вашего бэкенда
+                method: 'POST',
+                body: credentials,
+            }),
+        }),
     }),
 });
 
-export const { useRegisterMutation } = authApi;
+// Экспортируем оба хука
+export const { useRegisterMutation, useLoginMutation } = authApi;
+

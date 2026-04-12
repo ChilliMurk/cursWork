@@ -11,7 +11,8 @@ import {
 } from "@/common/components/mainPage/modals/style.ts";
 import {useAppDispatch} from "@/common/hooks/useAppSelector.ts";
 import {registerStart, registerSuccess, registerFailure} from '@/store/reducers/authSlice';
-import {useRegisterMutation} from "@/store/reducers/auth/auth.ts"; // импорт actions
+import {useRegisterMutation} from "@/store/reducers/auth/auth.ts";
+//import {useNavigate} from "react-router-dom"; // импорт actions
 
 interface RegisterModalProps {
     isOpen: boolean;
@@ -23,6 +24,7 @@ interface RegisterModalProps {
 export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitchToLogin, onSuccess}) => {
     const dispatch = useAppDispatch();
     const [register, {isLoading, error}] = useRegisterMutation();
+    //const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
         login: '',
@@ -116,6 +118,8 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
 
             onClose();
             onSuccess();
+
+
 
         } catch (error: any) {
             const errorMessage = error.data?.message || 'Ошибка регистрации';

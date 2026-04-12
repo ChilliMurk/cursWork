@@ -1,12 +1,100 @@
+// import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+//
+// // Расширяем интерфейс пользователя
+// interface User {
+//     id: string;
+//     email: string;
+//     name: string;
+//     login?: string; // Добавляем опциональное поле для логина
+// }
+//
+// interface AuthState {
+//     isAuthenticated: boolean;
+//     user: null | User;
+//     isLoading: boolean;
+//     error: string | null;
+// }
+//
+// const initialState: AuthState = {
+//     isAuthenticated: false,
+//     user: null,
+//     isLoading: false,
+//     error: null,
+// };
+//
+// export const authSlice = createSlice({
+//     name: 'auth',
+//     initialState,
+//     reducers: {
+//         loginStart: (state) => {
+//             state.isLoading = true;
+//             state.error = null;
+//         },
+//         loginSuccess: (state, action: PayloadAction<{ user: User }>) => {
+//             state.isLoading = false;
+//             state.isAuthenticated = true;
+//             state.user = action.payload.user;
+//             state.error = null;
+//         },
+//         loginFailure: (state, action: PayloadAction<string>) => {
+//             state.isLoading = false;
+//             state.isAuthenticated = false;
+//             state.user = null;
+//             state.error = action.payload;
+//         },
+//         logout: (state) => {
+//             state.isAuthenticated = false;
+//             state.user = null;
+//             state.error = null;
+//         },
+//         registerStart: (state) => {
+//             state.isLoading = true;
+//             state.error = null;
+//         },
+//         registerSuccess: (state, action: PayloadAction<{ user: User }>) => {
+//             state.isLoading = false;
+//             state.isAuthenticated = true;
+//             state.user = action.payload.user;
+//             state.error = null;
+//         },
+//         registerFailure: (state, action: PayloadAction<string>) => {
+//             state.isLoading = false;
+//             state.isAuthenticated = false;
+//             state.user = null;
+//             state.error = action.payload;
+//         },
+//     },
+// });
+//
+// export const {
+//     loginStart,
+//     loginSuccess,
+//     loginFailure,
+//     logout,
+//     registerStart,
+//     registerSuccess,
+//     registerFailure,
+// } = authSlice.actions;
+//
+// export const authReducer = authSlice.reducer;
+//
+//
+
+
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+
+interface User {
+    id: string;
+    email: string;
+    name: string;
+    login?: string;
+    role?: 'admin' | 'user'; // Добавляем поле для роли
+    token?: string; // Добавляем поле для токена
+}
 
 interface AuthState {
     isAuthenticated: boolean;
-    user: null | {
-        id: string;
-        email: string;
-        name: string;
-    };
+    user: null | User;
     isLoading: boolean;
     error: string | null;
 }
@@ -26,7 +114,7 @@ export const authSlice = createSlice({
             state.isLoading = true;
             state.error = null;
         },
-        loginSuccess: (state, action: PayloadAction<{ user: any }>) => {
+        loginSuccess: (state, action: PayloadAction<{ user: User }>) => {
             state.isLoading = false;
             state.isAuthenticated = true;
             state.user = action.payload.user;
@@ -47,7 +135,7 @@ export const authSlice = createSlice({
             state.isLoading = true;
             state.error = null;
         },
-        registerSuccess: (state, action: PayloadAction<{ user: any }>) => {
+        registerSuccess: (state, action: PayloadAction<{ user: User }>) => {
             state.isLoading = false;
             state.isAuthenticated = true;
             state.user = action.payload.user;
@@ -58,6 +146,12 @@ export const authSlice = createSlice({
             state.isAuthenticated = false;
             state.user = null;
             state.error = action.payload;
+        },
+        // Добавляем экшн для обновления токена
+        setToken: (state, action: PayloadAction<string>) => {
+            if (state.user) {
+                state.user.token = action.payload;
+            }
         },
     },
 });
@@ -70,6 +164,7 @@ export const {
     registerStart,
     registerSuccess,
     registerFailure,
+    setToken,
 } = authSlice.actions;
 
 export const authReducer = authSlice.reducer;

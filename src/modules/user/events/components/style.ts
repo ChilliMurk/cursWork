@@ -203,3 +203,23 @@ export const EmptyText = styled.p`
   margin-right: auto;
   line-height: 1.6;
 `;
+
+
+
+
+export const LoadingSpinner = styled.div`
+    text-align: center;
+    padding: 40px;
+    color: #00b4d8;
+    font-size: 18px;
+`;
+
+export const ErrorMessage = styled.div`
+    text-align: center;
+    padding: 40px;
+    color: #ff6b6b;
+    font-size: 18px;
+    background: rgba(255, 107, 107, 0.1);
+    border-radius: 12px;
+    margin: 20px;
+`;
