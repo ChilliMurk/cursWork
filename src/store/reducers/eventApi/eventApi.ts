@@ -177,7 +177,7 @@ export const eventsApi = createApi({
     reducerPath: 'eventsApi',
     tagTypes: ['Events'],
     baseQuery: fetchBaseQuery({
-        baseUrl: 'http://192.168.0.12:8080/api/',
+        baseUrl: 'http://192.168.1.103:8080/api/',
         prepareHeaders: (headers, { getState }) => {
             const token = (getState() as RootState).authReducer.user?.token;
             if (token) {

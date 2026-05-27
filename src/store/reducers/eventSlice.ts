@@ -1,4 +1,3 @@
-// store/reducers/eventSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Event } from '@/store/reducers/eventApi/eventApi.ts';
 
@@ -104,7 +103,7 @@ export const eventSlice = createSlice({
 
         // Удаление события
         removeEventStart: (state) => {
-            state.isUpdating = true; // можно использовать отдельный флаг
+            state.isUpdating = true;
             state.error = null;
         },
         removeEventSuccess: (state, action: PayloadAction<number>) => {

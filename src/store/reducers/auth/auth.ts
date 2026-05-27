@@ -30,7 +30,7 @@ export interface RegisterResponse {
 export const authApi = createApi({
     reducerPath: 'authApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: 'http://192.168.0.12:8080/api/',
+        baseUrl: 'http://192.168.1.103:8080/api/',
         prepareHeaders: (headers) => {
             headers.set('Content-Type', 'application/json');
             return headers;

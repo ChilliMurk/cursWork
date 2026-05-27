@@ -7,7 +7,6 @@ import {
     MethodologyDetailsPage
 } from "@/modules/user/methodology/components/methodologyDetailsPage/MethodologyDetailsPage.tsx";
 
-
 export interface MethodologyContent {
     type: 'heading' | 'text' | 'image';
     content: string;
