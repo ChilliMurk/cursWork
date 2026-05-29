@@ -40,6 +40,13 @@ export const ProfileAvatar = styled.div`
   margin-bottom: 20px;
   border: 3px solid #00e6ff;
   box-shadow: 0 0 20px rgba(0, 230, 255, 0.3);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(0, 230, 255, 0.5);
+  }
 `;
 
 export const ProfileUsername = styled.h2`

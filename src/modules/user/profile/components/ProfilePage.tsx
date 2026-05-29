@@ -1,4 +1,4 @@
-import {FC, useState} from 'react';
+import {FC, useState, useRef, ChangeEvent} from 'react';
 
 import {
     ActionButtons,
@@ -24,11 +24,14 @@ import {
 import {mockUser, UserProfile} from "@/modules/user/profile/components/MockUserProfile.tsx";
 
 export const ProfilePage: FC = () => {
-    const [user] = useState<UserProfile>(mockUser);
+    const [user, setUser] = useState<UserProfile>(mockUser);
     const [isEditing, setIsEditing] = useState(false);
     const [bioText, setBioText] = useState(user.bio);
+    const [avatarImage, setAvatarImage] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleSaveProfile = () => {
+        setUser({...user, bio: bioText});
         setIsEditing(false);
         alert("Изменения профиля сохранены!");
     };
@@ -38,11 +41,54 @@ export const ProfilePage: FC = () => {
         setIsEditing(false);
     };
 
+    const handleAvatarClick = () => {
+        if (isEditing) {
+            fileInputRef.current?.click();
+        }
+    };
+
+    const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setAvatarImage(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const getAvatarContent = () => {
+        if (avatarImage) {
+            return <img src={avatarImage} alt="Avatar" style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: '50%',
+                objectFit: 'cover'
+            }} />;
+        }
+        // Если нет картинки, показываем две буквы
+        const initials = user.username.slice(0, 2).toUpperCase();
+        return <span>{initials}</span>;
+    };
+
     return (
         <ProfileContainer>
             <ProfileGrid>
                 <ProfileSidebar>
-                    <ProfileAvatar>{user.avatar}</ProfileAvatar>
+                    <ProfileAvatar
+                        onClick={handleAvatarClick}
+                        style={{ cursor: isEditing ? 'pointer' : 'default' }}
+                    >
+                        {getAvatarContent()}
+                    </ProfileAvatar>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageUpload}
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                    />
                     <ProfileUsername>{user.username}</ProfileUsername>
 
                     <ProfileStats>
