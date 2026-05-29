@@ -8,12 +8,9 @@ export interface Team {
     created: string;
     captain: string;
     membersList: string[];
-    achievements: string[];
     requirements: string;
     contact: string;
     rating: number;
-    practiceSchedule: string;
-    lookingFor: string[];
 }
 
 export const mockTeams: Team[] = [
@@ -27,12 +24,9 @@ export const mockTeams: Team[] = [
         created: "2 дня назад",
         captain: "User123",
         membersList: ["User123", "Player456", "Gamer789"],
-        achievements: ["Победители недельного турнира", "Топ-5 в региональном чемпионате"],
         requirements: "Опыт игры от 6 месяцев, наличие микрофона, готовность к регулярным тренировкам",
         contact: "Discord: User123#1234",
-        rating: 4.8,
-        practiceSchedule: "Пн, Ср, Пт с 19:00 до 21:00",
-        lookingFor: ["Rifler", "AWPer", "Support"]
+        rating: 4.8
     },
     {
         id: 2,
@@ -44,12 +38,9 @@ export const mockTeams: Team[] = [
         created: "5 дней назад",
         captain: "DragonLord",
         membersList: ["DragonLord", "IceMage", "FireWarrior", "WindRanger"],
-        achievements: ["Финалисты Autumn Cup 2023", "Участники DreamLeague Qualifiers"],
         requirements: "MMR от 4000, знание меты, опыт командной игры",
         contact: "Telegram: @DragonLord",
-        rating: 4.5,
-        practiceSchedule: "Вт, Чт, Сб с 20:00 до 23:00",
-        lookingFor: ["Support", "Hard Support"]
+        rating: 4.5
     },
     {
         id: 3,
@@ -59,14 +50,11 @@ export const mockTeams: Team[] = [
         maxMembers: 5,
         description: "Новая команда ищет игроков для участия в лигах и развития вместе.",
         created: "1 день назад",
-        captain: "DragonLord",
-        membersList: ["DragonLord", "IceMage", "FireWarrior", "WindRanger"],
-        achievements: ["Финалисты Autumn Cup 2023", "Участники DreamLeague Qualifiers"],
-        requirements: "MMR от 4000, знание меты, опыт командной игры",
-        contact: "Telegram: @DragonLord",
-        rating: 4.5,
-        practiceSchedule: "Вт, Чт, Сб с 20:00 до 23:00",
-        lookingFor: ["Support", "Hard Support"]
+        captain: "ShadowHunter",
+        membersList: ["ShadowHunter", "NightStalker", "MoonRider"],
+        requirements: "Ранг Platinum и выше, знание карт, наличие микрофона",
+        contact: "Discord: ShadowHunter#5678",
+        rating: 4.2
     },
     {
         id: 4,
@@ -76,14 +64,11 @@ export const mockTeams: Team[] = [
         maxMembers: 5,
         description: "Опытная команда ищет одного игрока для завершения состава перед турниром.",
         created: "3 дня назад",
-        captain: "DragonLord",
-        membersList: ["DragonLord", "IceMage", "FireWarrior", "WindRanger"],
-        achievements: ["Финалисты Autumn Cup 2023", "Участники DreamLeague Qualifiers"],
-        requirements: "MMR от 4000, знание меты, опыт командной игры",
-        contact: "Telegram: @Tiger",
-        rating: 4.7,
-        practiceSchedule: "Вт, Пт, Сб с 20:00 до 23:00",
-        lookingFor: ["Rifler", "AWPer", "Support"]
+        captain: "PhoenixKing",
+        membersList: ["PhoenixKing", "FireWing", "FlameDancer", "AshBringer"],
+        requirements: "Ранг Mythic, опыт турнирной игры",
+        contact: "Telegram: @PhoenixKing",
+        rating: 4.7
     },
     {
         id: 5,
@@ -93,13 +78,10 @@ export const mockTeams: Team[] = [
         maxMembers: 5,
         description: "Собираем команду мечты. Присоединяйтесь, если готовы к регулярным тренировкам.",
         created: "неделю назад",
-        captain: "DragonLord",
-        membersList: ["DragonLord", "IceMage", "FireWarrior", "WindRanger"],
-        achievements: ["Финалисты Autumn Cup 2023", "Участники DreamLeague Qualifiers"],
-        requirements: "MMR от 4000, знание меты, опыт командной игры",
-        contact: "Telegram: @Tiger",
-        rating: 4.7,
-        practiceSchedule: "Вт, Пт, Сб с 20:00 до 23:00",
-        lookingFor: ["Rifler", "AWPer", "Support"]
+        captain: "LoneWolf",
+        membersList: ["LoneWolf", "SilentHunter"],
+        requirements: "Ранг Master Guardian и выше, знание тактик, командный игрок",
+        contact: "Discord: LoneWolf#9012",
+        rating: 4.3
     },
 ];

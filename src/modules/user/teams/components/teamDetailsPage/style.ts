@@ -160,48 +160,10 @@ export const MemberName = styled.div`
   }
 `;
 
-export const AchievementList = styled.ul`
-  list-style: none;
-  padding: 0;
-`;
-
-export const AchievementItem = styled.li`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(0, 180, 216, 0.1);
-  
-  &:last-child {
-    border-bottom: none;
-  }
-  
-  &:before {
-    content: "🏆";
-    font-size: 1.2rem;
-  }
-`;
-
 export const RequirementText = styled.p`
   color: #e0e0e0;
   line-height: 1.6;
   margin-bottom: 20px;
-`;
-
-export const LookingForList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
-`;
-
-export const RoleBadge = styled.span`
-  background: rgba(0, 180, 216, 0.2);
-  color: #00e6ff;
-  padding: 5px 12px;
-  border-radius: 15px;
-  font-size: 0.9rem;
-  border: 1px solid rgba(0, 180, 216, 0.3);
 `;
 
 export const ContactInfo = styled.div`

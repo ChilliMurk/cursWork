@@ -1,15 +1,13 @@
 import { FC, useState, useEffect } from 'react';
 import {Team} from "@/modules/user/teams/components/mockTeams.tsx";
 import {
-    AchievementItem,
-    AchievementList,
     ActionButtonsContainer, CaptainBadge,
     CardTitle, ContactInfo,
     ContentCard,
     ContentGrid,
     CreateTeamButton,
     EditTeamButton, KickButton,
-    LeaveTeamButton, LookingForList, ManageButton, ManageButtons,
+    LeaveTeamButton, ManageButton, ManageButtons,
     MemberAvatar,
     MemberItem, MemberName, MemberRole,
     MembersList,
@@ -21,7 +19,7 @@ import {
     NoTeamIcon,
     NoTeamText,
     NoTeamTitle,
-    Rating, RequirementText, RoleBadge,
+    Rating, RequirementText,
     TeamDescription,
     TeamGameBadge,
     TeamHeaderSection,
@@ -42,16 +40,9 @@ const mockUserTeam: Team = {
     created: "15 марта 2024",
     captain: "CurrentUser",
     membersList: ["CurrentUser", "Player456", "Gamer789", "ProGamer", "NewRecruit"],
-    achievements: [
-        "🥇 Победители недельного турнира (март 2024)",
-        "🎯 Топ-3 в региональном чемпионате",
-        "🏆 Лучшая командная игра месяца"
-    ],
     requirements: "Опыт игры от 6 месяцев, наличие микрофона, готовность к регулярным тренировкам",
     contact: "Discord: team.leader#1234 | Telegram: @team_channel",
-    rating: 4.8,
-    practiceSchedule: "Пн, Ср, Пт с 19:00 до 21:00",
-    lookingFor: []
+    rating: 4.8
 };
 
 const HAS_TEAM = true;
@@ -197,11 +188,6 @@ export const MyTeamPage: FC<MyTeamPageProps> = () => {
                             <MetaLabel>Создана</MetaLabel>
                             <MetaValue>{team.created}</MetaValue>
                         </MetaItem>
-
-                        <MetaItem>
-                            <MetaLabel>Расписание тренировок</MetaLabel>
-                            <MetaValue>{team.practiceSchedule}</MetaValue>
-                        </MetaItem>
                     </TeamMetaGrid>
 
                     <ActionButtonsContainer>
@@ -263,40 +249,6 @@ export const MyTeamPage: FC<MyTeamPageProps> = () => {
 
                     <ContentCard>
                         <CardTitle>
-                            <i className="fas fa-trophy"></i>
-                            Достижения
-                        </CardTitle>
-
-                        <AchievementList>
-                            {team.achievements.map((achievement, index) => (
-                                <AchievementItem key={index}>
-                                    {achievement}
-                                </AchievementItem>
-                            ))}
-                        </AchievementList>
-                    </ContentCard>
-
-                    <ContentCard>
-                        <CardTitle>
-                            <i className="fas fa-search"></i>
-                            Ищем игроков
-                        </CardTitle>
-
-                        {team.lookingFor && team.lookingFor.length > 0 ? (
-                            <LookingForList>
-                                {team.lookingFor.map((role, index) => (
-                                    <RoleBadge key={index}>{role}</RoleBadge>
-                                ))}
-                            </LookingForList>
-                        ) : (
-                            <RequirementText style={{ color: '#a0a0a0', textAlign: 'center' }}>
-                                {isCaptain
-                                    ? "Вы можете добавить вакансии в разделе редактирования команды"
-                                    : "Состав команды полностью укомплектован"}
-                            </RequirementText>
-                        )}
-
-                        <CardTitle style={{ marginTop: '20px' }}>
                             <i className="fas fa-list-alt"></i>
                             Требования
                         </CardTitle>

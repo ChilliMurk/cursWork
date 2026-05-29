@@ -34,6 +34,13 @@ export const EventsPage: FC = () => {
         isFetching
     } = useGetAdminEventsQuery();
 
+    useEffect(() => {
+        if (user) {
+            console.log('User logged in:', user.name || user.email);
+            // Загрузить события пользователя или другую логику
+        }
+    }, [user]);
+
     // Принудительно обновляем данные при монтировании
     useEffect(() => {
         refetch();

@@ -1,17 +1,15 @@
 import { FC } from 'react';
 import { Team } from "@/modules/user/teams/components/mockTeams.tsx";
 import {
-    AchievementItem,
-    AchievementList,
     BackButton, ContactInfo,
     ContentCard,
-    ContentGrid, LookingForList, MemberAvatar,
+    ContentGrid, MemberAvatar,
     MemberItem, MemberName,
     MembersList,
     MetaItem,
     MetaLabel,
     MetaValue,
-    Rating, RequirementText, RoleBadge,
+    Rating, RequirementText,
     TeamDescription,
     TeamDetailsContainer,
     TeamGameBadge,
@@ -70,11 +68,6 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({ team, onBack }) => {
                         <MetaLabel>Создана</MetaLabel>
                         <MetaValue>{team.created}</MetaValue>
                     </MetaItem>
-
-                    <MetaItem>
-                        <MetaLabel>Расписание тренировок</MetaLabel>
-                        <MetaValue>{team.practiceSchedule}</MetaValue>
-                    </MetaItem>
                 </TeamMeta>
             </TeamHeader>
 
@@ -100,32 +93,6 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({ team, onBack }) => {
                 </ContentCard>
 
                 <ContentCard>
-                    <CardTitle>
-                        <i className="fas fa-trophy"></i>
-                        Достижения
-                    </CardTitle>
-
-                    <AchievementList>
-                        {team.achievements.map((achievement, index) => (
-                            <AchievementItem key={index}>
-                                {achievement}
-                            </AchievementItem>
-                        ))}
-                    </AchievementList>
-                </ContentCard>
-
-                <ContentCard>
-                    <CardTitle>
-                        <i className="fas fa-search"></i>
-                        Ищем игроков
-                    </CardTitle>
-
-                    <LookingForList>
-                        {team.lookingFor.map((role, index) => (
-                            <RoleBadge key={index}>{role}</RoleBadge>
-                        ))}
-                    </LookingForList>
-
                     <CardTitle>
                         <i className="fas fa-list-alt"></i>
                         Требования
