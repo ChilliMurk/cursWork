@@ -45,7 +45,6 @@ export const CreateTeamPage: FC<CreateTeamPageProps> = ({onCreateTeam, onCancel}
         description: '',
         requirements: '',
         contact: '',
-        maxMembers: 5,
         practiceSchedule: ''
     });
 
@@ -97,7 +96,6 @@ export const CreateTeamPage: FC<CreateTeamPageProps> = ({onCreateTeam, onCancel}
         if (!formData.name.trim()) newErrors.name = 'Название команды обязательно';
         if (!formData.game) newErrors.game = 'Выберите игру';
         if (!formData.description.trim()) newErrors.description = 'Описание обязательно';
-        if (formData.maxMembers < 2 || formData.maxMembers > 10) newErrors.maxMembers = 'Количество участников должно быть от 2 до 10';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -111,9 +109,9 @@ export const CreateTeamPage: FC<CreateTeamPageProps> = ({onCreateTeam, onCancel}
         const teamData = {
             ...formData,
             lookingFor: selectedRoles,
-            rating: 0, // Новые команды начинают с рейтинга 0
-            achievements: [], // Новые команды без достижений
-            captain: "CurrentUser", // В реальном приложении берется из данных пользователя
+            rating: 0,
+            achievements: [],
+            captain: "CurrentUser",
         };
 
         onCreateTeam(teamData);
@@ -166,19 +164,6 @@ export const CreateTeamPage: FC<CreateTeamPageProps> = ({onCreateTeam, onCancel}
                                 </SelectList>
                             </Select>
                             {errors.game && <ErrorMessage>{errors.game}</ErrorMessage>}
-                        </FormGroup>
-
-                        <FormGroup>
-                            <Label>Максимум участников *</Label>
-                            <Input
-                                type="number"
-                                name="maxMembers"
-                                value={formData.maxMembers}
-                                onChange={handleInputChange}
-                                min="2"
-                                max="10"
-                            />
-                            {errors.maxMembers && <ErrorMessage>{errors.maxMembers}</ErrorMessage>}
                         </FormGroup>
 
                         <FormGroup className="full-width">

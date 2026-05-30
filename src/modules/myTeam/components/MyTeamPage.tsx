@@ -34,8 +34,6 @@ const mockUserTeam: Team = {
     id: 1,
     name: "Пушистые лапки",
     game: "Counter-Strike 2",
-    members: 5,
-    maxMembers: 5,
     description: "Команда для начинающих и опытных игроков. Участвуем в турнирах и регулярно тренируемся.",
     created: "15 марта 2024",
     captain: "CurrentUser",
@@ -95,14 +93,12 @@ export const MyTeamPage: FC<MyTeamPageProps> = () => {
                 if (!prev) return null;
                 return {
                     ...prev,
-                    membersList: prev.membersList.filter(m => m !== memberName),
-                    members: prev.members - 1
+                    membersList: prev.membersList.filter(m => m !== memberName)
                 };
             });
         }
     };
 
-    // Если нужно открыть страницу заявок
     if (showRequests && team) {
         return (
             <TeamRequestsPage
@@ -111,13 +107,11 @@ export const MyTeamPage: FC<MyTeamPageProps> = () => {
                 onBack={() => setShowRequests(false)}
                 onRequestAccepted={(request) => {
                     console.log('Принят игрок:', request);
-                    // Обновляем состав команды
                     setTeam(prev => {
                         if (!prev) return null;
                         return {
                             ...prev,
-                            membersList: [...prev.membersList, request.nickname],
-                            members: prev.members + 1
+                            membersList: [...prev.membersList, request.nickname]
                         };
                     });
                 }}
@@ -157,6 +151,8 @@ export const MyTeamPage: FC<MyTeamPageProps> = () => {
         );
     }
 
+    const membersCount = team.membersList.length;
+
     return (
         <MyTeamContainer>
             <TeamInfoCard>
@@ -168,7 +164,7 @@ export const MyTeamPage: FC<MyTeamPageProps> = () => {
                     <TeamMetaGrid>
                         <MetaItem>
                             <MetaLabel>Участников</MetaLabel>
-                            <MetaValue>{team.members}/{team.maxMembers}</MetaValue>
+                            <MetaValue>{membersCount}</MetaValue>
                         </MetaItem>
 
                         <MetaItem>
@@ -208,7 +204,7 @@ export const MyTeamPage: FC<MyTeamPageProps> = () => {
                     <ContentCard>
                         <CardTitle>
                             <i className="fas fa-users"></i>
-                            Участники команды
+                            Участники команды ({membersCount})
                         </CardTitle>
 
                         <MembersList>

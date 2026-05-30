@@ -33,6 +33,8 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({ team, onBack }) => {
         alert(`Контактная информация: ${team.contact}`);
     };
 
+    const membersCount = team.membersList.length;
+
     return (
         <TeamDetailsContainer>
             <BackButton onClick={onBack}>
@@ -48,7 +50,7 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({ team, onBack }) => {
                 <TeamMeta>
                     <MetaItem>
                         <MetaLabel>Участников</MetaLabel>
-                        <MetaValue>{team.members}/{team.maxMembers}</MetaValue>
+                        <MetaValue>{membersCount}</MetaValue>
                     </MetaItem>
 
                     <MetaItem>
@@ -75,7 +77,7 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({ team, onBack }) => {
                 <ContentCard>
                     <CardTitle>
                         <i className="fas fa-users"></i>
-                        Участники команды
+                        Участники команды ({membersCount})
                     </CardTitle>
 
                     <MembersList>

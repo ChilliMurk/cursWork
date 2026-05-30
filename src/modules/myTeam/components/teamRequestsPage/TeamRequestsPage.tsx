@@ -130,11 +130,6 @@ export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
         const requestIndex = joinRequests.findIndex(r => r.id === requestId);
         if (requestIndex === -1) return;
 
-        if (teamMembersCount >= 5) {
-            alert(`❌ Невозможно принять заявку. Состав команды уже полностью укомплектован (5/5).`);
-            return;
-        }
-
         const acceptedPlayer = joinRequests[requestIndex];
         setTeamMembersCount(prev => prev + 1);
         setJoinRequests(prev => prev.filter(r => r.id !== requestId));
@@ -245,8 +240,8 @@ export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
                             <i className="fas fa-users"></i>
                         </StatIcon>
                         <StatInfo>
-                            <StatNumber>{teamMembersCount} / 5</StatNumber>
-                            <StatLabel>Состав команды</StatLabel>
+                            <StatNumber>{teamMembersCount}</StatNumber>
+                            <StatLabel>Участников в команде</StatLabel>
                         </StatInfo>
                     </StatCard>
                 </StatsRow>

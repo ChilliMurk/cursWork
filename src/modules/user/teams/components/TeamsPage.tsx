@@ -9,6 +9,7 @@ import {
 } from "@/modules/user/teams/components/style.ts";
 import {CreateTeamPage} from "@/modules/user/teams/components/сreateTeamPage/CreateTeamPage.tsx";
 import {JoinTeamModal} from "@/modules/user/events/components/eventDetailsPage/modals/joinTeamModal/JoinTeamModal.tsx";
+import {getTeamMembersCount} from "@/modules/user/teams/hook/getTeamMembersCount.tsx";
 
 interface TeamsPageProps {
     onTeamSelect: (team: Team) => void;
@@ -64,12 +65,11 @@ export const TeamsPage: FC<TeamsPageProps> = ({onTeamSelect}) => {
         setIsCreating(false);
     };
 
-    const handleCreateTeam = (teamData: Omit<Team, 'id' | 'created' | 'members' | 'membersList'>) => {
+    const handleCreateTeam = (teamData: Omit<Team, 'id' | 'created' | 'membersList'>) => {
         const newTeam: Team = {
             ...teamData,
             id: Math.max(...teams.map(t => t.id)) + 1,
             created: "Только что",
-            members: 1,
             membersList: ["CurrentUser"]
         };
 
@@ -119,7 +119,7 @@ export const TeamsPage: FC<TeamsPageProps> = ({onTeamSelect}) => {
                             <TeamName>{team.name}</TeamName>
                             <TeamInfo>{team.description}</TeamInfo>
                             <TeamMeta>
-                                <span>Участников: {team.members}/{team.maxMembers}</span>
+                                <span>Участников: {getTeamMembersCount(team)}</span>
                                 <span>Создана: {team.created}</span>
                             </TeamMeta>
                             <JoinButton onClick={(e) => handleJoinClick(team.id, team.name, e)}>
