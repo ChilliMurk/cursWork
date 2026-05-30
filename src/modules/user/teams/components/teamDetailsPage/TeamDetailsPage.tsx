@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { Team } from "@/modules/user/teams/components/mockTeams.tsx";
 import {
     BackButton, ContactInfo,
@@ -14,17 +14,28 @@ import {
     TeamDetailsContainer,
     TeamGameBadge,
     TeamHeader,
-    TeamTitle
+    TeamTitle,
+    DeleteButton
 } from "@/modules/user/teams/components/teamDetailsPage/style.ts";
 import {TeamMeta} from "@/modules/user/teams/components/style.ts";
 import {ActionButtons, CardTitle, PrimaryButton, SecondaryButton} from "@/modules/user/profile/components/style.ts";
+import {DeleteConfirmModal} from "@/modules/user/teams/DeleteConfirmModal.tsx";
 
 interface TeamDetailsPageProps {
     team: Team;
     onBack: () => void;
+    onDelete?: (teamId: number) => void;
+    currentUser?: string;
 }
 
-export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({ team, onBack }) => {
+export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
+                                                              team,
+                                                              onBack,
+                                                              onDelete,
+                                                            //  currentUser = "CurrentUser"
+                                                          }) => {
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+
     const handleJoinTeam = () => {
         alert(`Запрос на вступление в команду ${team.name} отправлен!`);
     };
@@ -33,7 +44,25 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({ team, onBack }) => {
         alert(`Контактная информация: ${team.contact}`);
     };
 
+    const handleDeleteClick = () => {
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (onDelete) {
+            onDelete(team.id);
+        }
+        setShowDeleteModal(false);
+        // Вызываем onBack для перенаправления на список команд
+        onBack();
+    };
+
+    const handleCancelDelete = () => {
+        setShowDeleteModal(false);
+    };
+
     const membersCount = team.membersList.length;
+    //const isCaptain = team.captain === currentUser;
 
     return (
         <TeamDetailsContainer>
@@ -100,7 +129,7 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({ team, onBack }) => {
                         Требования
                     </CardTitle>
 
-                    <RequirementText>{team.requirements}</RequirementText>
+                    <RequirementText>{team.requirements || "Требования не указаны"}</RequirementText>
                 </ContentCard>
 
                 <ContentCard>
@@ -110,7 +139,7 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({ team, onBack }) => {
                     </CardTitle>
 
                     <ContactInfo>
-                        {team.contact}
+                        {team.contact || "Контактная информация не указана"}
                     </ContactInfo>
 
                     <ActionButtons>
@@ -124,8 +153,28 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({ team, onBack }) => {
                             Связаться
                         </SecondaryButton>
                     </ActionButtons>
+
+                    {/*{isCaptain && onDelete && (*/}
+                    {/*    <DeleteButton onClick={handleDeleteClick}>*/}
+                    {/*        <i className="fas fa-trash-alt"></i>*/}
+                    {/*        Удалить команду*/}
+                    {/*    </DeleteButton>*/}
+                    {/*)}*/}
+
+                        <DeleteButton onClick={handleDeleteClick}>
+                            <i className="fas fa-trash-alt"></i>
+                            Удалить команду
+                        </DeleteButton>
+
                 </ContentCard>
             </ContentGrid>
+
+            <DeleteConfirmModal
+                isOpen={showDeleteModal}
+                teamName={team.name}
+                onConfirm={handleConfirmDelete}
+                onCancel={handleCancelDelete}
+            />
         </TeamDetailsContainer>
     );
 };

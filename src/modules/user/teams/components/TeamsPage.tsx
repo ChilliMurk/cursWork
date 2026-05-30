@@ -1,4 +1,4 @@
-import {FC, useState} from 'react';
+import {FC, useState, useCallback} from 'react';
 import {mockTeams, Team} from "@/modules/user/teams/components/mockTeams.tsx";
 import {
     CreateTeamButton, EmptyIcon, EmptyState, EmptyText,
@@ -10,22 +10,38 @@ import {
 import {CreateTeamPage} from "@/modules/user/teams/components/сreateTeamPage/CreateTeamPage.tsx";
 import {JoinTeamModal} from "@/modules/user/events/components/eventDetailsPage/modals/joinTeamModal/JoinTeamModal.tsx";
 import {getTeamMembersCount} from "@/modules/user/teams/hook/getTeamMembersCount.tsx";
+import {TeamDetailsPage} from "@/modules/user/teams/components/teamDetailsPage/TeamDetailsPage.tsx";
 
 interface TeamsPageProps {
-    onTeamSelect: (team: Team) => void;
+    onTeamSelect?: (team: Team) => void;
 }
 
 const games = ["Все", "Counter-Strike 2", "Dota 2", "Valorant", "Mobile Legend"];
 
 export const TeamsPage: FC<TeamsPageProps> = ({onTeamSelect}) => {
     const [selectedGame, setSelectedGame] = useState("Все");
-    const [teams, setTeams] = useState<Team[]>(mockTeams);
+    const [teams, setTeams] = useState<Team[]>(() => {
+        const savedTeams = localStorage.getItem('teams');
+        if (savedTeams) {
+            try {
+                return JSON.parse(savedTeams);
+            } catch {
+                return [...mockTeams];
+            }
+        }
+        return [...mockTeams];
+    });
     const [isCreating, setIsCreating] = useState(false);
+    const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
     const [joinModal, setJoinModal] = useState({
         isOpen: false,
         teamId: 0,
         teamName: ''
     });
+
+    const saveTeamsToLocalStorage = useCallback((newTeams: Team[]) => {
+        localStorage.setItem('teams', JSON.stringify(newTeams));
+    }, []);
 
     const filteredTeams = selectedGame === "Все"
         ? teams
@@ -66,21 +82,75 @@ export const TeamsPage: FC<TeamsPageProps> = ({onTeamSelect}) => {
     };
 
     const handleCreateTeam = (teamData: Omit<Team, 'id' | 'created' | 'membersList'>) => {
+        // TODO: Добавить валидацию позже
+        // if (!teamData.name.trim()) {
+        //     alert("Название команды обязательно");
+        //     return;
+        // }
+        // if (!teamData.game) {
+        //     alert("Выберите игру");
+        //     return;
+        // }
+
         const newTeam: Team = {
             ...teamData,
-            id: Math.max(...teams.map(t => t.id)) + 1,
+            id: Math.max(...teams.map(t => t.id), 0) + 1,
             created: "Только что",
-            membersList: ["CurrentUser"]
+            membersList: ["CurrentUser"],
+            captain: "CurrentUser"
         };
 
-        setTeams(prev => [...prev, newTeam]);
+        const updatedTeams = [...teams, newTeam];
+        setTeams(updatedTeams);
+        saveTeamsToLocalStorage(updatedTeams);
         setIsCreating(false);
         alert(`Команда "${newTeam.name}" успешно создана!`);
     };
 
     const handleTeamClick = (team: Team) => {
-        onTeamSelect(team);
+        setSelectedTeam(team);
+        if (onTeamSelect) {
+            onTeamSelect(team);
+        }
     };
+
+    const handleBackToList = () => {
+        setSelectedTeam(null);
+    };
+
+    const handleDeleteTeam = useCallback((teamId: number) => {
+        // TODO: Добавить проверку прав позже
+        // const team = teams.find(t => t.id === teamId);
+        // if (team?.captain !== "CurrentUser") {
+        //     alert("Только капитан может удалить команду");
+        //     return;
+        // }
+
+        const deletedTeam = teams.find(t => t.id === teamId);
+        const updatedTeams = teams.filter(team => team.id !== teamId);
+
+        setTeams(updatedTeams);
+        saveTeamsToLocalStorage(updatedTeams);
+
+        // Сообщение об успешном удалении
+        setTimeout(() => {
+            alert(`Команда "${deletedTeam?.name}" успешно удалена!`);
+        }, 100);
+
+        // Возвращаемся к списку команд
+        setSelectedTeam(null);
+    }, [teams, saveTeamsToLocalStorage]);
+
+    if (selectedTeam) {
+        return (
+            <TeamDetailsPage
+                team={selectedTeam}
+                onBack={handleBackToList}
+                onDelete={handleDeleteTeam}
+                currentUser="CurrentUser"
+            />
+        );
+    }
 
     if (isCreating) {
         return <CreateTeamPage onCreateTeam={handleCreateTeam} onCancel={handleCancelCreate}/>;

@@ -214,3 +214,51 @@ export const SecondaryButton = styled.button`
     box-shadow: 0 0 15px rgba(0, 180, 216, 0.4);
   }
 `;
+
+export const DangerButton = styled.button`
+  padding: 12px 24px;
+  background: rgba(244, 67, 54, 0.15);
+  color: #ff5252;
+  border: 1px solid rgba(244, 67, 54, 0.5);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  width: 100%;
+  margin-top: 15px;
+  
+  &:hover {
+    background: rgba(244, 67, 54, 0.25);
+    box-shadow: 0 0 15px rgba(244, 67, 54, 0.3);
+    transform: translateY(-2px);
+  }
+`;
+
+export const DeleteIcon = styled.span`
+  font-size: 1rem;
+`;
+
+export const DeleteButton = styled.button`
+  width: 100%;
+  margin-top: 15px;
+  padding: 12px 24px;
+  background: rgba(244, 67, 54, 0.15);
+  color: #ff5252;
+  border: 1px solid rgba(244, 67, 54, 0.5);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  &:hover {
+    background: rgba(244, 67, 54, 0.25);
+    box-shadow: 0 0 15px rgba(244, 67, 54, 0.3);
+    transform: translateY(-2px);
+  }
+`;
