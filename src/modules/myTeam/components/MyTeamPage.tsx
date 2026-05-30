@@ -25,9 +25,11 @@ import {
     TeamHeaderSection,
     TeamInfoCard,
     TeamMetaGrid,
-    TeamName
+    TeamName,
+    DeleteTeamButton
 } from "@/modules/myTeam/components/style.ts";
 import {TeamRequestsPage} from "@/modules/myTeam/components/teamRequestsPage/TeamRequestsPage.tsx";
+import {DeleteConfirmModal} from "@/modules/user/teams/DeleteConfirmModal.tsx";
 
 // Моковые данные для команды пользователя
 const mockUserTeam: Team = {
@@ -47,14 +49,16 @@ const HAS_TEAM = true;
 const IS_CAPTAIN = true;
 
 interface MyTeamPageProps {
-    onOpenRequests?: (team: Team) => void;
+    onTeamDeleted?: () => void;
 }
 
-export const MyTeamPage: FC<MyTeamPageProps> = () => {
+export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
     const [team, setTeam] = useState<Team | null>(null);
     const [isCaptain, setIsCaptain] = useState(false);
     const [loading, setLoading] = useState(true);
     const [showRequests, setShowRequests] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+
 
     useEffect(() => {
         const loadTeamData = () => {
@@ -84,6 +88,35 @@ export const MyTeamPage: FC<MyTeamPageProps> = () => {
             setTeam(null);
             setIsCaptain(false);
         }
+    };
+
+    const handleDeleteTeam = () => {
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!team) return;
+
+        //setIsDeleting(true);
+
+        // Имитация API запроса
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Удаляем команду
+        setTeam(null);
+        setIsCaptain(false);
+        setShowDeleteModal(false);
+
+        // Вызываем колбэк если передан
+        if (onTeamDeleted) {
+            onTeamDeleted();
+        }
+
+        //setIsDeleting(false);
+    };
+
+    const handleCancelDelete = () => {
+        setShowDeleteModal(false);
     };
 
     const handleKickMember = (memberName: string) => {
@@ -154,127 +187,143 @@ export const MyTeamPage: FC<MyTeamPageProps> = () => {
     const membersCount = team.membersList.length;
 
     return (
-        <MyTeamContainer>
-            <TeamInfoCard>
-                <TeamHeaderSection>
-                    <TeamGameBadge>{team.game}</TeamGameBadge>
-                    <TeamName>{team.name}</TeamName>
-                    <TeamDescription>{team.description}</TeamDescription>
+        <>
+            <MyTeamContainer>
+                <TeamInfoCard>
+                    <TeamHeaderSection>
+                        <TeamGameBadge>{team.game}</TeamGameBadge>
+                        <TeamName>{team.name}</TeamName>
+                        <TeamDescription>{team.description}</TeamDescription>
 
-                    <TeamMetaGrid>
-                        <MetaItem>
-                            <MetaLabel>Участников</MetaLabel>
-                            <MetaValue>{membersCount}</MetaValue>
-                        </MetaItem>
+                        <TeamMetaGrid>
+                            <MetaItem>
+                                <MetaLabel>Участников</MetaLabel>
+                                <MetaValue>{membersCount}</MetaValue>
+                            </MetaItem>
 
-                        <MetaItem>
-                            <MetaLabel>Рейтинг</MetaLabel>
-                            <Rating>
-                                <i className="fas fa-star"></i>
-                                <span>{team.rating}</span>
-                            </Rating>
-                        </MetaItem>
+                            <MetaItem>
+                                <MetaLabel>Рейтинг</MetaLabel>
+                                <Rating>
+                                    <i className="fas fa-star"></i>
+                                    <span>{team.rating}</span>
+                                </Rating>
+                            </MetaItem>
 
-                        <MetaItem>
-                            <MetaLabel>Капитан</MetaLabel>
-                            <MetaValue>{team.captain}</MetaValue>
-                        </MetaItem>
+                            <MetaItem>
+                                <MetaLabel>Капитан</MetaLabel>
+                                <MetaValue>{team.captain}</MetaValue>
+                            </MetaItem>
 
-                        <MetaItem>
-                            <MetaLabel>Создана</MetaLabel>
-                            <MetaValue>{team.created}</MetaValue>
-                        </MetaItem>
-                    </TeamMetaGrid>
+                            <MetaItem>
+                                <MetaLabel>Создана</MetaLabel>
+                                <MetaValue>{team.created}</MetaValue>
+                            </MetaItem>
+                        </TeamMetaGrid>
 
-                    <ActionButtonsContainer>
-                        {isCaptain && (
-                            <EditTeamButton onClick={handleEditTeam}>
-                                <i className="fas fa-edit"></i>
-                                Редактировать команду
-                            </EditTeamButton>
-                        )}
-                        <LeaveTeamButton onClick={handleLeaveTeam}>
-                            <i className="fas fa-sign-out-alt"></i>
-                            Покинуть команду
-                        </LeaveTeamButton>
-                    </ActionButtonsContainer>
-                </TeamHeaderSection>
+                        <ActionButtonsContainer>
+                            {isCaptain && (
+                                <>
+                                    <EditTeamButton onClick={handleEditTeam}>
+                                        <i className="fas fa-edit"></i>
+                                        Редактировать команду
+                                    </EditTeamButton>
+                                    <DeleteTeamButton onClick={handleDeleteTeam}>
+                                        <i className="fas fa-trash-alt"></i>
+                                        Удалить команду
+                                    </DeleteTeamButton>
+                                </>
+                            )}
+                            <LeaveTeamButton onClick={handleLeaveTeam}>
+                                <i className="fas fa-sign-out-alt"></i>
+                                Покинуть команду
+                            </LeaveTeamButton>
+                        </ActionButtonsContainer>
+                    </TeamHeaderSection>
 
-                <ContentGrid>
-                    <ContentCard>
-                        <CardTitle>
-                            <i className="fas fa-users"></i>
-                            Участники команды ({membersCount})
-                        </CardTitle>
+                    <ContentGrid>
+                        <ContentCard>
+                            <CardTitle>
+                                <i className="fas fa-users"></i>
+                                Участники команды ({membersCount})
+                            </CardTitle>
 
-                        <MembersList>
-                            {team.membersList.map((member, index) => (
-                                <MemberItem key={index}>
-                                    <MemberAvatar>
-                                        {member.charAt(0).toUpperCase()}
-                                    </MemberAvatar>
-                                    <MemberName className={member === team.captain ? 'captain' : ''}>
-                                        {member}
-                                        {member === team.captain && (
-                                            <CaptainBadge>
-                                                <i className="fas fa-crown"></i> Капитан
-                                            </CaptainBadge>
+                            <MembersList>
+                                {team.membersList.map((member, index) => (
+                                    <MemberItem key={index}>
+                                        <MemberAvatar>
+                                            {member.charAt(0).toUpperCase()}
+                                        </MemberAvatar>
+                                        <MemberName className={member === team.captain ? 'captain' : ''}>
+                                            {member}
+                                            {member === team.captain && (
+                                                <CaptainBadge>
+                                                    <i className="fas fa-crown"></i> Капитан
+                                                </CaptainBadge>
+                                            )}
+                                        </MemberName>
+                                        <MemberRole>
+                                            {member === team.captain ? 'Лидер' : 'Игрок'}
+                                        </MemberRole>
+                                        {isCaptain && member !== team.captain && (
+                                            <KickButton onClick={() => handleKickMember(member)}>
+                                                <i className="fas fa-user-minus"></i>
+                                            </KickButton>
                                         )}
-                                    </MemberName>
-                                    <MemberRole>
-                                        {member === team.captain ? 'Лидер' : 'Игрок'}
-                                    </MemberRole>
-                                    {isCaptain && member !== team.captain && (
-                                        <KickButton onClick={() => handleKickMember(member)}>
-                                            <i className="fas fa-user-minus"></i>
-                                        </KickButton>
-                                    )}
-                                </MemberItem>
-                            ))}
-                        </MembersList>
+                                    </MemberItem>
+                                ))}
+                            </MembersList>
 
-                        {isCaptain && (
-                            <ManageButtons>
-                                <ManageButton onClick={() => setShowRequests(true)} style={{ marginTop: '10px' }}>
-                                    <i className="fas fa-users"></i>
-                                    Управление заявками
-                                </ManageButton>
-                            </ManageButtons>
-                        )}
-                    </ContentCard>
+                            {isCaptain && (
+                                <ManageButtons>
+                                    <ManageButton onClick={() => setShowRequests(true)}>
+                                        <i className="fas fa-users"></i>
+                                        Управление заявками
+                                    </ManageButton>
+                                </ManageButtons>
+                            )}
+                        </ContentCard>
 
-                    <ContentCard>
-                        <CardTitle>
-                            <i className="fas fa-list-alt"></i>
-                            Требования
-                        </CardTitle>
+                        <ContentCard>
+                            <CardTitle>
+                                <i className="fas fa-list-alt"></i>
+                                Требования
+                            </CardTitle>
 
-                        <RequirementText>{team.requirements}</RequirementText>
-                    </ContentCard>
+                            <RequirementText>{team.requirements}</RequirementText>
+                        </ContentCard>
 
-                    <ContentCard>
-                        <CardTitle>
-                            <i className="fas fa-envelope"></i>
-                            Контакты
-                        </CardTitle>
+                        <ContentCard>
+                            <CardTitle>
+                                <i className="fas fa-envelope"></i>
+                                Контакты
+                            </CardTitle>
 
-                        <ContactInfo>
-                            {team.contact}
-                        </ContactInfo>
+                            <ContactInfo>
+                                {team.contact}
+                            </ContactInfo>
 
-                        {isCaptain && (
-                            <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(0, 180, 216, 0.1)', borderRadius: '8px' }}>
-                                <div style={{ color: '#00e6ff', fontWeight: '600', marginBottom: '10px' }}>
-                                    <i className="fas fa-info-circle"></i> Для капитана
+                            {isCaptain && (
+                                <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(0, 180, 216, 0.1)', borderRadius: '8px' }}>
+                                    <div style={{ color: '#00e6ff', fontWeight: '600', marginBottom: '10px' }}>
+                                        <i className="fas fa-info-circle"></i> Для капитана
+                                    </div>
+                                    <div style={{ color: '#e0e0e0', fontSize: '0.9rem' }}>
+                                        Вы можете изменить контактную информацию в настройках команды
+                                    </div>
                                 </div>
-                                <div style={{ color: '#e0e0e0', fontSize: '0.9rem' }}>
-                                    Вы можете изменить контактную информацию в настройках команды
-                                </div>
-                            </div>
-                        )}
-                    </ContentCard>
-                </ContentGrid>
-            </TeamInfoCard>
-        </MyTeamContainer>
+                            )}
+                        </ContentCard>
+                    </ContentGrid>
+                </TeamInfoCard>
+            </MyTeamContainer>
+
+            <DeleteConfirmModal
+                isOpen={showDeleteModal}
+                teamName={team.name}
+                onConfirm={handleConfirmDelete}
+                onCancel={handleCancelDelete}
+               // isDeleting={isDeleting}
+            />
+        </>
     );
 };

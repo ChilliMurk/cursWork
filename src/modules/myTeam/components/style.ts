@@ -365,3 +365,28 @@ export const ManageButton = styled.button`
         transform: translateY(-2px);
     }
 `;
+
+export const DeleteTeamButton = styled.button`
+    padding: 10px 20px;
+    background: rgba(244, 67, 54, 0.15);
+    color: #ff5252;
+    border: 1px solid rgba(244, 67, 54, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &:hover {
+        background: rgba(244, 67, 54, 0.3);
+        box-shadow: 0 0 15px rgba(244, 67, 54, 0.4);
+        transform: translateY(-2px);
+    }
+
+    i {
+        font-size: 0.9rem;
+    }
+`;
