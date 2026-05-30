@@ -30,6 +30,7 @@ import {
 } from "@/modules/myTeam/components/style.ts";
 import {TeamRequestsPage} from "@/modules/myTeam/components/teamRequestsPage/TeamRequestsPage.tsx";
 import {DeleteConfirmModal} from "@/modules/user/teams/DeleteConfirmModal.tsx";
+import {EditTeamPage} from "./editTeamPage/EditTeamPage";
 
 // Моковые данные для команды пользователя
 const mockUserTeam: Team = {
@@ -58,7 +59,7 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
     const [loading, setLoading] = useState(true);
     const [showRequests, setShowRequests] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-
+    const [showEditMode, setShowEditMode] = useState(false);
 
     useEffect(() => {
         const loadTeamData = () => {
@@ -79,7 +80,13 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
     }, []);
 
     const handleEditTeam = () => {
-        alert("Редактирование команды (в разработке)");
+        setShowEditMode(true);
+    };
+
+    const handleSaveTeam = (updatedTeam: Team) => {
+        setTeam(updatedTeam);
+        setShowEditMode(false);
+        alert(`Команда "${updatedTeam.name}" успешно обновлена!`);
     };
 
     const handleLeaveTeam = () => {
@@ -102,12 +109,10 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
         // Имитация API запроса
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Удаляем команду
         setTeam(null);
         setIsCaptain(false);
         setShowDeleteModal(false);
 
-        // Вызываем колбэк если передан
         if (onTeamDeleted) {
             onTeamDeleted();
         }
@@ -131,6 +136,16 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
             });
         }
     };
+
+    if (showEditMode && team) {
+        return (
+            <EditTeamPage
+                team={team}
+                onSave={handleSaveTeam}
+                onCancel={() => setShowEditMode(false)}
+            />
+        );
+    }
 
     if (showRequests && team) {
         return (
@@ -322,7 +337,6 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
                 teamName={team.name}
                 onConfirm={handleConfirmDelete}
                 onCancel={handleCancelDelete}
-               // isDeleting={isDeleting}
             />
         </>
     );
