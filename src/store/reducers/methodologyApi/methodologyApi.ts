@@ -33,19 +33,26 @@ export interface MethodologyInfoEditRequest {
     image_url: string;
     duration: string;
     category: string;
-    level: 'beginner' | 'intermediate' | 'advanced';
+    level: string;
 }
 
 export interface BlockEditRequest {
-    id?: number;
-    order_index: number;
-    type: 'heading' | 'text' | 'image';
+    orderIndex: number;
+    type: string;
     content: string;
 }
 
+// Правильная структура для создания методички
 export interface MethodologyEditRequest {
-    methodology: MethodologyInfoEditRequest;
-    blocks: BlockEditRequest[];
+    info: {
+        title: string;
+        level: string;
+        // description?: string;
+        // image_url?: string;
+        // duration?: string;
+        // category?: string;
+    };
+    content: BlockEditRequest[];
 }
 
 // Интерфейсы для фронта
@@ -182,11 +189,14 @@ export const methodologyApi = createApi({
 
         // Создание методички
         createMethodology: builder.mutation<MethodologyContentResponse, MethodologyEditRequest>({
-            query: (methodologyData) => ({
-                url: '/methodologies/new',
-                method: 'POST',
-                body: methodologyData,
-            }),
+            query: (methodologyData) => {
+                console.log('Creating methodology with data:', JSON.stringify(methodologyData, null, 2));
+                return {
+                    url: '/methodologies/new',
+                    method: 'POST',
+                    body: methodologyData,
+                };
+            },
             invalidatesTags: ['Methodologies'],
         }),
 

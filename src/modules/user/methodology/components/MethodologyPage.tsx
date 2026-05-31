@@ -306,9 +306,16 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect 
         setIsCreating(false);
     };
 
+    // const handleCreateSuccess = () => {
+    //     setIsCreating(false);
+    //     handleRefresh();
+    // };
+
     const handleCreateSuccess = () => {
         setIsCreating(false);
-        handleRefresh();
+        // Обновляем оба списка после создания
+        refetchAvailable();
+        refetchAll();
     };
 
     const handleEditSuccess = () => {

@@ -2,6 +2,7 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { rememberReducer, rememberEnhancer } from 'redux-remember';
 import { authReducer } from "@/store/reducers/authSlice.ts";
 import { userReducer } from "@/store/reducers/userSlice.ts";
+import { methodologyReducer } from "@/store/reducers/methodologySlice.ts";
 import { authApi } from "@/store/reducers/auth/auth.ts";
 import { eventsApi } from "@/store/reducers/eventApi/eventApi.ts";
 import { methodologyApi } from "@/store/reducers/methodologyApi/methodologyApi.ts";
@@ -9,6 +10,7 @@ import { methodologyApi } from "@/store/reducers/methodologyApi/methodologyApi.t
 const rememberedReducers = [
     'authReducer',
     'userReducer',
+    'methodologyReducer',
     'authApi',
     'eventsApi',
     'methodologyApi',
@@ -17,9 +19,10 @@ const rememberedReducers = [
 const rootReducer = combineReducers({
     authReducer,
     userReducer,
+    methodologyReducer,
     [authApi.reducerPath]: authApi.reducer,
     [eventsApi.reducerPath]: eventsApi.reducer,
-    [methodologyApi.reducerPath]: methodologyApi.reducer, // Добавьте
+    [methodologyApi.reducerPath]: methodologyApi.reducer,
 });
 
 const rememberedReducer = rememberReducer(rootReducer);
@@ -34,7 +37,7 @@ export const store = configureStore({
         }).concat(
             authApi.middleware,
             eventsApi.middleware,
-            methodologyApi.middleware, // Добавьте
+            methodologyApi.middleware,
         ),
     enhancers: (getDefaultEnhancer) =>
         getDefaultEnhancer().concat(rememberEnhancer(window.localStorage, rememberedReducers)),

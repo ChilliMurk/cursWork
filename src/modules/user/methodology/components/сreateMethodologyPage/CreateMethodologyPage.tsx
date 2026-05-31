@@ -1,10 +1,15 @@
-import {FC, useState, useRef, useEffect} from 'react';
+import { FC, useState, useRef, useEffect } from 'react';
 import styled from '@emotion/styled';
-import {Methodology, MethodologyContent} from "@/modules/user/methodology/components/MethodologyPage.tsx";
+import { useCreateMethodologyMutation } from "@/store/reducers/methodologyApi/methodologyApi.ts";
 
 interface CreateMethodologyPageProps {
-    onCreateMethodology: (methodologyData: Omit<Methodology, 'id'>) => void;
+    onCreateMethodology: () => void;
     onCancel: () => void;
+}
+
+interface MethodologyContent {
+    type: 'heading' | 'text' | 'image';
+    content: string;
 }
 
 const ContentBlock = styled.div`
@@ -157,7 +162,7 @@ const ModalActions = styled.div`
     margin-top: 20px;
 `;
 
-const SaveButton = styled.button`
+const SaveModalButton = styled.button`
     padding: 12px 24px;
     background: linear-gradient(135deg, #0066cc, #00b4d8);
     color: #ffffff;
@@ -427,7 +432,7 @@ const ActionButtons = styled.div`
     display: flex;
     gap: 20px;
     justify-content: center;
-    margin-top: 300px;
+    margin-top: 50px;
     margin-bottom: 30px;
 `;
 
@@ -483,7 +488,6 @@ const ErrorMessage = styled.div`
     font-family: 'Rajdhani', sans-serif;
     font-weight: 500;
 `;
-
 
 const ImageUploadContainer = styled.div`
     display: flex;
@@ -553,20 +557,21 @@ const ChangeImageButton = styled.button`
     }
 `;
 
-
 const popularEmojis = ['🎮', '🔫', '🧠', '💰', '⚔️', '🛡️', '🎯', '🏆', '🚀', '💡', '📚', '🎓', '🤝', '🌟', '⚡', '🔥'];
 
 export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                                                                           onCreateMethodology,
                                                                           onCancel
                                                                       }) => {
+    const [createMethodology, { isLoading }] = useCreateMethodologyMutation();
+
     const [formData, setFormData] = useState({
         title: '',
         description: '',
         category: '',
         level: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
         duration: '',
-        image: '🎮'
+        image_url: ''
     });
 
     const [content, setContent] = useState<MethodologyContent[]>([]);
@@ -581,8 +586,7 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
         const newContent: MethodologyContent = {
             type: type,
             content: type === 'heading' ? 'Новый заголовок' :
-                type === 'text' ? 'Новый текст...' :
-                    '' // Для изображения оставляем пустую строку
+                type === 'text' ? 'Новый текст...' : ''
         };
         setContent(prev => [...prev, newContent]);
         setIsDropdownOpen(false);
@@ -592,9 +596,8 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
         if (files && files[0]) {
             const file = files[0];
             const fileUrl = URL.createObjectURL(file);
-
             setContent(prev => prev.map((item, i) =>
-                i === index ? {...item, content: fileUrl} : item
+                i === index ? { ...item, content: fileUrl } : item
             ));
         }
     };
@@ -610,7 +613,6 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
 
     const renderImageBlock = (item: MethodologyContent, index: number) => {
         if (!item.content) {
-            // Показываем область загрузки, если изображение не выбрано
             return (
                 <ImageUploadContainer>
                     <UploadArea onClick={() => handleChangeImage(index)}>
@@ -621,7 +623,6 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                         <UploadText>Нажмите чтобы загрузить изображение</UploadText>
                     </UploadArea>
                     <UploadInput
-                        ref={fileInputRef}
                         type="file"
                         accept="image/*"
                         onChange={(e) => handleImageUpload(index, e.target.files)}
@@ -637,9 +638,8 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                         src={item.content}
                         alt="Загруженное изображение"
                         onError={() => {
-                            // Если изображение не загружается, показываем область загрузки
                             setContent(prev => prev.map((contentItem, i) =>
-                                i === index ? {...contentItem, content: ''} : contentItem
+                                i === index ? { ...contentItem, content: '' } : contentItem
                             ));
                         }}
                     />
@@ -651,9 +651,8 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
         );
     };
 
-
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const {name, value} = e.target;
+        const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
             [name]: value
@@ -670,7 +669,7 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
     const handleEmojiSelect = (emoji: string) => {
         setFormData(prev => ({
             ...prev,
-            image: emoji
+            image_url: emoji
         }));
     };
 
@@ -690,16 +689,109 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!validateForm()) return;
 
-        onCreateMethodology({
-            ...formData,
-            content
-        });
+        // Проверка, что есть хотя бы один блок
+        if (content.length === 0) {
+            alert('Добавьте хотя бы один блок содержания');
+            return;
+        }
+
+        // Преобразуем блоки в формат для API
+        const blocks = content.map((item, index) => ({
+            orderIndex: index,
+            type: item.type === 'heading' ? 'HEADER' :
+                item.type === 'text' ? 'TEXT' : 'IMAGE',
+            content: item.content
+        }));
+
+        // Правильный маппинг уровня сложности для бэкенда
+        const levelMap = {
+            'beginner': 'EASY',
+            'intermediate': 'INTERMEDIATE',
+            'advanced': 'ADVANCED'
+        };
+
+        const requestData = {
+            info: {
+                title: formData.title,
+                level: levelMap[formData.level]
+            },
+            content: blocks
+        };
+
+        console.log('Sending methodology data:', JSON.stringify(requestData, null, 2));
+
+        try {
+            const result = await createMethodology(requestData).unwrap();
+            console.log('Methodology created:', result);
+            alert('Методичка успешно создана!');
+            onCreateMethodology();
+        } catch (err: any) {
+            console.error('Error creating methodology:', err);
+            if (err.data) {
+                alert(`Ошибка: ${err.data.message || JSON.stringify(err.data)}`);
+            } else {
+                alert('Ошибка при создании методички');
+            }
+        }
     };
+
+    // const handleSubmit = async (e: React.FormEvent) => {
+    //     e.preventDefault();
+    //
+    //     if (!validateForm()) return;
+    //
+    //     // Проверка, что есть хотя бы один блок
+    //     if (content.length === 0) {
+    //         alert('Добавьте хотя бы один блок содержания');
+    //         return;
+    //     }
+    //
+    //     // Преобразуем блоки в формат для API
+    //     const blocks = content.map((item, index) => ({
+    //         orderIndex: index,  // Изменено с order_index на orderIndex
+    //         type: item.type === 'heading' ? 'HEADER' :  // HEADER вместо HEADING
+    //             item.type === 'text' ? 'TEXT' : 'IMAGE',
+    //         content: item.content
+    //     }));
+    //
+    //     // Маппинг уровня сложности для бэкенда
+    //     const levelMap = {
+    //         'beginner': 'EASY',
+    //         'intermediate': 'MEDIUM',
+    //         'advanced': 'HARD'
+    //     };
+    //
+    //     // Убираем лишние поля, отправляем только то, что ожидает бэкенд
+    //     const requestData = {
+    //         info: {
+    //             title: formData.title,
+    //             level: levelMap[formData.level]
+    //             // description, image_url, duration, category - НЕ ОТПРАВЛЯЕМ, так как в примере их нет
+    //         },
+    //         content: blocks
+    //     };
+    //
+    //     console.log('Sending methodology data:', JSON.stringify(requestData, null, 2));
+    //
+    //     try {
+    //         const result = await createMethodology(requestData).unwrap();
+    //         console.log('Methodology created:', result);
+    //         alert('Методичка успешно создана!');
+    //         onCreateMethodology();
+    //     } catch (err: any) {
+    //         console.error('Error creating methodology:', err);
+    //         if (err.data) {
+    //             alert(`Ошибка: ${err.data.message || JSON.stringify(err.data)}`);
+    //         } else {
+    //             alert('Ошибка при создании методички');
+    //         }
+    //     }
+    // };
 
     const handleEditContent = (index: number) => {
         setEditingIndex(index);
@@ -709,7 +801,7 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
     const handleSaveEdit = () => {
         if (editingIndex !== null) {
             setContent(prev => prev.map((item, i) =>
-                i === editingIndex ? {...item, content: editValue} : item
+                i === editingIndex ? { ...item, content: editValue } : item
             ));
             setEditingIndex(null);
             setEditValue('');
@@ -725,10 +817,10 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
         return (
             <ContentBlock key={index}>
                 <BlockActions>
-                    <EditButton onClick={() => handleEditContent(index)}>
+                    <EditButton onClick={() => handleEditContent(index)} type="button">
                         <i className="fas fa-edit"></i>
                     </EditButton>
-                    <DeleteButton onClick={() => handleDeleteContent(index)}>
+                    <DeleteButton onClick={() => handleDeleteContent(index)} type="button">
                         <i className="fas fa-times"></i>
                     </DeleteButton>
                 </BlockActions>
@@ -768,7 +860,6 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
 
             <FormContainer>
                 <form onSubmit={handleSubmit}>
-
                     <FormGroup>
                         <Label>Название методички *</Label>
                         <Input
@@ -777,7 +868,7 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                             value={formData.title}
                             onChange={handleInputChange}
                             placeholder="Введите название методички"
-                            maxLength={50}
+                            maxLength={100}
                         />
                         {errors.title && <ErrorMessage>{errors.title}</ErrorMessage>}
                     </FormGroup>
@@ -789,7 +880,7 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                             value={formData.description}
                             onChange={handleInputChange}
                             placeholder="Опишите содержание методички..."
-                            maxLength={200}
+                            maxLength={500}
                         />
                         {errors.description && <ErrorMessage>{errors.description}</ErrorMessage>}
                     </FormGroup>
@@ -838,7 +929,7 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                                 <EmojiButton
                                     key={emoji}
                                     type="button"
-                                    selected={formData.image === emoji}
+                                    selected={formData.image_url === emoji}
                                     onClick={() => handleEmojiSelect(emoji)}
                                 >
                                     {emoji}
@@ -849,42 +940,33 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
 
                     <ContentSection className="full-width">
                         <SectionTitle>Содержание методички</SectionTitle>
+                        <div style={{ fontSize: '0.9rem', color: '#ff9800', marginBottom: '15px' }}>
+                            <i className="fas fa-info-circle"></i> Добавляйте блоки с заголовками, текстом и изображениями
+                        </div>
 
                         <ContentList>
                             {content.map((item, index) => renderContentBlock(item, index))}
                         </ContentList>
 
                         <BlockSelectContainer ref={dropdownRef}>
-                            <BlockSelectButton
-                                type="button"
-                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            >
+                            <BlockSelectButton type="button" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
                                 <i className="fas fa-plus"></i>
                                 Добавить блок
                                 <i className={`fas fa-chevron-${isDropdownOpen ? 'up' : 'down'}`}
-                                   style={{fontSize: '12px'}}></i>
+                                   style={{ fontSize: '12px' }}></i>
                             </BlockSelectButton>
 
                             {isDropdownOpen && (
                                 <DropdownMenu>
-                                    <DropdownItem
-                                        type="button"
-                                        onClick={() => handleAddContent('heading')}
-                                    >
+                                    <DropdownItem type="button" onClick={() => handleAddContent('heading')}>
                                         <i className="fas fa-heading"></i>
                                         Заголовок
                                     </DropdownItem>
-                                    <DropdownItem
-                                        type="button"
-                                        onClick={() => handleAddContent('text')}
-                                    >
+                                    <DropdownItem type="button" onClick={() => handleAddContent('text')}>
                                         <i className="fas fa-paragraph"></i>
                                         Текст
                                     </DropdownItem>
-                                    <DropdownItem
-                                        type="button"
-                                        onClick={() => handleAddContent('image')}
-                                    >
+                                    <DropdownItem type="button" onClick={() => handleAddContent('image')}>
                                         <i className="fas fa-image"></i>
                                         Изображение
                                     </DropdownItem>
@@ -894,22 +976,20 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                     </ContentSection>
 
                     <ActionButtons>
-                        <SubmitButton type="submit" disabled={content.length === 0}>
-                            <i className="fas fa-plus"></i>
-                            Создать методичку
+                        <SubmitButton type="submit" disabled={isLoading || content.length === 0}>
+                            {isLoading ? 'Создание...' : 'Создать методичку'}
                         </SubmitButton>
                         <CancelButton type="button" onClick={onCancel}>
                             <i className="fas fa-times"></i>
                             Отмена
                         </CancelButton>
                     </ActionButtons>
-
                 </form>
             </FormContainer>
 
             {editingIndex !== null && (
                 <>
-                    <ModalOverlay onClick={handleCancelEdit}/>
+                    <ModalOverlay onClick={handleCancelEdit} />
                     <EditModal>
                         <ModalHeader>
                             <ModalTitle>
@@ -932,9 +1012,9 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                             <CancelModalButton onClick={handleCancelEdit}>
                                 Отмена
                             </CancelModalButton>
-                            <SaveButton onClick={handleSaveEdit}>
+                            <SaveModalButton onClick={handleSaveEdit}>
                                 Сохранить
-                            </SaveButton>
+                            </SaveModalButton>
                         </ModalActions>
                     </EditModal>
                 </>
