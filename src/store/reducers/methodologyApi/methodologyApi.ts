@@ -46,6 +46,10 @@ export interface BlockEditRequest {
 export interface MethodologyEditRequest {
     info: {
         title: string;
+        description: string;
+        image_url: string;
+        duration: string;
+        category: string;
         level: string;
     };
     content: BlockEditRequest[];

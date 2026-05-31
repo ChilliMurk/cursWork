@@ -718,6 +718,10 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
         const requestData = {
             info: {
                 title: formData.title,
+                description: formData.description,
+                image_url: formData.image_url,
+                duration: formData.duration,
+                category: formData.category,
                 level: levelMap[formData.level]
             },
             content: blocks
@@ -739,59 +743,6 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
             }
         }
     };
-
-    // const handleSubmit = async (e: React.FormEvent) => {
-    //     e.preventDefault();
-    //
-    //     if (!validateForm()) return;
-    //
-    //     // Проверка, что есть хотя бы один блок
-    //     if (content.length === 0) {
-    //         alert('Добавьте хотя бы один блок содержания');
-    //         return;
-    //     }
-    //
-    //     // Преобразуем блоки в формат для API
-    //     const blocks = content.map((item, index) => ({
-    //         orderIndex: index,  // Изменено с order_index на orderIndex
-    //         type: item.type === 'heading' ? 'HEADER' :  // HEADER вместо HEADING
-    //             item.type === 'text' ? 'TEXT' : 'IMAGE',
-    //         content: item.content
-    //     }));
-    //
-    //     // Маппинг уровня сложности для бэкенда
-    //     const levelMap = {
-    //         'beginner': 'EASY',
-    //         'intermediate': 'MEDIUM',
-    //         'advanced': 'HARD'
-    //     };
-    //
-    //     // Убираем лишние поля, отправляем только то, что ожидает бэкенд
-    //     const requestData = {
-    //         info: {
-    //             title: formData.title,
-    //             level: levelMap[formData.level]
-    //             // description, image_url, duration, category - НЕ ОТПРАВЛЯЕМ, так как в примере их нет
-    //         },
-    //         content: blocks
-    //     };
-    //
-    //     console.log('Sending methodology data:', JSON.stringify(requestData, null, 2));
-    //
-    //     try {
-    //         const result = await createMethodology(requestData).unwrap();
-    //         console.log('Methodology created:', result);
-    //         alert('Методичка успешно создана!');
-    //         onCreateMethodology();
-    //     } catch (err: any) {
-    //         console.error('Error creating methodology:', err);
-    //         if (err.data) {
-    //             alert(`Ошибка: ${err.data.message || JSON.stringify(err.data)}`);
-    //         } else {
-    //             alert('Ошибка при создании методички');
-    //         }
-    //     }
-    // };
 
     const handleEditContent = (index: number) => {
         setEditingIndex(index);
