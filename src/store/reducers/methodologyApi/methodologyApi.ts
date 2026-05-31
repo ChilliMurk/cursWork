@@ -1,8 +1,6 @@
-// store/reducers/methodologyApi/methodologyApi.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { RootState } from '@/store/store';
 
-// Интерфейсы для ответов от сервера
 export interface MethodologyInfoResponse {
     id: number;
     title: string;
@@ -18,13 +16,15 @@ export interface MethodologyInfoResponse {
 
 export interface BlockInfoResponse {
     id: number;
-    order_index: number;
-    type: 'heading' | 'text' | 'image';
+    order_index?: number;
+    orderIndex?: number;  // Добавляем для camelCase
+    type: string;
     content: string;
 }
 
 export interface MethodologyContentResponse extends MethodologyInfoResponse {
-    blocks: BlockInfoResponse[];
+    blocks?: BlockInfoResponse[];
+    content?: BlockInfoResponse[];  // Добавляем content для совместимости
 }
 
 export interface MethodologyInfoEditRequest {
@@ -42,7 +42,6 @@ export interface BlockEditRequest {
     content: string;
 }
 
-// Правильная структура для создания методички
 export interface MethodologyEditRequest {
     info: {
         title: string;
@@ -55,7 +54,6 @@ export interface MethodologyEditRequest {
     content: BlockEditRequest[];
 }
 
-// Интерфейсы для фронта
 export interface MethodologyBlock {
     id?: number;
     order_index: number;
@@ -84,6 +82,33 @@ export const transformMethodology = (serverMethodology: MethodologyContentRespon
         return null;
     }
 
+    // Маппинг типов блоков из UPPERCASE в lowercase
+    const typeMap: Record<string, 'heading' | 'text' | 'image'> = {
+        'HEADER': 'heading',
+        'TEXT': 'text',
+        'IMAGE': 'image'
+    };
+
+    // Маппинг уровня сложности из UPPERCASE в lowercase
+    const levelMap: Record<string, 'beginner' | 'intermediate' | 'advanced'> = {
+        'EASY': 'beginner',
+        'INTERMEDIATE': 'intermediate',
+        'ADVANCED': 'advanced'
+    };
+
+    // Обрабатываем blocks - они могут приходить как в serverMethodology.blocks,
+    // так и в serverMethodology.content (в зависимости от API)
+    const blocksArray = serverMethodology.blocks || serverMethodology.content || [];
+
+    // Также нужно обработать случай, когда blocks приходят с полем orderIndex (camelCase)
+    // или order_index (snake_case)
+    const blocks = blocksArray.map((block: any) => ({
+        id: block.id,
+        order_index: block.order_index !== undefined ? block.order_index : block.orderIndex,
+        type: typeMap[block.type] || 'text',
+        content: block.content
+    }));
+
     return {
         id: serverMethodology.id,
         title: serverMethodology.title || '',
@@ -93,14 +118,9 @@ export const transformMethodology = (serverMethodology: MethodologyContentRespon
         author_name: serverMethodology.author_name || '',
         duration: serverMethodology.duration || '',
         category: serverMethodology.category || '',
-        level: serverMethodology.level || 'beginner',
+        level: levelMap[serverMethodology.level] || 'beginner',
         team_id: serverMethodology.team_id || 0,
-        blocks: (serverMethodology.blocks || []).map(block => ({
-            id: block.id,
-            order_index: block.order_index,
-            type: block.type,
-            content: block.content
-        }))
+        blocks: blocks
     };
 };
 
