@@ -220,3 +220,43 @@ export const ErrorMessage = styled.div`
     border-radius: 12px;
     margin: 20px;
 `;
+
+
+// Добавьте эти стили в ваш файл стилей
+export const TabContainer = styled.div`
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid rgba(0, 180, 216, 0.2);
+    padding-bottom: 0;
+`;
+
+export const TabButton = styled.button<{ isActive: boolean }>`
+    padding: 12px 28px;
+    background: ${props => props.isActive
+    ? 'linear-gradient(90deg, #0066cc, #00b4d8)'
+    : 'transparent'};
+    color: ${props => props.isActive ? '#ffffff' : '#00e6ff'};
+    border: none;
+    border-bottom: ${props => props.isActive ? 'none' : '1px solid transparent'};
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    position: relative;
+    
+    &:hover {
+        background: ${props => props.isActive
+    ? 'linear-gradient(90deg, #0066cc, #00b4d8)'
+    : 'rgba(0, 180, 216, 0.1)'};
+        transform: translateY(-2px);
+    }
+    
+    i {
+        margin-right: 8px;
+    }
+`;

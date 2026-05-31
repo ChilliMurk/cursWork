@@ -1,6 +1,13 @@
-import { FC, useState, useEffect } from 'react';
+import { FC, useState } from 'react';
 import { useAppSelector } from "@/common/hooks/useAppSelector.ts";
-import { useGetAvailableEventsQuery, useCreateCommonEventMutation, useCreateTeamEventMutation, Event } from "@/store/reducers/eventApi/eventApi.ts";
+import {
+    useGetAllEventsQuery,
+    useGetEventsOrganizedByMeQuery,
+    useGetParticipatingEventsQuery,
+    useCreateCommonEventMutation,
+    useCreateTeamEventMutation,
+    Event
+} from "@/store/reducers/eventApi/eventApi.ts";
 import {
     CreateEventButton,
     EventCard,
@@ -10,54 +17,123 @@ import {
     EventTitle,
     ParticipateButton,
     LoadingSpinner,
-    ErrorMessage
+    ErrorMessage,
+    TabContainer,
+    TabButton
 } from "@/modules/user/events/components/style.ts";
 import { EmptyIcon, EmptyState, EmptyText } from "@/modules/user/teams/components/style.ts";
 import { EventDetailsPage } from "./eventDetailsPage/EventDetailsPage.tsx";
 import { CreateEventPage } from "./createEventPage/CreateEventPage.tsx";
 
+type EventTab = 'all' | 'participating' | 'organized';
+
 export const EventsPage: FC = () => {
+    const [activeTab, setActiveTab] = useState<EventTab>('all');
     const [showCreateEvent, setShowCreateEvent] = useState(false);
     const [participatingEvents, setParticipatingEvents] = useState<number[]>([]);
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [eventType, setEventType] = useState<'common' | 'team'>('common');
 
     const user = useAppSelector((state) => state.authReducer.user);
+    const shouldSkip = !user?.token;
 
-    // Получаем текущий месяц и год для запроса
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth() + 1;
-    const currentYear = currentDate.getFullYear();
-
+    // Все события
     const {
-        data: events = [],
-        isLoading,
-        error,
-        refetch,
-        isFetching
-    } = useGetAvailableEventsQuery({ month: currentMonth, year: currentYear }, {
-        skip: !user?.token
-    });
+        data: allEvents = [],
+        isLoading: isLoadingAll,
+        error: errorAll,
+        refetch: refetchAll,
+        isFetching: isFetchingAll
+    } = useGetAllEventsQuery(undefined, { skip: shouldSkip });
+
+    // События, в которых участвует пользователь
+    const {
+        data: participatingEventsData = [],
+        isLoading: isLoadingParticipating,
+        error: errorParticipating,
+        refetch: refetchParticipating,
+        isFetching: isFetchingParticipating
+    } = useGetParticipatingEventsQuery(undefined, { skip: shouldSkip });
+
+    // События, организованные пользователем
+    const {
+        data: organizedEvents = [],
+        isLoading: isLoadingOrganized,
+        error: errorOrganized,
+        refetch: refetchOrganized,
+        isFetching: isFetchingOrganized
+    } = useGetEventsOrganizedByMeQuery(undefined, { skip: shouldSkip });
 
     const [createCommonEvent, { isLoading: isCreatingCommon }] = useCreateCommonEventMutation();
     const [createTeamEvent, { isLoading: isCreatingTeam }] = useCreateTeamEventMutation();
 
     const isCreating = isCreatingCommon || isCreatingTeam;
 
-    useEffect(() => {
-        if (user) {
-            console.log('User logged in:', user.name || user.email);
+    // Определяем текущие данные в зависимости от активной вкладки
+    const getCurrentEvents = (): Event[] => {
+        switch (activeTab) {
+            case 'all':
+                return allEvents;
+            case 'participating':
+                return participatingEventsData;
+            case 'organized':
+                return organizedEvents;
+            default:
+                return allEvents;
         }
-    }, [user]);
+    };
 
-    useEffect(() => {
-        if (events.length > 0) {
-            console.log('Events from server:', events);
+    const getCurrentLoading = (): boolean => {
+        switch (activeTab) {
+            case 'all':
+                return isLoadingAll && !allEvents.length;
+            case 'participating':
+                return isLoadingParticipating && !participatingEventsData.length;
+            case 'organized':
+                return isLoadingOrganized && !organizedEvents.length;
+            default:
+                return isLoadingAll && !allEvents.length;
         }
-    }, [events]);
+    };
+
+    const getCurrentError = (): any => {
+        switch (activeTab) {
+            case 'all':
+                return errorAll;
+            case 'participating':
+                return errorParticipating;
+            case 'organized':
+                return errorOrganized;
+            default:
+                return errorAll;
+        }
+    };
+
+    const getCurrentIsFetching = (): boolean => {
+        switch (activeTab) {
+            case 'all':
+                return isFetchingAll;
+            case 'participating':
+                return isFetchingParticipating;
+            case 'organized':
+                return isFetchingOrganized;
+            default:
+                return isFetchingAll;
+        }
+    };
 
     const handleRefresh = () => {
-        refetch();
+        switch (activeTab) {
+            case 'all':
+                refetchAll();
+                break;
+            case 'participating':
+                refetchParticipating();
+                break;
+            case 'organized':
+                refetchOrganized();
+                break;
+        }
     };
 
     const handleParticipate = (eventId: number) => {
@@ -82,29 +158,20 @@ export const EventsPage: FC = () => {
 
     const handleCreateEventSubmit = async (eventData: Omit<Event, 'id' | 'participants'>, eventTypeValue: string) => {
         try {
-            // Форматируем дату правильно для LocalDateTime
             let formattedDate;
-
             if (eventData.date) {
-                // Создаем объект даты
                 const dateObj = new Date(eventData.date);
-
-                // Проверяем, что дата валидна
                 if (isNaN(dateObj.getTime())) {
                     throw new Error('Invalid date');
                 }
-
-                // Форматируем как YYYY-MM-DDTHH:MM:SS (без миллисекунд)
                 const year = dateObj.getFullYear();
                 const month = String(dateObj.getMonth() + 1).padStart(2, '0');
                 const day = String(dateObj.getDate()).padStart(2, '0');
                 const hours = String(dateObj.getHours()).padStart(2, '0');
                 const minutes = String(dateObj.getMinutes()).padStart(2, '0');
                 const seconds = String(dateObj.getSeconds()).padStart(2, '0');
-
                 formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
             } else {
-                // Если даты нет, используем текущую + 1 день
                 const futureDate = new Date();
                 futureDate.setDate(futureDate.getDate() + 1);
                 const year = futureDate.getFullYear();
@@ -113,7 +180,6 @@ export const EventsPage: FC = () => {
                 const hours = String(futureDate.getHours()).padStart(2, '0');
                 const minutes = String(futureDate.getMinutes()).padStart(2, '0');
                 const seconds = String(futureDate.getSeconds()).padStart(2, '0');
-
                 formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
             }
 
@@ -137,56 +203,20 @@ export const EventsPage: FC = () => {
             }
 
             setShowCreateEvent(false);
-            refetch();
+            // Обновляем все списки
+            refetchAll();
+            refetchParticipating();
+            refetchOrganized();
 
         } catch (err: any) {
             console.error('Error creating event:', err);
             if (err.data) {
-                console.error('Error details:', err.data);
                 alert(`Ошибка: ${err.data.error || err.data.message || JSON.stringify(err.data)}`);
             } else {
                 alert('Ошибка при создании события');
             }
         }
     };
-
-    // // В EventsPage.tsx обновите handleCreateEventSubmit
-    // const handleCreateEventSubmit = async (eventData: Omit<Event, 'id' | 'participants'>, eventTypeValue: string) => {
-    //     try {
-    //         const dateObj = new Date(eventData.date);
-    //         const formattedDate = dateObj.toISOString().split('.')[0];
-    //
-    //         const requestData = {
-    //             title: eventData.title,
-    //             description: eventData.description,
-    //             type: eventTypeValue, // Используем выбранное значение
-    //             date: formattedDate,
-    //             max_amount_of_participants: Number(eventData.maxParticipants),
-    //             prize: eventData.prize
-    //         };
-    //
-    //         console.log('Sending request data:', requestData);
-    //
-    //         if (eventType === 'common') {
-    //             await createCommonEvent(requestData).unwrap();
-    //             alert('Общее событие успешно создано!');
-    //         } else {
-    //             await createTeamEvent(requestData).unwrap();
-    //             alert('Командное событие успешно создано!');
-    //         }
-    //
-    //         setShowCreateEvent(false);
-    //         refetch();
-    //
-    //     } catch (err: any) {
-    //         console.error('Error creating event:', err);
-    //         if (err.data) {
-    //             alert(`Ошибка: ${err.data.error || err.data.message || 'Неверные данные'}`);
-    //         } else {
-    //             alert('Ошибка при создании события');
-    //         }
-    //     }
-    // };
 
     const handleEventClick = (event: Event) => {
         setSelectedEvent(event);
@@ -207,7 +237,24 @@ export const EventsPage: FC = () => {
         );
     }
 
-    if (isLoading && !events.length) {
+    if (showCreateEvent) {
+        return (
+            <CreateEventPage
+                onCreateEvent={handleCreateEventSubmit}
+                onCancel={handleCancelCreate}
+                isLoading={isCreating}
+                eventType={eventType}
+                onEventTypeChange={handleEventTypeChange}
+            />
+        );
+    }
+
+    const currentEvents = getCurrentEvents();
+    const isLoading = getCurrentLoading();
+    const error = getCurrentError();
+    const isFetching = getCurrentIsFetching();
+
+    if (isLoading && !currentEvents.length) {
         return (
             <EventsContainer>
                 <LoadingSpinner>Загрузка событий...</LoadingSpinner>
@@ -230,20 +277,33 @@ export const EventsPage: FC = () => {
         );
     }
 
-    if (showCreateEvent) {
-        return (
-            <CreateEventPage
-                onCreateEvent={handleCreateEventSubmit}
-                onCancel={handleCancelCreate}
-                isLoading={isCreating}
-                eventType={eventType}
-                onEventTypeChange={handleEventTypeChange}
-            />
-        );
-    }
-
     return (
         <EventsContainer>
+            {/* Вкладки навигации */}
+            <TabContainer>
+                <TabButton
+                    isActive={activeTab === 'all'}
+                    onClick={() => setActiveTab('all')}
+                >
+                    <i className="fas fa-calendar-alt"></i>
+                    Все события
+                </TabButton>
+                <TabButton
+                    isActive={activeTab === 'participating'}
+                    onClick={() => setActiveTab('participating')}
+                >
+                    <i className="fas fa-user-check"></i>
+                    Мои события
+                </TabButton>
+                <TabButton
+                    isActive={activeTab === 'organized'}
+                    onClick={() => setActiveTab('organized')}
+                >
+                    <i className="fas fa-chalkboard-user"></i>
+                    Организованные мной
+                </TabButton>
+            </TabContainer>
+
             <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
                 <CreateEventButton onClick={handleCreateEvent}>
                     Создать свое событие
@@ -255,9 +315,9 @@ export const EventsPage: FC = () => {
 
             {isFetching && <div>Обновление...</div>}
 
-            {events.length > 0 ? (
+            {currentEvents.length > 0 ? (
                 <EventsGrid>
-                    {events.map((event) => (
+                    {currentEvents.map((event) => (
                         <EventCard
                             key={event.id}
                             onClick={() => handleEventClick(event)}
@@ -274,6 +334,11 @@ export const EventsPage: FC = () => {
                             <EventInfo>
                                 <strong>Дата:</strong> {new Date(event.date).toLocaleDateString()}
                             </EventInfo>
+                            {activeTab === 'organized' && (
+                                <EventInfo>
+                                    <strong>Организатор:</strong> {event.organizerName}
+                                </EventInfo>
+                            )}
 
                             <ParticipateButton
                                 onClick={(e) => {
@@ -298,7 +363,9 @@ export const EventsPage: FC = () => {
                         <i className="fas fa-calendar-times"></i>
                     </EmptyIcon>
                     <EmptyText>
-                        Пока нет запланированных событий. Станьте первым, создав свое событие!
+                        {activeTab === 'all' && 'Пока нет запланированных событий.'}
+                        {activeTab === 'participating' && 'Вы пока не участвуете ни в одном событии.'}
+                        {activeTab === 'organized' && 'Вы еще не организовали ни одного события.'}
                     </EmptyText>
                     <CreateEventButton onClick={handleCreateEvent}>
                         Создать событие
