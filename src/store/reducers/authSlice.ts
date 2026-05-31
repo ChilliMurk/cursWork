@@ -5,8 +5,9 @@ interface User {
     email: string;
     name: string;
     login?: string;
-    role?: 'admin' | 'user'; // Добавляем поле для роли
-    token?: string; // Добавляем поле для токена
+    role?: 'admin' | 'user';
+    roles?: string[];
+    token?: string;
 }
 
 interface AuthState {

@@ -3,21 +3,23 @@ import { rememberReducer, rememberEnhancer } from 'redux-remember';
 import { authReducer } from "@/store/reducers/authSlice.ts";
 import { userReducer } from "@/store/reducers/userSlice.ts";
 import { authApi } from "@/store/reducers/auth/auth.ts";
-import {eventsApi} from "@/store/reducers/eventApi/eventApi.ts";
-//import { eventsApi } from "@/store/reducers/events/eventsApi.ts"; // Импортируем новый API
+import { eventsApi } from "@/store/reducers/eventApi/eventApi.ts";
+import { methodologyApi } from "@/store/reducers/methodologyApi/methodologyApi.ts";
 
 const rememberedReducers = [
     'authReducer',
     'userReducer',
     'authApi',
     'eventsApi',
+    'methodologyApi',
 ];
 
 const rootReducer = combineReducers({
     authReducer,
     userReducer,
     [authApi.reducerPath]: authApi.reducer,
-    [eventsApi.reducerPath]: eventsApi.reducer, // Добавляем eventsApi
+    [eventsApi.reducerPath]: eventsApi.reducer,
+    [methodologyApi.reducerPath]: methodologyApi.reducer, // Добавьте
 });
 
 const rememberedReducer = rememberReducer(rootReducer);
@@ -31,7 +33,8 @@ export const store = configureStore({
             },
         }).concat(
             authApi.middleware,
-            eventsApi.middleware // Добавляем middleware для eventsApi
+            eventsApi.middleware,
+            methodologyApi.middleware, // Добавьте
         ),
     enhancers: (getDefaultEnhancer) =>
         getDefaultEnhancer().concat(rememberEnhancer(window.localStorage, rememberedReducers)),

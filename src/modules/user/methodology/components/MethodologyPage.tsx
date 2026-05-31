@@ -1,99 +1,16 @@
-import {FC, useState} from 'react';
+import { FC, useState } from 'react';
 import styled from '@emotion/styled';
+import { useAppSelector } from "@/common/hooks/useAppSelector.ts";
 import {
-    CreateMethodologyPage
-} from "@/modules/user/methodology/components/сreateMethodologyPage/CreateMethodologyPage.tsx";
-import {
-    MethodologyDetailsPage
-} from "@/modules/user/methodology/components/methodologyDetailsPage/MethodologyDetailsPage.tsx";
+    useGetAvailableMethodologiesQuery,
+    useGetAllMethodologiesQuery,
+    useGetMethodologyByIdQuery,
+    useDeleteMethodologyMutation
+} from "@/store/reducers/methodologyApi/methodologyApi.ts";
+import { CreateMethodologyPage } from "@/modules/user/methodology/components/сreateMethodologyPage/CreateMethodologyPage.tsx";
+import { MethodologyDetailsPage } from "@/modules/user/methodology/components/methodologyDetailsPage/MethodologyDetailsPage.tsx";
 
-export interface MethodologyContent {
-    type: 'heading' | 'text' | 'image';
-    content: string;
-}
-
-export interface Methodology {
-    id: number;
-    title: string;
-    description: string;
-    category: string;
-    level: 'beginner' | 'intermediate' | 'advanced';
-    duration: string;
-    image: string;
-    content: MethodologyContent[];
-}
-
-const mockMethodologies: Methodology[] = [
-    {
-        id: 1,
-        title: 'Основы командной игры',
-        description: 'Изучите базовые принципы командной работы в киберспорте',
-        category: 'Командная игра',
-        level: 'beginner',
-        duration: '2 часа',
-        image: '🎮',
-        content: [
-            {type: 'heading', content: 'Введение в командную игру'},
-            {type: 'text', content: 'Командная работа - основа успеха в киберспорте. В этой методичке мы рассмотрим базовые принципы взаимодействия с тиммейтами, коммуникации и распределения ролей.'},
-            {type: 'heading', content: 'Основы коммуникации'},
-            {type: 'text', content: 'Правильная коммуникация - ключ к победе. Используйте четкие и короткие команды, не перегружайте эфир лишней информацией.'},
-            {type: 'image', content: 'https://via.placeholder.com/600x400?text=Communication+Basics'},
-            {type: 'heading', content: 'Распределение ролей'},
-            {type: 'text', content: 'Каждый игрок должен понимать свою роль в команде: капитан, снайпер, саппорт и т.д. Четкое понимание обязанностей повышает эффективность игры.'}
-        ]
-    },
-    {
-        id: 2,
-        title: 'Тактики в Counter-Strike 2',
-        description: 'Разберитесь с продвинутыми тактиками и стратегиями',
-        category: 'Тактика',
-        level: 'intermediate',
-        duration: '4 часа',
-        image: '🔫',
-        content: [
-            {type: 'heading', content: 'Тактические основы CS2'},
-            {type: 'text', content: 'Изучение карт и позиций - фундамент успешной игры. Рассмотрим ключевые точки контроля на основных картах.'},
-            {type: 'heading', content: 'Стратегии нападения'},
-            {type: 'text', content: 'Разберем эффективные стратегии атаки: быстрый раш, пикл-атака, фейковые маневры.'},
-            {type: 'heading', content: 'Защита и контроль карты'},
-            {type: 'text', content: 'Как правильно оборонять точки, перекрывать выходы и координировать защиту.'}
-        ]
-    },
-    {
-        id: 3,
-        title: 'Психология киберспорта',
-        description: 'Узнайте о ментальной подготовке и психологической устойчивости',
-        category: 'Психология',
-        level: 'advanced',
-        duration: '3 часа',
-        image: '🧠',
-        content: [
-            {type: 'heading', content: 'Ментальная подготовка'},
-            {type: 'text', content: 'Как сохранять хладнокровие во время матчей и справляться со стрессом.'},
-            {type: 'heading', content: 'Работа с тильтом'},
-            {type: 'text', content: 'Техники контроля эмоций и восстановления после неудачных раундов.'},
-            {type: 'heading', content: 'Командный дух'},
-            {type: 'text', content: 'Построение позитивной атмосферы в команде и мотивация игроков.'}
-        ]
-    },
-    {
-        id: 4,
-        title: 'Экономика в Dota 2',
-        description: 'Мастерское управление ресурсами и золотом',
-        category: 'Экономика',
-        level: 'intermediate',
-        duration: '2.5 часа',
-        image: '💰',
-        content: [
-            {type: 'heading', content: 'Экономические стратегии'},
-            {type: 'text', content: 'Управление золотом и предметами - ключ к преимуществу в Dota 2.'},
-            {type: 'heading', content: 'Лес и нейтралы'},
-            {type: 'text', content: 'Как эффективно фармить нейтральных крипов и использовать лес.'},
-            {type: 'heading', content: 'Выбор предметов'},
-            {type: 'text', content: 'Анализ ситуации и правильная сборка под конкретного противника.'}
-        ]
-    }
-];
+type MethodologyTab = 'available' | 'all';
 
 const MethodologyContainer = styled.div`
     padding: 20px;
@@ -112,6 +29,43 @@ const PageTitle = styled.h2`
     color: #00e6ff;
     font-family: 'Orbitron', sans-serif;
     margin: 0;
+`;
+
+const TabContainer = styled.div`
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid rgba(0, 180, 216, 0.2);
+    padding-bottom: 0;
+`;
+
+const TabButton = styled.button<{ isActive: boolean }>`
+    padding: 12px 28px;
+    background: ${props => props.isActive
+            ? 'linear-gradient(90deg, #0066cc, #00b4d8)'
+            : 'transparent'};
+    color: ${props => props.isActive ? '#ffffff' : '#00e6ff'};
+    border: none;
+    border-bottom: ${props => props.isActive ? 'none' : '1px solid transparent'};
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+
+    &:hover {
+        background: ${props => props.isActive
+                ? 'linear-gradient(90deg, #0066cc, #00b4d8)'
+                : 'rgba(0, 180, 216, 0.1)'};
+        transform: translateY(-2px);
+    }
+
+    i {
+        margin-right: 8px;
+    }
 `;
 
 const CreateButton = styled.button`
@@ -234,24 +188,112 @@ const CardFooter = styled.div`
     margin-top: 15px;
 `;
 
+const LoadingSpinner = styled.div`
+    text-align: center;
+    padding: 40px;
+    color: #00b4d8;
+    font-size: 18px;
+`;
+
+const ErrorMessage = styled.div`
+    text-align: center;
+    padding: 40px;
+    color: #ff6b6b;
+    font-size: 18px;
+    background: rgba(255, 107, 107, 0.1);
+    border-radius: 12px;
+    margin: 20px;
+`;
+
+const EmptyState = styled.div`
+    text-align: center;
+    padding: 60px 20px;
+    background: linear-gradient(145deg, #132f4c, #0a1929);
+    border: 1px solid rgba(0, 180, 216, 0.2);
+    border-radius: 12px;
+    margin: 40px 0;
+`;
+
+const EmptyIcon = styled.div`
+    font-size: 4rem;
+    color: #00b4d8;
+    margin-bottom: 25px;
+    opacity: 0.8;
+`;
+
+const EmptyText = styled.p`
+    font-size: 1.3rem;
+    color: #e0e0e0;
+    margin-bottom: 30px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+`;
+
 interface MethodologyPageProps {
-    onMethodologySelect: (methodology: Methodology) => void;
-    onMethodologyDelete?: (methodologyId: number) => void;
-    canEdit?: boolean;
+    onMethodologySelect?: (methodology: any) => void;
 }
 
-export const MethodologyPage: FC<MethodologyPageProps> = ({
-                                                              onMethodologySelect,
-                                                              onMethodologyDelete,
-                                                              canEdit = true
-                                                          }) => {
-    const [methodologies, setMethodologies] = useState<Methodology[]>(mockMethodologies);
-    const [selectedMethodology, setSelectedMethodology] = useState<Methodology | null>(null);
+export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect }) => {
+    const [activeTab, setActiveTab] = useState<MethodologyTab>('available');
+    const [selectedMethodologyId, setSelectedMethodologyId] = useState<number | null>(null);
     const [isCreating, setIsCreating] = useState(false);
 
-    const handleMethodologyClick = (methodology: Methodology) => {
-        setSelectedMethodology(methodology);
-        onMethodologySelect(methodology);
+    const user = useAppSelector((state) => state.authReducer.user);
+    const shouldSkip = !user?.token;
+
+    // Получение доступных методичек (методичек команды)
+    const {
+        data: availableMethodologies = [],
+        isLoading: isLoadingAvailable,
+        error: errorAvailable,
+        refetch: refetchAvailable
+    } = useGetAvailableMethodologiesQuery(undefined, { skip: shouldSkip });
+
+    // Получение всех методичек (админ)
+    const {
+        data: allMethodologies = [],
+        isLoading: isLoadingAll,
+        error: errorAll,
+        refetch: refetchAll
+    } = useGetAllMethodologiesQuery(undefined, { skip: shouldSkip });
+
+    // Получение деталей методички по ID
+    const {
+        data: selectedMethodology,
+        isLoading: isLoadingMethodology
+    } = useGetMethodologyByIdQuery(selectedMethodologyId!, {
+        skip: !selectedMethodologyId
+    });
+
+    const [deleteMethodology] = useDeleteMethodologyMutation();
+
+    const getCurrentMethodologies = () => {
+        return activeTab === 'available' ? availableMethodologies : allMethodologies;
+    };
+
+    const getCurrentLoading = () => {
+        return activeTab === 'available' ? isLoadingAvailable : isLoadingAll;
+    };
+
+    const getCurrentError = () => {
+        return activeTab === 'available' ? errorAvailable : errorAll;
+    };
+
+    const handleRefresh = () => {
+        if (activeTab === 'available') {
+            refetchAvailable();
+        } else {
+            refetchAll();
+        }
+    };
+
+    const handleMethodologyClick = (methodologyId: number) => {
+        setSelectedMethodologyId(methodologyId);
+        if (onMethodologySelect) {
+            onMethodologySelect({ id: methodologyId });
+        }
     };
 
     const handleCreateClick = () => {
@@ -262,56 +304,99 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({
         setIsCreating(false);
     };
 
-    const handleCreateMethodology = (methodologyData: Omit<Methodology, 'id'>) => {
-        const newMethodology: Methodology = {
-            ...methodologyData,
-            id: Math.max(...methodologies.map(m => m.id), 0) + 1
-        };
-
-        setMethodologies(prev => [...prev, newMethodology]);
+    const handleCreateSuccess = () => {
         setIsCreating(false);
-        alert(`Методичка "${newMethodology.title}" успешно создана!`);
+        handleRefresh();
     };
 
-    const handleEditMethodology = (updatedMethodology: Methodology) => {
-        setMethodologies(prev => prev.map(m =>
-            m.id === updatedMethodology.id ? updatedMethodology : m
-        ));
-        setSelectedMethodology(updatedMethodology);
-        alert(`Методичка "${updatedMethodology.title}" успешно обновлена!`);
+    const handleEditSuccess = () => {
+        handleRefresh();
+        setSelectedMethodologyId(null);
     };
 
-    const handleDeleteMethodology = (methodologyId: number, methodologyTitle: string, e: React.MouseEvent) => {
+    const handleDeleteMethodology = async (methodologyId: number, methodologyTitle: string, e: React.MouseEvent) => {
         e.stopPropagation();
 
         if (window.confirm(`Вы уверены, что хотите удалить методичку "${methodologyTitle}"?`)) {
-            setMethodologies(prev => prev.filter(m => m.id !== methodologyId));
-
-            if (onMethodologyDelete) {
-                onMethodologyDelete(methodologyId);
+            try {
+                await deleteMethodology(methodologyId).unwrap();
+                alert(`Методичка "${methodologyTitle}" успешно удалена!`);
+                handleRefresh();
+            } catch (err: any) {
+                console.error('Error deleting methodology:', err);
+                alert(err.data?.message || 'Ошибка при удалении методички');
             }
-
-            alert(`Методичка "${methodologyTitle}" успешно удалена!`);
         }
     };
 
+    const handleBackToList = () => {
+        setSelectedMethodologyId(null);
+    };
+
+    // Если создаем новую методичку
     if (isCreating) {
         return (
             <CreateMethodologyPage
-                onCreateMethodology={handleCreateMethodology}
+                onCreateMethodology={handleCreateSuccess}
                 onCancel={handleCancelCreate}
             />
         );
     }
 
-    if (selectedMethodology) {
+    // Если выбран конкретная методичка - показываем детали
+    if (selectedMethodologyId) {
+        if (isLoadingMethodology) {
+            return (
+                <MethodologyContainer>
+                    <LoadingSpinner>Загрузка методички...</LoadingSpinner>
+                </MethodologyContainer>
+            );
+        }
+
+        if (selectedMethodology) {
+            // Конвертируем в нужный формат для MethodologyDetailsPage
+            const methodologyForDetails = {
+                ...selectedMethodology,
+                image: selectedMethodology.image_url || '📚',
+                content: selectedMethodology.blocks?.map(block => ({
+                    type: block.type,
+                    content: block.content
+                })) || []
+            };
+
+            return (
+                <MethodologyDetailsPage
+                    methodology={methodologyForDetails}
+                    onBack={handleBackToList}
+                    onEdit={handleEditSuccess}
+                    canEdit={true}
+                />
+            );
+        }
+    }
+
+    const methodologies = getCurrentMethodologies();
+    const isLoading = getCurrentLoading();
+    const error = getCurrentError();
+
+    if (isLoading && !methodologies.length) {
         return (
-            <MethodologyDetailsPage
-                methodology={selectedMethodology}
-                onBack={() => setSelectedMethodology(null)}
-                onEdit={canEdit ? handleEditMethodology : undefined}
-                canEdit={canEdit}
-            />
+            <MethodologyContainer>
+                <LoadingSpinner>Загрузка методичек...</LoadingSpinner>
+            </MethodologyContainer>
+        );
+    }
+
+    if (error) {
+        console.error('Methodologies loading error:', error);
+        return (
+            <MethodologyContainer>
+                <ErrorMessage>
+                    <h3>Ошибка при загрузке методичек</h3>
+                    <p>Пожалуйста, попробуйте позже.</p>
+                    <button onClick={handleRefresh}>Повторить попытку</button>
+                </ErrorMessage>
+            </MethodologyContainer>
         );
     }
 
@@ -324,38 +409,76 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({
                 </CreateButton>
             </HeaderSection>
 
-            <MethodologyGrid>
-                {methodologies.map(methodology => (
-                    <MethodologyCard
-                        key={methodology.id}
-                        onClick={() => handleMethodologyClick(methodology)}
-                    >
-                        <MethodologyImage>
-                            {methodology.image}
-                        </MethodologyImage>
-                        <MethodologyTitle>{methodology.title}</MethodologyTitle>
-                        <MethodologyDescription>{methodology.description}</MethodologyDescription>
-                        <MethodologyMeta>
-                            <MethodologyCategory>{methodology.category}</MethodologyCategory>
-                            <MethodologyLevel level={methodology.level}>
-                                {methodology.level === 'beginner' ? 'Начинающий' :
-                                    methodology.level === 'intermediate' ? 'Средний' : 'Продвинутый'}
-                            </MethodologyLevel>
-                        </MethodologyMeta>
-                        <MethodologyDuration>
-                            <i className="fas fa-clock"></i> Длительность: {methodology.duration}
-                        </MethodologyDuration>
-                        {canEdit && (
+            <TabContainer>
+                <TabButton
+                    isActive={activeTab === 'available'}
+                    onClick={() => setActiveTab('available')}
+                >
+                    <i className="fas fa-users"></i>
+                    Доступные методички
+                </TabButton>
+                <TabButton
+                    isActive={activeTab === 'all'}
+                    onClick={() => setActiveTab('all')}
+                >
+                    <i className="fas fa-book"></i>
+                    Все методички
+                </TabButton>
+            </TabContainer>
+
+            {methodologies.length > 0 ? (
+                <MethodologyGrid>
+                    {methodologies.map((methodology) => (
+                        <MethodologyCard
+                            key={methodology.id}
+                            onClick={() => handleMethodologyClick(methodology.id)}
+                        >
+                            <MethodologyImage>
+                                {methodology.image_url ? (
+                                    <img src={methodology.image_url} alt={methodology.title} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px' }} />
+                                ) : (
+                                    <i className="fas fa-book-open"></i>
+                                )}
+                            </MethodologyImage>
+                            <MethodologyTitle>{methodology.title}</MethodologyTitle>
+                            <MethodologyDescription>{methodology.description}</MethodologyDescription>
+                            <MethodologyMeta>
+                                <MethodologyCategory>{methodology.category}</MethodologyCategory>
+                                <MethodologyLevel level={methodology.level}>
+                                    {methodology.level === 'beginner' ? 'Начинающий' :
+                                        methodology.level === 'intermediate' ? 'Средний' : 'Продвинутый'}
+                                </MethodologyLevel>
+                            </MethodologyMeta>
+                            <MethodologyDuration>
+                                <i className="fas fa-clock"></i> Длительность: {methodology.duration}
+                            </MethodologyDuration>
+                            <MethodologyDuration>
+                                <i className="fas fa-user"></i> Автор: {methodology.author_name}
+                            </MethodologyDuration>
                             <CardFooter>
                                 <DeleteButton onClick={(e) => handleDeleteMethodology(methodology.id, methodology.title, e)}>
                                     <i className="fas fa-trash-alt"></i>
                                     Удалить методичку
                                 </DeleteButton>
                             </CardFooter>
-                        )}
-                    </MethodologyCard>
-                ))}
-            </MethodologyGrid>
+                        </MethodologyCard>
+                    ))}
+                </MethodologyGrid>
+            ) : (
+                <EmptyState>
+                    <EmptyIcon>
+                        <i className="fas fa-book-open"></i>
+                    </EmptyIcon>
+                    <EmptyText>
+                        {activeTab === 'available'
+                            ? 'Пока нет доступных методичек.'
+                            : 'Пока нет созданных методичек. Станьте первым, создав методичку!'}
+                    </EmptyText>
+                    <CreateButton onClick={handleCreateClick}>
+                        Создать методичку
+                    </CreateButton>
+                </EmptyState>
+            )}
         </MethodologyContainer>
     );
 };

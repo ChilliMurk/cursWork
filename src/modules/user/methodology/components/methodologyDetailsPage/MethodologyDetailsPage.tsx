@@ -1,7 +1,7 @@
 import {FC, useState} from 'react';
 import styled from '@emotion/styled';
-import {Methodology} from "@/modules/user/methodology/components/MethodologyPage.tsx";
-import {EditMethodologyPage} from "../editMethodologyPage/EditMethodologyPage";
+import { Methodology } from "@/store/reducers/methodologyApi/methodologyApi.ts"; // Импортируем из API, а не из MethodologyPage
+import { EditMethodologyPage } from "../editMethodologyPage/EditMethodologyPage";
 
 interface MethodologyDetailsPageProps {
     methodology: Methodology;
@@ -99,11 +99,11 @@ const MetaBadge = styled.span<{ type: string }>`
     color: #00e6ff;
   ` : props.type === 'level' ? `
     background: ${props.children === 'Начинающий' ? 'rgba(76, 175, 80, 0.2)' :
-    props.children === 'Средний' ? 'rgba(255, 152, 0, 0.2)' :
-        'rgba(244, 67, 54, 0.2)'};
+            props.children === 'Средний' ? 'rgba(255, 152, 0, 0.2)' :
+                    'rgba(244, 67, 54, 0.2)'};
     color: ${props.children === 'Начинающий' ? '#4caf50' :
-    props.children === 'Средний' ? '#ff9800' :
-        '#f44336'};
+            props.children === 'Средний' ? '#ff9800' :
+                    '#f44336'};
   ` : `
     background: rgba(158, 158, 158, 0.2);
     color: #e0e0e0;
@@ -167,12 +167,10 @@ export const MethodologyDetailsPage: FC<MethodologyDetailsPageProps> = ({
         if (onEdit) {
             onEdit(updatedMethodology);
         }
-        // Выходим из режима редактирования ТОЛЬКО после сохранения
         setIsEditing(false);
     };
 
     const handleCancel = () => {
-        // Просто выходим из режима редактирования без сохранения
         setIsEditing(false);
     };
 
@@ -202,7 +200,9 @@ export const MethodologyDetailsPage: FC<MethodologyDetailsPageProps> = ({
             </ButtonGroup>
 
             <MethodologyHeader>
-                <MethodologyImage>{methodology.image}</MethodologyImage>
+                <MethodologyImage>{methodology.image_url ? (
+                    <img src={methodology.image_url} alt={methodology.title} style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px' }} />
+                ) : '📚'}</MethodologyImage>
                 <MethodologyTitle>{methodology.title}</MethodologyTitle>
                 <MethodologyMeta>
                     <MetaBadge type="category">{methodology.category}</MetaBadge>
@@ -226,9 +226,9 @@ export const MethodologyDetailsPage: FC<MethodologyDetailsPageProps> = ({
             <ContentSection>
                 <SectionTitle>Содержание</SectionTitle>
 
-                {methodology.content && methodology.content.length > 0 ? (
-                    methodology.content.map((item, index) => (
-                        <ContentItem key={index}>
+                {methodology.blocks && methodology.blocks.length > 0 ? (
+                    methodology.blocks.map((item, index) => (
+                        <ContentItem key={item.id || index}>
                             {item.type === "heading" && <ContentHeading>{item.content}</ContentHeading>}
                             {item.type === "text" && <ContentText>{item.content}</ContentText>}
                             {item.type === "image" && (
