@@ -1,6 +1,6 @@
 import { FC, useState, useEffect } from 'react';
 import { useAppSelector } from "@/common/hooks/useAppSelector.ts";
-import { useGetAdminEventsQuery } from "@/store/reducers/eventApi/eventApi.ts";
+import { useGetAllEventsQuery, Event } from "@/store/reducers/eventApi/eventApi.ts";
 import {
     CreateEventButton,
     EventCard,
@@ -13,16 +13,12 @@ import {
     ErrorMessage
 } from "@/modules/user/events/components/style.ts";
 import { EmptyIcon, EmptyState, EmptyText } from "@/modules/user/teams/components/style.ts";
-
-interface Event {
-    id: number;
-    name: string;
-    description: string;
-}
+import { EventDetailsPage } from "./eventDetailsPage/EventDetailsPage.tsx";
 
 export const EventsPage: FC = () => {
     const [showCreateEvent, setShowCreateEvent] = useState(false);
     const [participatingEvents, setParticipatingEvents] = useState<number[]>([]);
+    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
     const user = useAppSelector((state) => state.authReducer.user);
 
@@ -32,26 +28,23 @@ export const EventsPage: FC = () => {
         error,
         refetch,
         isFetching
-    } = useGetAdminEventsQuery();
+    } = useGetAllEventsQuery(undefined, {
+        skip: !user?.token // Не загружаем если нет токена
+    });
 
     useEffect(() => {
         if (user) {
             console.log('User logged in:', user.name || user.email);
-            // Загрузить события пользователя или другую логику
         }
     }, [user]);
 
-    // Принудительно обновляем данные при монтировании
-    useEffect(() => {
-        refetch();
-    }, []); // Пустой массив зависимостей - выполнится один раз при монтировании
-
     // Следим за изменениями данных
     useEffect(() => {
-        console.log('Events from server:', events);
+        if (events.length > 0) {
+            console.log('Events from server:', events);
+        }
     }, [events]);
 
-    // Кнопка для ручного обновления
     const handleRefresh = () => {
         refetch();
     };
@@ -73,8 +66,24 @@ export const EventsPage: FC = () => {
     };
 
     const handleEventClick = (event: Event) => {
-        console.log('Event clicked:', event);
+        setSelectedEvent(event);
     };
+
+    const handleBackToList = () => {
+        setSelectedEvent(null);
+    };
+
+    // Если выбран конкретный event - показываем детали
+    if (selectedEvent) {
+        return (
+            <EventDetailsPage
+                event={selectedEvent}
+                onBack={handleBackToList}
+                onParticipate={handleParticipate}
+                participatingEvents={participatingEvents}
+            />
+        );
+    }
 
     if (isLoading && !events.length) {
         return (
@@ -85,6 +94,7 @@ export const EventsPage: FC = () => {
     }
 
     if (error) {
+        console.error('Events loading error:', error);
         return (
             <EventsContainer>
                 <ErrorMessage>
@@ -128,8 +138,17 @@ export const EventsPage: FC = () => {
                             onClick={() => handleEventClick(event)}
                             style={{ cursor: 'pointer' }}
                         >
-                            <EventTitle>{event.name || 'Без названия'}</EventTitle>
+                            <EventTitle>{event.title || event.name || 'Без названия'}</EventTitle>
                             <EventInfo>{event.description || 'Нет описания'}</EventInfo>
+                            <EventInfo>
+                                <strong>Игра:</strong> {event.game || 'Не указана'}
+                            </EventInfo>
+                            <EventInfo>
+                                <strong>Участников:</strong> {event.participants}/{event.maxParticipants}
+                            </EventInfo>
+                            <EventInfo>
+                                <strong>Дата:</strong> {new Date(event.date).toLocaleDateString()}
+                            </EventInfo>
 
                             <ParticipateButton
                                 onClick={(e) => {
@@ -137,10 +156,13 @@ export const EventsPage: FC = () => {
                                     handleParticipate(event.id);
                                 }}
                                 isParticipating={participatingEvents.includes(event.id)}
+                                disabled={event.status === 'completed'}
                             >
                                 {participatingEvents.includes(event.id)
                                     ? 'Отказаться от участия'
-                                    : 'Участвовать'}
+                                    : event.status === 'completed'
+                                        ? 'Событие завершено'
+                                        : 'Участвовать'}
                             </ParticipateButton>
                         </EventCard>
                     ))}

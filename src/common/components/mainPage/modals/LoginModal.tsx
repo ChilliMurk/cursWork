@@ -22,7 +22,7 @@ interface LoginModalProps {
 
 export const LoginModal: FC<LoginModalProps> = ({isOpen, onClose, onSwitchToRegister, onSuccess}) => {
     const dispatch = useAppDispatch();
-    const [loginInput, setLoginInput] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
@@ -34,7 +34,7 @@ export const LoginModal: FC<LoginModalProps> = ({isOpen, onClose, onSwitchToRegi
 
         try {
             const response = await login({
-                login: loginInput,
+                username: username,
                 password: password
             }).unwrap();
 
@@ -46,16 +46,16 @@ export const LoginModal: FC<LoginModalProps> = ({isOpen, onClose, onSwitchToRegi
                 user: {
                     id: response.id,
                     email: response.email,
-                    name: response.name || response.login,
-                    login: response.login,
-                    token: response.token
+                    name: response.name || response.username || response.login || username, // Добавлены значения по умолчанию
+                    login: response.username || response.login || username, // Добавлены значения по умолчанию
+                    token: response.token || '' // Добавлено значение по умолчанию для token
                 }
             }));
 
             onClose();
             onSuccess();
 
-            setLoginInput('');
+            setUsername('');
             setPassword('');
 
         } catch (err: any) {
@@ -73,13 +73,13 @@ export const LoginModal: FC<LoginModalProps> = ({isOpen, onClose, onSwitchToRegi
                 </ModalHeader>
                 <form onSubmit={handleSubmit}>
                     <FormGroup>
-                        <FormLabel htmlFor="loginInput">Email или логин</FormLabel>
+                        <FormLabel htmlFor="username">Имя пользователя</FormLabel>
                         <FormInput
-                            type="text" // ИЗМЕНЕНО: было "email", стало "text"
-                            id="loginInput"
-                            placeholder="your@email.com или ваш логин"
-                            value={loginInput}
-                            onChange={(e) => setLoginInput(e.target.value)}
+                            type="text"
+                            id="username"
+                            placeholder="Ваш логин"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
                             required
                             disabled={isLoading}
                         />

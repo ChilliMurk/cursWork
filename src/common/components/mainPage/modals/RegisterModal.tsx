@@ -12,7 +12,6 @@ import {
 import {useAppDispatch} from "@/common/hooks/useAppSelector.ts";
 import {registerStart, registerSuccess, registerFailure} from '@/store/reducers/authSlice';
 import {useRegisterMutation} from "@/store/reducers/auth/auth.ts";
-//import {useNavigate} from "react-router-dom"; // импорт actions
 
 interface RegisterModalProps {
     isOpen: boolean;
@@ -24,17 +23,16 @@ interface RegisterModalProps {
 export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitchToLogin, onSuccess}) => {
     const dispatch = useAppDispatch();
     const [register, {isLoading, error}] = useRegisterMutation();
-    //const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
-        login: '',
+        username: '', // Изменено с login на username
         email: '',
         password: '',
         confirmPassword: ''
     });
 
     const [formErrors, setFormErrors] = useState({
-        login: '',
+        username: '', // Изменено с login на username
         email: '',
         password: '',
         confirmPassword: ''
@@ -56,7 +54,7 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
 
     const validateForm = () => {
         const errors = {
-            login: '',
+            username: '', // Изменено с login на username
             email: '',
             password: '',
             confirmPassword: ''
@@ -64,8 +62,15 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
 
         let isValid = true;
 
-        if (!formData.login.trim()) {
-            errors.login = 'Имя пользователя обязательно';
+        // Валидация username (3-50 символов)
+        if (!formData.username.trim()) {
+            errors.username = 'Имя пользователя обязательно';
+            isValid = false;
+        } else if (formData.username.length < 3) {
+            errors.username = 'Имя пользователя должно содержать минимум 3 символа';
+            isValid = false;
+        } else if (formData.username.length > 50) {
+            errors.username = 'Имя пользователя не должно превышать 50 символов';
             isValid = false;
         }
 
@@ -103,7 +108,7 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
             dispatch(registerStart());
 
             const result = await register({
-                login: formData.login,
+                username: formData.username, // Изменено с login на username
                 email: formData.email,
                 password: formData.password
             }).unwrap();
@@ -112,14 +117,12 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
                 user: {
                     id: result.id,
                     email: result.email,
-                    name: result.login
+                    name: result.username // Изменено с result.login на result.username
                 }
             }));
 
             onClose();
             onSuccess();
-
-
 
         } catch (error: any) {
             const errorMessage = error.data?.message || 'Ошибка регистрации';
@@ -150,17 +153,17 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
 
                 <form onSubmit={handleSubmit}>
                     <FormGroup>
-                        <FormLabel htmlFor="login">Имя пользователя</FormLabel>
+                        <FormLabel htmlFor="username">Имя пользователя</FormLabel> {/* Изменено id с login на username */}
                         <FormInput
                             type="text"
-                            id="login"
+                            id="username" // Изменено с login на username
                             placeholder="Придумайте имя"
-                            value={formData.login}
+                            value={formData.username} // Изменено с formData.login на formData.username
                             onChange={handleInputChange}
                             required
                         />
-                        {formErrors.login &&
-                            <span style={{color: '#ff6b6b', fontSize: '0.9rem'}}>{formErrors.login}</span>}
+                        {formErrors.username && // Изменено с formErrors.login на formErrors.username
+                            <span style={{color: '#ff6b6b', fontSize: '0.9rem'}}>{formErrors.username}</span>}
                     </FormGroup>
 
                     <FormGroup>
