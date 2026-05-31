@@ -262,7 +262,8 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect 
     // Получение деталей методички по ID
     const {
         data: selectedMethodology,
-        isLoading: isLoadingMethodology
+        isLoading: isLoadingMethodology,
+        error: methodologyError
     } = useGetMethodologyByIdQuery(selectedMethodologyId!, {
         skip: !selectedMethodologyId
     });
@@ -290,6 +291,7 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect 
     };
 
     const handleMethodologyClick = (methodologyId: number) => {
+        console.log('Methodology clicked, ID:', methodologyId);
         setSelectedMethodologyId(methodologyId);
         if (onMethodologySelect) {
             onMethodologySelect({ id: methodologyId });
@@ -353,24 +355,40 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect 
             );
         }
 
-        if (selectedMethodology) {
-            // Конвертируем в нужный формат для MethodologyDetailsPage
-            const methodologyForDetails = {
-                ...selectedMethodology,
-                image: selectedMethodology.image_url || '📚',
-                content: selectedMethodology.blocks?.map(block => ({
-                    type: block.type,
-                    content: block.content
-                })) || []
-            };
+        if (methodologyError) {
+            console.error('Error loading methodology:', methodologyError);
+            return (
+                <MethodologyContainer>
+                    <ErrorMessage>
+                        <h3>Ошибка при загрузке методички</h3>
+                        <p>Пожалуйста, попробуйте позже.</p>
+                        <button onClick={handleBackToList}>Назад</button>
+                    </ErrorMessage>
+                </MethodologyContainer>
+            );
+        }
 
+        if (selectedMethodology) {
             return (
                 <MethodologyDetailsPage
-                    methodology={methodologyForDetails}
+                    methodology={selectedMethodology}
                     onBack={handleBackToList}
                     onEdit={handleEditSuccess}
                     canEdit={true}
                 />
+            );
+        }
+
+        // Если методичка не найдена (selectedMethodology === null)
+        if (selectedMethodology === null) {
+            return (
+                <MethodologyContainer>
+                    <ErrorMessage>
+                        <h3>Методичка не найдена</h3>
+                        <p>Возможно, она была удалена.</p>
+                        <button onClick={handleBackToList}>Назад к списку</button>
+                    </ErrorMessage>
+                </MethodologyContainer>
             );
         }
     }

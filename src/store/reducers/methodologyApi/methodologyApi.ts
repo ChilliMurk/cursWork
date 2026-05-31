@@ -70,20 +70,25 @@ export interface Methodology {
     blocks: MethodologyBlock[];
 }
 
-// Трансформация данных
-export const transformMethodology = (serverMethodology: MethodologyContentResponse): Methodology => {
+// Трансформация данных с проверками
+export const transformMethodology = (serverMethodology: MethodologyContentResponse | null): Methodology | null => {
+    if (!serverMethodology) {
+        console.error('Server methodology is null');
+        return null;
+    }
+
     return {
         id: serverMethodology.id,
-        title: serverMethodology.title,
-        description: serverMethodology.description,
-        image_url: serverMethodology.image_url,
-        author_id: serverMethodology.author_id,
-        author_name: serverMethodology.author_name,
-        duration: serverMethodology.duration,
-        category: serverMethodology.category,
-        level: serverMethodology.level,
-        team_id: serverMethodology.team_id,
-        blocks: serverMethodology.blocks.map(block => ({
+        title: serverMethodology.title || '',
+        description: serverMethodology.description || '',
+        image_url: serverMethodology.image_url || '',
+        author_id: serverMethodology.author_id || 0,
+        author_name: serverMethodology.author_name || '',
+        duration: serverMethodology.duration || '',
+        category: serverMethodology.category || '',
+        level: serverMethodology.level || 'beginner',
+        team_id: serverMethodology.team_id || 0,
+        blocks: (serverMethodology.blocks || []).map(block => ({
             id: block.id,
             order_index: block.order_index,
             type: block.type,
@@ -95,15 +100,15 @@ export const transformMethodology = (serverMethodology: MethodologyContentRespon
 export const transformMethodologyList = (serverMethodology: MethodologyInfoResponse): MethodologyList => {
     return {
         id: serverMethodology.id,
-        title: serverMethodology.title,
-        description: serverMethodology.description,
-        image_url: serverMethodology.image_url,
-        author_id: serverMethodology.author_id,
-        author_name: serverMethodology.author_name,
-        duration: serverMethodology.duration,
-        category: serverMethodology.category,
-        level: serverMethodology.level,
-        team_id: serverMethodology.team_id
+        title: serverMethodology.title || '',
+        description: serverMethodology.description || '',
+        image_url: serverMethodology.image_url || '',
+        author_id: serverMethodology.author_id || 0,
+        author_name: serverMethodology.author_name || '',
+        duration: serverMethodology.duration || '',
+        category: serverMethodology.category || '',
+        level: serverMethodology.level || 'beginner',
+        team_id: serverMethodology.team_id || 0
     };
 };
 
@@ -139,6 +144,10 @@ export const methodologyApi = createApi({
         getAvailableMethodologies: builder.query<MethodologyList[], void>({
             query: () => '/methodologies/all_available',
             transformResponse: (response: MethodologyInfoResponse[]) => {
+                if (!response || !Array.isArray(response)) {
+                    console.error('Available methodologies response is not an array:', response);
+                    return [];
+                }
                 return response.map(transformMethodologyList);
             },
             providesTags: ['Methodologies'],
@@ -148,18 +157,27 @@ export const methodologyApi = createApi({
         getAllMethodologies: builder.query<MethodologyList[], void>({
             query: () => '/methodologies/all',
             transformResponse: (response: MethodologyInfoResponse[]) => {
+                if (!response || !Array.isArray(response)) {
+                    console.error('All methodologies response is not an array:', response);
+                    return [];
+                }
                 return response.map(transformMethodologyList);
             },
             providesTags: ['Methodologies'],
         }),
 
         // Получение методички по ID
-        getMethodologyById: builder.query<Methodology, number>({
+        getMethodologyById: builder.query<Methodology | null, number>({
             query: (methodologyId) => `/methodologies/${methodologyId}`,
             transformResponse: (response: MethodologyContentResponse) => {
+                console.log('Methodology by ID response:', response);
                 return transformMethodology(response);
             },
-            providesTags: (_result, _error, id) => [{ type: 'Methodology', id }], // Исправлено
+            transformErrorResponse: (response) => {
+                console.error('Error fetching methodology by ID:', response);
+                return response;
+            },
+            providesTags: (_result, _error, id) => [{ type: 'Methodology', id }],
         }),
 
         // Создание методички
@@ -179,7 +197,7 @@ export const methodologyApi = createApi({
                 method: 'PUT',
                 body: data,
             }),
-            invalidatesTags: (_result, _error, { methodologyId }) => [ // Исправлено
+            invalidatesTags: (_result, _error, { methodologyId }) => [
                 'Methodologies',
                 { type: 'Methodology', id: methodologyId }
             ],
