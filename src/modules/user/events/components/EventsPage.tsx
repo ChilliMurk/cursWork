@@ -1,6 +1,6 @@
 import { FC, useState, useEffect } from 'react';
 import { useAppSelector } from "@/common/hooks/useAppSelector.ts";
-import { useGetAllEventsQuery, Event } from "@/store/reducers/eventApi/eventApi.ts";
+import { useGetAvailableEventsQuery, useCreateCommonEventMutation, useCreateTeamEventMutation, Event } from "@/store/reducers/eventApi/eventApi.ts";
 import {
     CreateEventButton,
     EventCard,
@@ -14,13 +14,20 @@ import {
 } from "@/modules/user/events/components/style.ts";
 import { EmptyIcon, EmptyState, EmptyText } from "@/modules/user/teams/components/style.ts";
 import { EventDetailsPage } from "./eventDetailsPage/EventDetailsPage.tsx";
+import { CreateEventPage } from "./createEventPage/CreateEventPage.tsx";
 
 export const EventsPage: FC = () => {
     const [showCreateEvent, setShowCreateEvent] = useState(false);
     const [participatingEvents, setParticipatingEvents] = useState<number[]>([]);
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+    const [eventType, setEventType] = useState<'common' | 'team'>('common');
 
     const user = useAppSelector((state) => state.authReducer.user);
+
+    // Получаем текущий месяц и год для запроса
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
 
     const {
         data: events = [],
@@ -28,9 +35,14 @@ export const EventsPage: FC = () => {
         error,
         refetch,
         isFetching
-    } = useGetAllEventsQuery(undefined, {
-        skip: !user?.token // Не загружаем если нет токена
+    } = useGetAvailableEventsQuery({ month: currentMonth, year: currentYear }, {
+        skip: !user?.token
     });
+
+    const [createCommonEvent, { isLoading: isCreatingCommon }] = useCreateCommonEventMutation();
+    const [createTeamEvent, { isLoading: isCreatingTeam }] = useCreateTeamEventMutation();
+
+    const isCreating = isCreatingCommon || isCreatingTeam;
 
     useEffect(() => {
         if (user) {
@@ -38,7 +50,6 @@ export const EventsPage: FC = () => {
         }
     }, [user]);
 
-    // Следим за изменениями данных
     useEffect(() => {
         if (events.length > 0) {
             console.log('Events from server:', events);
@@ -65,6 +76,118 @@ export const EventsPage: FC = () => {
         setShowCreateEvent(false);
     };
 
+    const handleEventTypeChange = (type: 'common' | 'team') => {
+        setEventType(type);
+    };
+
+    const handleCreateEventSubmit = async (eventData: Omit<Event, 'id' | 'participants'>, eventTypeValue: string) => {
+        try {
+            // Форматируем дату правильно для LocalDateTime
+            let formattedDate;
+
+            if (eventData.date) {
+                // Создаем объект даты
+                const dateObj = new Date(eventData.date);
+
+                // Проверяем, что дата валидна
+                if (isNaN(dateObj.getTime())) {
+                    throw new Error('Invalid date');
+                }
+
+                // Форматируем как YYYY-MM-DDTHH:MM:SS (без миллисекунд)
+                const year = dateObj.getFullYear();
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                const hours = String(dateObj.getHours()).padStart(2, '0');
+                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+
+                formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+            } else {
+                // Если даты нет, используем текущую + 1 день
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 1);
+                const year = futureDate.getFullYear();
+                const month = String(futureDate.getMonth() + 1).padStart(2, '0');
+                const day = String(futureDate.getDate()).padStart(2, '0');
+                const hours = String(futureDate.getHours()).padStart(2, '0');
+                const minutes = String(futureDate.getMinutes()).padStart(2, '0');
+                const seconds = String(futureDate.getSeconds()).padStart(2, '0');
+
+                formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+            }
+
+            const requestData = {
+                title: eventData.title,
+                description: eventData.description,
+                type: eventTypeValue,
+                date: formattedDate,
+                max_amount_of_participants: Number(eventData.maxParticipants),
+                prize: eventData.prize
+            };
+
+            console.log('Sending request data:', requestData);
+
+            if (eventType === 'common') {
+                await createCommonEvent(requestData).unwrap();
+                alert('Общее событие успешно создано!');
+            } else {
+                await createTeamEvent(requestData).unwrap();
+                alert('Командное событие успешно создано!');
+            }
+
+            setShowCreateEvent(false);
+            refetch();
+
+        } catch (err: any) {
+            console.error('Error creating event:', err);
+            if (err.data) {
+                console.error('Error details:', err.data);
+                alert(`Ошибка: ${err.data.error || err.data.message || JSON.stringify(err.data)}`);
+            } else {
+                alert('Ошибка при создании события');
+            }
+        }
+    };
+
+    // // В EventsPage.tsx обновите handleCreateEventSubmit
+    // const handleCreateEventSubmit = async (eventData: Omit<Event, 'id' | 'participants'>, eventTypeValue: string) => {
+    //     try {
+    //         const dateObj = new Date(eventData.date);
+    //         const formattedDate = dateObj.toISOString().split('.')[0];
+    //
+    //         const requestData = {
+    //             title: eventData.title,
+    //             description: eventData.description,
+    //             type: eventTypeValue, // Используем выбранное значение
+    //             date: formattedDate,
+    //             max_amount_of_participants: Number(eventData.maxParticipants),
+    //             prize: eventData.prize
+    //         };
+    //
+    //         console.log('Sending request data:', requestData);
+    //
+    //         if (eventType === 'common') {
+    //             await createCommonEvent(requestData).unwrap();
+    //             alert('Общее событие успешно создано!');
+    //         } else {
+    //             await createTeamEvent(requestData).unwrap();
+    //             alert('Командное событие успешно создано!');
+    //         }
+    //
+    //         setShowCreateEvent(false);
+    //         refetch();
+    //
+    //     } catch (err: any) {
+    //         console.error('Error creating event:', err);
+    //         if (err.data) {
+    //             alert(`Ошибка: ${err.data.error || err.data.message || 'Неверные данные'}`);
+    //         } else {
+    //             alert('Ошибка при создании события');
+    //         }
+    //     }
+    // };
+
     const handleEventClick = (event: Event) => {
         setSelectedEvent(event);
     };
@@ -73,7 +196,6 @@ export const EventsPage: FC = () => {
         setSelectedEvent(null);
     };
 
-    // Если выбран конкретный event - показываем детали
     if (selectedEvent) {
         return (
             <EventDetailsPage
@@ -110,10 +232,13 @@ export const EventsPage: FC = () => {
 
     if (showCreateEvent) {
         return (
-            <div>
-                <h2>Создание события (в разработке)</h2>
-                <button onClick={handleCancelCreate}>Назад</button>
-            </div>
+            <CreateEventPage
+                onCreateEvent={handleCreateEventSubmit}
+                onCancel={handleCancelCreate}
+                isLoading={isCreating}
+                eventType={eventType}
+                onEventTypeChange={handleEventTypeChange}
+            />
         );
     }
 

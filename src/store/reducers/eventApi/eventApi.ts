@@ -1,7 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { RootState } from '@/store/store';
 
-// Интерфейс ответа от сервера согласно документации
 export interface EventInfoResponse {
     id: number;
     title: string;
@@ -18,7 +17,15 @@ export interface EventInfoResponse {
     prize: string;
 }
 
-// Трансформируем данные из формата сервера в формат для фронта
+export interface EventCreatingRequest {
+    title: string;
+    description: string;
+    type: string;
+    date: string;
+    max_amount_of_participants: number;
+    prize: string;
+}
+
 export const transformEvent = (serverEvent: EventInfoResponse): Event => {
     return {
         id: serverEvent.id,
@@ -30,7 +37,7 @@ export const transformEvent = (serverEvent: EventInfoResponse): Event => {
         date: serverEvent.date,
         status: serverEvent.status as 'upcoming' | 'ongoing' | 'completed',
         prize: serverEvent.prize,
-        game: serverEvent.type, // type используется как игра
+        game: serverEvent.type,
         organizerId: serverEvent.organizer_id,
         organizerName: serverEvent.organizer_name,
         teamId: serverEvent.team_id,
@@ -70,16 +77,7 @@ export const eventsApi = createApi({
         },
     }),
     endpoints: (builder) => ({
-        // Получение всех событий (для админа) - /api/events/all
-        getAllEvents: builder.query<Event[], void>({
-            query: () => '/events/all',
-            transformResponse: (response: EventInfoResponse[]) => {
-                return response.map(transformEvent);
-            },
-            providesTags: ['Events'],
-        }),
-
-        // Получение доступных событий для пользователя с параметрами месяца и года
+        // Получение доступных событий для пользователя (с параметрами месяца и года)
         getAvailableEvents: builder.query<Event[], { month: number; year: number }>({
             query: ({ month, year }) => `/events/all_available?month=${month}&year=${year}`,
             transformResponse: (response: EventInfoResponse[]) => {
@@ -107,7 +105,6 @@ export const eventsApi = createApi({
         }),
 
         // Получение события по ID
-        // Получение события по ID
         getEventById: builder.query<Event, number>({
             query: (eventId) => `/events/${eventId}`,
             transformResponse: (response: EventInfoResponse) => {
@@ -115,13 +112,48 @@ export const eventsApi = createApi({
             },
             providesTags: (_result, _error, id) => [{ type: 'Events', id }],
         }),
+
+        // Создание общего события
+        createCommonEvent: builder.mutation<EventInfoResponse, EventCreatingRequest>({
+            query: (eventData) => {
+                console.log('Sending common event data:', JSON.stringify(eventData, null, 2));
+                return {
+                    url: '/events/new_common_event',
+                    method: 'POST',
+                    body: eventData,
+                };
+            },
+            invalidatesTags: ['Events'],
+            transformResponse: (response: EventInfoResponse) => {
+                console.log('Common event created:', response);
+                return response;
+            },
+        }),
+
+        // Создание командного события
+        createTeamEvent: builder.mutation<EventInfoResponse, EventCreatingRequest>({
+            query: (eventData) => {
+                console.log('Sending team event data:', JSON.stringify(eventData, null, 2));
+                return {
+                    url: '/events/new_team_event',
+                    method: 'POST',
+                    body: eventData,
+                };
+            },
+            invalidatesTags: ['Events'],
+            transformResponse: (response: EventInfoResponse) => {
+                console.log('Team event created:', response);
+                return response;
+            },
+        }),
     }),
 });
 
 export const {
-    useGetAllEventsQuery,
     useGetAvailableEventsQuery,
     useGetTeamEventsQuery,
     useGetCommonEventsQuery,
     useGetEventByIdQuery,
+    useCreateCommonEventMutation,
+    useCreateTeamEventMutation,
 } = eventsApi;

@@ -7,24 +7,15 @@ import {
     FormContainer, FormGrid, FormGroup,
     FormTitle, Input, Label, Select, SelectHeader, SelectItem, SelectList, SubmitButton, TextArea
 } from "@/modules/user/events/components/createEventPage/styles.ts";
-
-interface Event {
-    id: number;
-    title: string;
-    game: string;
-    participants: number;
-    maxParticipants: number;
-    description: string;
-    date: string;
-    status: 'upcoming' | 'ongoing' | 'completed';
-    prize: string;
-}
+import { Event } from "@/store/reducers/eventApi/eventApi.ts";
 
 interface CreateEventPageProps {
-    onCreateEvent: (eventData: Omit<Event, 'id' | 'participants'>) => void;
+    onCreateEvent: (eventData: Omit<Event, 'id' | 'participants'>, eventTypeValue: string) => void;
     onCancel: () => void;
+    isLoading?: boolean;
+    eventType?: 'common' | 'team';
+    onEventTypeChange?: (type: 'common' | 'team') => void;
 }
-
 
 const gameOptions = [
     {value: "", label: "Выберите игру"},
@@ -39,20 +30,45 @@ const statusOptions = [
     {value: "ongoing", label: "Текущее"}
 ];
 
-export const CreateEventPage: FC<CreateEventPageProps> = ({onCreateEvent, onCancel}) => {
+// Добавляем options для категории события
+const eventTypeValueOptions = [
+    {value: "", label: "Выберите тип события"},
+    {value: "TEAM_BUILDING", label: "Сбор команды"},
+    {value: "CORPORATE_PARTY", label: "Корпоратив"},
+    {value: "BUSINESS_MEETING", label: "Деловая встреча"},
+    {value: "TRAINING", label: "Тренировка"},
+    {value: "TOURNAMENT", label: "Турнир"}
+];
+
+export const CreateEventPage: FC<CreateEventPageProps> = ({
+                                                              onCreateEvent,
+                                                              onCancel,
+                                                              isLoading = false,
+                                                              eventType = 'common',
+                                                              onEventTypeChange
+                                                          }) => {
     const [formData, setFormData] = useState<Omit<Event, 'id' | 'participants'>>({
         title: '',
+        name: '',
         game: '',
         maxParticipants: 10,
         description: '',
         date: '',
         status: 'upcoming',
-        prize: ''
+        prize: '',
+        organizerId: 0,
+        organizerName: '',
+        teamId: 0,
+        teamName: ''
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isGameSelectOpen, setIsGameSelectOpen] = useState(false);
     const [isStatusSelectOpen, setIsStatusSelectOpen] = useState(false);
+
+    // Добавляем состояния для категории события
+    const [selectedEventTypeValue, setSelectedEventTypeValue] = useState('');
+    const [isEventTypeValueSelectOpen, setIsEventTypeValueSelectOpen] = useState(false);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const {name, value} = e.target;
@@ -92,6 +108,19 @@ export const CreateEventPage: FC<CreateEventPageProps> = ({onCreateEvent, onCanc
         setIsStatusSelectOpen(false);
     };
 
+    // Добавляем обработчик для категории события
+    const handleEventTypeValueSelect = (typeValue: string) => {
+        setSelectedEventTypeValue(typeValue);
+        setIsEventTypeValueSelectOpen(false);
+
+        if (errors.eventTypeValue) {
+            setErrors(prev => ({
+                ...prev,
+                eventTypeValue: ''
+            }));
+        }
+    };
+
     const validateForm = () => {
         const newErrors: Record<string, string> = {};
 
@@ -103,6 +132,7 @@ export const CreateEventPage: FC<CreateEventPageProps> = ({onCreateEvent, onCanc
             newErrors.maxParticipants = 'Количество участников должно быть от 2 до 100';
         }
         if (!formData.prize.trim()) newErrors.prize = 'Призовой фонд обязателен';
+        if (!selectedEventTypeValue) newErrors.eventTypeValue = 'Выберите категорию события';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -113,11 +143,27 @@ export const CreateEventPage: FC<CreateEventPageProps> = ({onCreateEvent, onCanc
 
         if (!validateForm()) return;
 
-        onCreateEvent(formData);
+        const eventData = {
+            title: formData.title,
+            name: formData.title,
+            game: formData.game,
+            maxParticipants: formData.maxParticipants,
+            description: formData.description,
+            date: formData.date,
+            status: formData.status,
+            prize: formData.prize,
+            organizerId: 0,
+            organizerName: '',
+            teamId: 0,
+            teamName: ''
+        };
+
+        onCreateEvent(eventData, selectedEventTypeValue);
     };
 
     const selectedGameLabel = gameOptions.find(opt => opt.value === formData.game)?.label || "Выберите игру";
     const selectedStatusLabel = statusOptions.find(opt => opt.value === formData.status)?.label || "Выберите статус";
+    const selectedEventTypeValueLabel = eventTypeValueOptions.find(opt => opt.value === selectedEventTypeValue)?.label || "Выберите категорию";
 
     return (
         <CreateEventContainer>
@@ -131,6 +177,77 @@ export const CreateEventPage: FC<CreateEventPageProps> = ({onCreateEvent, onCanc
             <FormContainer>
                 <form onSubmit={handleSubmit}>
                     <FormGrid>
+                        {/* Селектор типа события (общее/командное) */}
+                        <FormGroup className="full-width">
+                            <Label>Тип события *</Label>
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => onEventTypeChange && onEventTypeChange('common')}
+                                    style={{
+                                        flex: 1,
+                                        padding: '12px 20px',
+                                        background: eventType === 'common'
+                                            ? 'linear-gradient(90deg, #0066cc, #00b4d8)'
+                                            : 'rgba(0, 180, 216, 0.15)',
+                                        color: eventType === 'common' ? '#ffffff' : '#00e6ff',
+                                        border: '1px solid #00b4d8',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontFamily: 'Rajdhani, sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '1rem',
+                                        transition: 'all 0.3s'
+                                    }}
+                                >
+                                    <i className="fas fa-globe"></i> Общее событие
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => onEventTypeChange && onEventTypeChange('team')}
+                                    style={{
+                                        flex: 1,
+                                        padding: '12px 20px',
+                                        background: eventType === 'team'
+                                            ? 'linear-gradient(90deg, #0066cc, #00b4d8)'
+                                            : 'rgba(0, 180, 216, 0.15)',
+                                        color: eventType === 'team' ? '#ffffff' : '#00e6ff',
+                                        border: '1px solid #00b4d8',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontFamily: 'Rajdhani, sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '1rem',
+                                        transition: 'all 0.3s'
+                                    }}
+                                >
+                                    <i className="fas fa-users"></i> Командное событие
+                                </button>
+                            </div>
+                        </FormGroup>
+
+                        {/* НОВЫЙ СЕЛЕКТОР: Категория события */}
+                        <FormGroup className="full-width">
+                            <Label>Категория события *</Label>
+                            <Select>
+                                <SelectHeader onClick={() => setIsEventTypeValueSelectOpen(!isEventTypeValueSelectOpen)}>
+                                    <span>{selectedEventTypeValueLabel}</span>
+                                    <Arrow isOpen={isEventTypeValueSelectOpen}/>
+                                </SelectHeader>
+                                <SelectList isOpen={isEventTypeValueSelectOpen}>
+                                    {eventTypeValueOptions.map(option => (
+                                        <SelectItem
+                                            key={option.value}
+                                            onClick={() => handleEventTypeValueSelect(option.value)}
+                                        >
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectList>
+                            </Select>
+                            {errors.eventTypeValue && <ErrorMessage>{errors.eventTypeValue}</ErrorMessage>}
+                        </FormGroup>
+
                         <FormGroup className="full-width">
                             <Label>Название события *</Label>
                             <Input
@@ -234,9 +351,8 @@ export const CreateEventPage: FC<CreateEventPageProps> = ({onCreateEvent, onCanc
                         </FormGroup>
 
                         <ActionButtons>
-                            <SubmitButton type="submit">
-                                <i className="fas fa-plus"></i>
-                                Создать событие
+                            <SubmitButton type="submit" disabled={isLoading}>
+                                {isLoading ? 'Создание...' : 'Создать событие'}
                             </SubmitButton>
                             <CancelButton type="button" onClick={onCancel}>
                                 <i className="fas fa-times"></i>
