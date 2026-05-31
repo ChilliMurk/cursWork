@@ -1,17 +1,25 @@
-import {FC} from 'react';
+import {FC, useState} from 'react';
 import styled from '@emotion/styled';
 import {Methodology} from "@/modules/user/methodology/components/MethodologyPage.tsx";
-
+import {EditMethodologyPage} from "../editMethodologyPage/EditMethodologyPage";
 
 interface MethodologyDetailsPageProps {
     methodology: Methodology;
     onBack: () => void;
+    onEdit?: (methodology: Methodology) => void;
+    canEdit?: boolean;
 }
 
 const DetailsContainer = styled.div`
     padding: 20px;
     max-width: 800px;
     margin: 0 auto;
+`;
+
+const ButtonGroup = styled.div`
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
 `;
 
 const BackButton = styled.button`
@@ -27,11 +35,31 @@ const BackButton = styled.button`
     transition: all 0.3s;
     font-family: 'Rajdhani', sans-serif;
     font-weight: 600;
-    margin-bottom: 25px;
 
     &:hover {
         background: rgba(0, 180, 216, 0.25);
         box-shadow: 0 0 15px rgba(0, 180, 216, 0.4);
+    }
+`;
+
+const EditButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: rgba(255, 152, 0, 0.15);
+    color: #ff9800;
+    border: 1px solid rgba(255, 152, 0, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+
+    &:hover {
+        background: rgba(255, 152, 0, 0.25);
+        box-shadow: 0 0 15px rgba(255, 152, 0, 0.4);
+        transform: translateY(-2px);
     }
 `;
 
@@ -71,11 +99,11 @@ const MetaBadge = styled.span<{ type: string }>`
     color: #00e6ff;
   ` : props.type === 'level' ? `
     background: ${props.children === 'Начинающий' ? 'rgba(76, 175, 80, 0.2)' :
-            props.children === 'Средний' ? 'rgba(255, 152, 0, 0.2)' :
-                    'rgba(244, 67, 54, 0.2)'};
+    props.children === 'Средний' ? 'rgba(255, 152, 0, 0.2)' :
+        'rgba(244, 67, 54, 0.2)'};
     color: ${props.children === 'Начинающий' ? '#4caf50' :
-            props.children === 'Средний' ? '#ff9800' :
-                    '#f44336'};
+    props.children === 'Средний' ? '#ff9800' :
+        '#f44336'};
   ` : `
     background: rgba(158, 158, 158, 0.2);
     color: #e0e0e0;
@@ -125,14 +153,53 @@ const ContentImage = styled.img`
 
 export const MethodologyDetailsPage: FC<MethodologyDetailsPageProps> = ({
                                                                             methodology,
-                                                                            onBack
+                                                                            onBack,
+                                                                            onEdit,
+                                                                            canEdit = true
                                                                         }) => {
+    const [isEditing, setIsEditing] = useState(false);
+
+    const handleEdit = () => {
+        setIsEditing(true);
+    };
+
+    const handleSave = (updatedMethodology: Methodology) => {
+        if (onEdit) {
+            onEdit(updatedMethodology);
+        }
+        // Выходим из режима редактирования ТОЛЬКО после сохранения
+        setIsEditing(false);
+    };
+
+    const handleCancel = () => {
+        // Просто выходим из режима редактирования без сохранения
+        setIsEditing(false);
+    };
+
+    if (isEditing) {
+        return (
+            <EditMethodologyPage
+                methodology={methodology}
+                onSave={handleSave}
+                onCancel={handleCancel}
+            />
+        );
+    }
+
     return (
         <DetailsContainer>
-            <BackButton onClick={onBack}>
-                <i className="fas fa-arrow-left"></i>
-                Назад к методичкам
-            </BackButton>
+            <ButtonGroup>
+                <BackButton onClick={onBack}>
+                    <i className="fas fa-arrow-left"></i>
+                    Назад к методичкам
+                </BackButton>
+                {canEdit && onEdit && (
+                    <EditButton onClick={handleEdit}>
+                        <i className="fas fa-edit"></i>
+                        Редактировать
+                    </EditButton>
+                )}
+            </ButtonGroup>
 
             <MethodologyHeader>
                 <MethodologyImage>{methodology.image}</MethodologyImage>
@@ -156,7 +223,6 @@ export const MethodologyDetailsPage: FC<MethodologyDetailsPageProps> = ({
                 </ContentText>
             </ContentSection>
 
-            {/* Секция с динамическим контентом методички */}
             <ContentSection>
                 <SectionTitle>Содержание</SectionTitle>
 

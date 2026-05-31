@@ -34,8 +34,12 @@ const mockMethodologies: Methodology[] = [
         image: '🎮',
         content: [
             {type: 'heading', content: 'Введение в командную игру'},
-            {type: 'text', content: 'Командная работа - основа успеха в киберспорте...'},
-            {type: 'image', content: '🎮'}
+            {type: 'text', content: 'Командная работа - основа успеха в киберспорте. В этой методичке мы рассмотрим базовые принципы взаимодействия с тиммейтами, коммуникации и распределения ролей.'},
+            {type: 'heading', content: 'Основы коммуникации'},
+            {type: 'text', content: 'Правильная коммуникация - ключ к победе. Используйте четкие и короткие команды, не перегружайте эфир лишней информацией.'},
+            {type: 'image', content: 'https://via.placeholder.com/600x400?text=Communication+Basics'},
+            {type: 'heading', content: 'Распределение ролей'},
+            {type: 'text', content: 'Каждый игрок должен понимать свою роль в команде: капитан, снайпер, саппорт и т.д. Четкое понимание обязанностей повышает эффективность игры.'}
         ]
     },
     {
@@ -48,8 +52,11 @@ const mockMethodologies: Methodology[] = [
         image: '🔫',
         content: [
             {type: 'heading', content: 'Тактические основы CS2'},
-            {type: 'text', content: 'Изучение карт и позиций...'},
-            {type: 'image', content: '🎯'}
+            {type: 'text', content: 'Изучение карт и позиций - фундамент успешной игры. Рассмотрим ключевые точки контроля на основных картах.'},
+            {type: 'heading', content: 'Стратегии нападения'},
+            {type: 'text', content: 'Разберем эффективные стратегии атаки: быстрый раш, пикл-атака, фейковые маневры.'},
+            {type: 'heading', content: 'Защита и контроль карты'},
+            {type: 'text', content: 'Как правильно оборонять точки, перекрывать выходы и координировать защиту.'}
         ]
     },
     {
@@ -62,8 +69,11 @@ const mockMethodologies: Methodology[] = [
         image: '🧠',
         content: [
             {type: 'heading', content: 'Ментальная подготовка'},
-            {type: 'text', content: 'Как сохранять хладнокровие во время матчей...'},
-            {type: 'image', content: '🧘'}
+            {type: 'text', content: 'Как сохранять хладнокровие во время матчей и справляться со стрессом.'},
+            {type: 'heading', content: 'Работа с тильтом'},
+            {type: 'text', content: 'Техники контроля эмоций и восстановления после неудачных раундов.'},
+            {type: 'heading', content: 'Командный дух'},
+            {type: 'text', content: 'Построение позитивной атмосферы в команде и мотивация игроков.'}
         ]
     },
     {
@@ -76,8 +86,11 @@ const mockMethodologies: Methodology[] = [
         image: '💰',
         content: [
             {type: 'heading', content: 'Экономические стратегии'},
-            {type: 'text', content: 'Управление золотом и предметами...'},
-            {type: 'image', content: '💎'}
+            {type: 'text', content: 'Управление золотом и предметами - ключ к преимуществу в Dota 2.'},
+            {type: 'heading', content: 'Лес и нейтралы'},
+            {type: 'text', content: 'Как эффективно фармить нейтральных крипов и использовать лес.'},
+            {type: 'heading', content: 'Выбор предметов'},
+            {type: 'text', content: 'Анализ ситуации и правильная сборка под конкретного противника.'}
         ]
     }
 ];
@@ -193,11 +206,45 @@ const MethodologyDuration = styled.div`
     font-size: 0.9rem;
 `;
 
+const DeleteButton = styled.button`
+    padding: 8px 16px;
+    background: rgba(244, 67, 54, 0.15);
+    color: #ff5252;
+    border: 1px solid rgba(244, 67, 54, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    width: 100%;
+    justify-content: center;
+
+    &:hover {
+        background: rgba(244, 67, 54, 0.25);
+        box-shadow: 0 0 15px rgba(244, 67, 54, 0.3);
+        transform: translateY(-2px);
+    }
+`;
+
+const CardFooter = styled.div`
+    margin-top: 15px;
+`;
+
 interface MethodologyPageProps {
     onMethodologySelect: (methodology: Methodology) => void;
+    onMethodologyDelete?: (methodologyId: number) => void;
+    canEdit?: boolean;
 }
 
-export const MethodologyPage: FC<MethodologyPageProps> = ({onMethodologySelect}) => {
+export const MethodologyPage: FC<MethodologyPageProps> = ({
+                                                              onMethodologySelect,
+                                                              onMethodologyDelete,
+                                                              canEdit = true
+                                                          }) => {
     const [methodologies, setMethodologies] = useState<Methodology[]>(mockMethodologies);
     const [selectedMethodology, setSelectedMethodology] = useState<Methodology | null>(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -226,6 +273,28 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({onMethodologySelect})
         alert(`Методичка "${newMethodology.title}" успешно создана!`);
     };
 
+    const handleEditMethodology = (updatedMethodology: Methodology) => {
+        setMethodologies(prev => prev.map(m =>
+            m.id === updatedMethodology.id ? updatedMethodology : m
+        ));
+        setSelectedMethodology(updatedMethodology);
+        alert(`Методичка "${updatedMethodology.title}" успешно обновлена!`);
+    };
+
+    const handleDeleteMethodology = (methodologyId: number, methodologyTitle: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        if (window.confirm(`Вы уверены, что хотите удалить методичку "${methodologyTitle}"?`)) {
+            setMethodologies(prev => prev.filter(m => m.id !== methodologyId));
+
+            if (onMethodologyDelete) {
+                onMethodologyDelete(methodologyId);
+            }
+
+            alert(`Методичка "${methodologyTitle}" успешно удалена!`);
+        }
+    };
+
     if (isCreating) {
         return (
             <CreateMethodologyPage
@@ -240,6 +309,8 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({onMethodologySelect})
             <MethodologyDetailsPage
                 methodology={selectedMethodology}
                 onBack={() => setSelectedMethodology(null)}
+                onEdit={canEdit ? handleEditMethodology : undefined}
+                canEdit={canEdit}
             />
         );
     }
@@ -274,6 +345,14 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({onMethodologySelect})
                         <MethodologyDuration>
                             <i className="fas fa-clock"></i> Длительность: {methodology.duration}
                         </MethodologyDuration>
+                        {canEdit && (
+                            <CardFooter>
+                                <DeleteButton onClick={(e) => handleDeleteMethodology(methodology.id, methodology.title, e)}>
+                                    <i className="fas fa-trash-alt"></i>
+                                    Удалить методичку
+                                </DeleteButton>
+                            </CardFooter>
+                        )}
                     </MethodologyCard>
                 ))}
             </MethodologyGrid>
