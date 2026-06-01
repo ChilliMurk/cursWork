@@ -262,6 +262,48 @@ export const UserInfoTop = styled.div`
     }
 `;
 
+export const UserAvatarWrapper = styled.div`
+    position: relative;
+    flex-shrink: 0;
+`;
+
+export const UserAvatarImage = styled.img`
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #00b4d8;
+    background: linear-gradient(145deg, #0066cc, #00b4d8);
+    flex-shrink: 0;
+
+    @media (max-width: 968px) {
+        width: 40px;
+        height: 40px;
+    }
+`;
+
+export const UserAvatarPlaceholder = styled.div`
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #0066cc, #00b4d8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    border: 2px solid #00b4d8;
+
+    @media (max-width: 968px) {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+    }
+`;
+
+// Оставляем для совместимости, но лучше использовать новые компоненты
 export const UserAvatarTop = styled.div`
     width: 45px;
     height: 45px;
