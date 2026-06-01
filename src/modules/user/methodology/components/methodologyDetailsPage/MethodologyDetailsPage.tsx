@@ -233,9 +233,10 @@ export const MethodologyDetailsPage: FC<MethodologyDetailsPageProps> = ({
                             {item.type === "text" && <ContentText>{item.content}</ContentText>}
                             {item.type === "image" && (
                                 <ContentImage
-                                    src={item.content}
+                                    src={`/api/uploads/${item.content}`}
                                     alt="Иллюстрация"
                                     onError={(e) => {
+                                        console.error('Image load error:', `/api/uploads/${item.content}`);
                                         e.currentTarget.style.display = 'none';
                                     }}
                                 />

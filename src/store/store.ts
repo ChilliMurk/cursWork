@@ -6,6 +6,7 @@ import { methodologyReducer } from "@/store/reducers/methodologySlice.ts";
 import { authApi } from "@/store/reducers/auth/auth.ts";
 import { eventsApi } from "@/store/reducers/eventApi/eventApi.ts";
 import { methodologyApi } from "@/store/reducers/methodologyApi/methodologyApi.ts";
+import { uploadApi } from "@/store/reducers/uploadApi/uploadApi.ts"; // Добавьте
 
 const rememberedReducers = [
     'authReducer',
@@ -14,6 +15,7 @@ const rememberedReducers = [
     'authApi',
     'eventsApi',
     'methodologyApi',
+    'uploadApi', // Добавьте
 ];
 
 const rootReducer = combineReducers({
@@ -23,6 +25,7 @@ const rootReducer = combineReducers({
     [authApi.reducerPath]: authApi.reducer,
     [eventsApi.reducerPath]: eventsApi.reducer,
     [methodologyApi.reducerPath]: methodologyApi.reducer,
+    [uploadApi.reducerPath]: uploadApi.reducer, // Добавьте
 });
 
 const rememberedReducer = rememberReducer(rootReducer);
@@ -38,6 +41,7 @@ export const store = configureStore({
             authApi.middleware,
             eventsApi.middleware,
             methodologyApi.middleware,
+            uploadApi.middleware, // Добавьте
         ),
     enhancers: (getDefaultEnhancer) =>
         getDefaultEnhancer().concat(rememberEnhancer(window.localStorage, rememberedReducers)),

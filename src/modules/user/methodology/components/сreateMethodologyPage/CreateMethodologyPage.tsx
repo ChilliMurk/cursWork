@@ -1,6 +1,7 @@
 import { FC, useState, useRef, useEffect } from 'react';
 import styled from '@emotion/styled';
 import { useCreateMethodologyMutation } from "@/store/reducers/methodologyApi/methodologyApi.ts";
+import { useUploadImageMutation } from "@/store/reducers/uploadApi/uploadApi.ts";
 
 interface CreateMethodologyPageProps {
     onCreateMethodology: () => void;
@@ -523,9 +524,9 @@ const UploadText = styled.p`
     font-size: 1.1rem;
 `;
 
-const UploadInput = styled.input`
-    display: none;
-`;
+// const UploadInput = styled.input`
+//     display: none;
+// `;
 
 const ImagePreviewContainer = styled.div`
     position: relative;
@@ -557,6 +558,21 @@ const ChangeImageButton = styled.button`
     }
 `;
 
+const UploadingOverlay = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+`;
+
 const popularEmojis = ['🎮', '🔫', '🧠', '💰', '⚔️', '🛡️', '🎯', '🏆', '🚀', '💡', '📚', '🎓', '🤝', '🌟', '⚡', '🔥'];
 
 export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
@@ -564,6 +580,7 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                                                                           onCancel
                                                                       }) => {
     const [createMethodology, { isLoading }] = useCreateMethodologyMutation();
+    const [uploadImage] = useUploadImageMutation();
 
     const [formData, setFormData] = useState({
         title: '',
@@ -579,8 +596,8 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleAddContent = (type: 'heading' | 'text' | 'image') => {
         const newContent: MethodologyContent = {
@@ -592,26 +609,102 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
         setIsDropdownOpen(false);
     };
 
-    const handleImageUpload = (index: number, files: FileList | null) => {
+    // const handleImageUpload = async (index: number, files: FileList | null) => {
+    //     if (files && files[0]) {
+    //         setUploadingIndex(index);
+    //         try {
+    //             const result = await uploadImage(files[0]).unwrap();
+    //             setContent(prev => prev.map((item, i) =>
+    //                 i === index ? { ...item, content: result.image_url } : item
+    //             ));
+    //         } catch (err) {
+    //             console.error('Error uploading image:', err);
+    //             alert('Ошибка при загрузке изображения');
+    //         } finally {
+    //             setUploadingIndex(null);
+    //         }
+    //     }
+    // };
+
+    const handleImageUpload = async (index: number, files: FileList | null) => {
         if (files && files[0]) {
-            const file = files[0];
-            const fileUrl = URL.createObjectURL(file);
-            setContent(prev => prev.map((item, i) =>
-                i === index ? { ...item, content: fileUrl } : item
-            ));
+            setUploadingIndex(index);
+            try {
+                const result = await uploadImage(files[0]).unwrap();
+                console.log('Upload result:', result);
+
+                // Сохраняем только имя файла (без слешей и без /api/uploads/)
+                // result.image_url должно быть просто "497e0601-5154-4ba7-96c7-04cd4465c453.jpg"
+                const imageUrl = result.image_url;
+                console.log('Saving image filename:', imageUrl);
+
+                setContent(prev => prev.map((item, i) =>
+                    i === index ? { ...item, content: imageUrl } : item
+                ));
+            } catch (err) {
+                console.error('Error uploading image:', err);
+                alert('Ошибка при загрузке изображения');
+            } finally {
+                setUploadingIndex(null);
+            }
         }
     };
 
     const handleChangeImage = (index: number) => {
-        if (fileInputRef.current) {
-            fileInputRef.current.click();
-            fileInputRef.current.onchange = (e) => {
-                handleImageUpload(index, (e.target as HTMLInputElement).files);
-            };
-        }
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.onchange = (e) => {
+            handleImageUpload(index, (e.target as HTMLInputElement).files);
+        };
+        fileInput.click();
     };
 
+    // const renderImageBlock = (item: MethodologyContent, index: number) => {
+    //     const isUploadingThis = uploadingIndex === index;
+    //
+    //     if (!item.content) {
+    //         return (
+    //             <ImageUploadContainer>
+    //                 <UploadArea onClick={() => handleChangeImage(index)}>
+    //                     <UploadIcon>
+    //                         <i className="fas fa-plus"></i>
+    //                     </UploadIcon>
+    //                     <UploadText>Добавить файлы</UploadText>
+    //                     <UploadText>Нажмите чтобы загрузить изображение</UploadText>
+    //                 </UploadArea>
+    //             </ImageUploadContainer>
+    //         );
+    //     }
+    //
+    //     return (
+    //         <ImageBlock>
+    //             <ImagePreviewContainer>
+    //                 <PreviewImage
+    //                     src={item.content}
+    //                     alt="Загруженное изображение"
+    //                     onError={() => {
+    //                         setContent(prev => prev.map((contentItem, i) =>
+    //                             i === index ? { ...contentItem, content: '' } : contentItem
+    //                         ));
+    //                     }}
+    //                 />
+    //                 <ChangeImageButton onClick={() => handleChangeImage(index)}>
+    //                     <i className="fas fa-exchange-alt"></i> Изменить
+    //                 </ChangeImageButton>
+    //                 {isUploadingThis && (
+    //                     <UploadingOverlay>
+    //                         <i className="fas fa-spinner fa-spin"></i> Загрузка...
+    //                     </UploadingOverlay>
+    //                 )}
+    //             </ImagePreviewContainer>
+    //         </ImageBlock>
+    //     );
+    // };
+
     const renderImageBlock = (item: MethodologyContent, index: number) => {
+        const isUploadingThis = uploadingIndex === index;
+
         if (!item.content) {
             return (
                 <ImageUploadContainer>
@@ -622,30 +715,37 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                         <UploadText>Добавить файлы</UploadText>
                         <UploadText>Нажмите чтобы загрузить изображение</UploadText>
                     </UploadArea>
-                    <UploadInput
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload(index, e.target.files)}
-                    />
                 </ImageUploadContainer>
             );
         }
+
+        // Правильное формирование URL для отображения изображения
+        // item.content - это имя файла (например, "497e0601-5154-4ba7-96c7-04cd4465c453.jpg")
+        // Полный URL для получения изображения: /api/uploads/{имя_файла}
+        const imageSrc = `/api/uploads/${item.content}`;
 
         return (
             <ImageBlock>
                 <ImagePreviewContainer>
                     <PreviewImage
-                        src={item.content}
+                        src={imageSrc}
                         alt="Загруженное изображение"
-                        onError={() => {
-                            setContent(prev => prev.map((contentItem, i) =>
-                                i === index ? { ...contentItem, content: '' } : contentItem
-                            ));
+                        onError={(e) => {
+                            console.error('Image load error:', imageSrc);
+                            e.currentTarget.style.display = 'none';
+                        }}
+                        onLoad={() => {
+                            console.log('Image loaded successfully:', imageSrc);
                         }}
                     />
                     <ChangeImageButton onClick={() => handleChangeImage(index)}>
                         <i className="fas fa-exchange-alt"></i> Изменить
                     </ChangeImageButton>
+                    {isUploadingThis && (
+                        <UploadingOverlay>
+                            <i className="fas fa-spinner fa-spin"></i> Загрузка...
+                        </UploadingOverlay>
+                    )}
                 </ImagePreviewContainer>
             </ImageBlock>
         );
@@ -664,13 +764,6 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                 [name]: ''
             }));
         }
-    };
-
-    const handleEmojiSelect = (emoji: string) => {
-        setFormData(prev => ({
-            ...prev,
-            image_url: emoji
-        }));
     };
 
     const handleDeleteContent = (index: number) => {
@@ -694,13 +787,11 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
 
         if (!validateForm()) return;
 
-        // Проверка, что есть хотя бы один блок
         if (content.length === 0) {
             alert('Добавьте хотя бы один блок содержания');
             return;
         }
 
-        // Преобразуем блоки в формат для API
         const blocks = content.map((item, index) => ({
             orderIndex: index,
             type: item.type === 'heading' ? 'HEADER' :
@@ -708,7 +799,6 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
             content: item.content
         }));
 
-        // Правильный маппинг уровня сложности для бэкенда
         const levelMap = {
             'beginner': 'EASY',
             'intermediate': 'INTERMEDIATE',
@@ -730,8 +820,7 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
         console.log('Sending methodology data:', JSON.stringify(requestData, null, 2));
 
         try {
-            const result = await createMethodology(requestData).unwrap();
-            console.log('Methodology created:', result);
+            await createMethodology(requestData).unwrap();
             alert('Методичка успешно создана!');
             onCreateMethodology();
         } catch (err: any) {
@@ -881,7 +970,7 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                                     key={emoji}
                                     type="button"
                                     selected={formData.image_url === emoji}
-                                    onClick={() => handleEmojiSelect(emoji)}
+                                    onClick={() => setFormData(prev => ({ ...prev, image_url: emoji }))}
                                 >
                                     {emoji}
                                 </EmojiButton>
