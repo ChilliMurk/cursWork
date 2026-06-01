@@ -17,24 +17,29 @@ import {
     TeamTitle,
     DeleteButton
 } from "@/modules/user/teams/components/teamDetailsPage/style.ts";
-import {TeamMeta} from "@/modules/user/teams/components/style.ts";
-import {ActionButtons, CardTitle, PrimaryButton, SecondaryButton} from "@/modules/user/profile/components/style.ts";
-import {DeleteConfirmModal} from "@/modules/user/teams/DeleteConfirmModal.tsx";
+import { TeamMeta } from "@/modules/user/teams/components/style.ts";
+import { ActionButtons, CardTitle, PrimaryButton, SecondaryButton } from "@/modules/user/profile/components/style.ts";
+import { DeleteConfirmModal } from "@/modules/user/teams/DeleteConfirmModal.tsx";
 
 interface TeamDetailsPageProps {
     team: Team;
     onBack: () => void;
     onDelete?: (teamId: number) => void;
-    currentUser?: string;
+    currentTeamId?: number;
+    currentUserId?: number;
+    captainId?: number;
 }
 
 export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
                                                               team,
                                                               onBack,
                                                               onDelete,
-                                                            //  currentUser = "CurrentUser"
+                                                              currentTeamId,
+                                                              currentUserId,
+                                                              captainId
                                                           }) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const isCaptain = currentUserId === captainId;
 
     const handleJoinTeam = () => {
         alert(`Запрос на вступление в команду ${team.name} отправлен!`);
@@ -49,11 +54,10 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
     };
 
     const handleConfirmDelete = () => {
-        if (onDelete) {
-            onDelete(team.id);
+        if (onDelete && currentTeamId) {
+            onDelete(currentTeamId);
         }
         setShowDeleteModal(false);
-        // Вызываем onBack для перенаправления на список команд
         onBack();
     };
 
@@ -61,8 +65,23 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
         setShowDeleteModal(false);
     };
 
-    const membersCount = team.membersList.length;
-    //const isCaptain = team.captain === currentUser;
+    // Добавляем проверку на существование membersList
+    const membersCount = team.membersList?.length || 0;
+
+    if (!team) {
+        return (
+            <TeamDetailsContainer>
+                <BackButton onClick={onBack}>
+                    <i className="fas fa-arrow-left"></i>
+                    Назад к списку команд
+                </BackButton>
+                <div style={{ textAlign: 'center', padding: '50px', color: '#e0e0e0' }}>
+                    <i className="fas fa-exclamation-triangle" style={{ fontSize: '2rem', color: '#ff7e5f' }}></i>
+                    <p>Команда не найдена</p>
+                </div>
+            </TeamDetailsContainer>
+        );
+    }
 
     return (
         <TeamDetailsContainer>
@@ -86,18 +105,18 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
                         <MetaLabel>Рейтинг</MetaLabel>
                         <Rating>
                             <i className="fas fa-star"></i>
-                            <span>{team.rating}</span>
+                            <span>{team.rating || 0}</span>
                         </Rating>
                     </MetaItem>
 
                     <MetaItem>
                         <MetaLabel>Капитан</MetaLabel>
-                        <MetaValue>{team.captain}</MetaValue>
+                        <MetaValue>{team.captain || "Не указан"}</MetaValue>
                     </MetaItem>
 
                     <MetaItem>
                         <MetaLabel>Создана</MetaLabel>
-                        <MetaValue>{team.created}</MetaValue>
+                        <MetaValue>{team.created || "Не указано"}</MetaValue>
                     </MetaItem>
                 </TeamMeta>
             </TeamHeader>
@@ -110,16 +129,22 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
                     </CardTitle>
 
                     <MembersList>
-                        {team.membersList.map((member, index) => (
-                            <MemberItem key={index}>
-                                <MemberAvatar>
-                                    {member.charAt(0).toUpperCase()}
-                                </MemberAvatar>
-                                <MemberName className={member === team.captain ? 'captain' : ''}>
-                                    {member} {member === team.captain && '(Капитан)'}
-                                </MemberName>
-                            </MemberItem>
-                        ))}
+                        {team.membersList && team.membersList.length > 0 ? (
+                            team.membersList.map((member, index) => (
+                                <MemberItem key={index}>
+                                    <MemberAvatar>
+                                        {member?.charAt(0)?.toUpperCase() || '?'}
+                                    </MemberAvatar>
+                                    <MemberName className={member === team.captain ? 'captain' : ''}>
+                                        {member} {member === team.captain && '(Капитан)'}
+                                    </MemberName>
+                                </MemberItem>
+                            ))
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '20px', color: '#a0a0a0' }}>
+                                Нет участников
+                            </div>
+                        )}
                     </MembersList>
                 </ContentCard>
 
@@ -154,18 +179,12 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
                         </SecondaryButton>
                     </ActionButtons>
 
-                    {/*{isCaptain && onDelete && (*/}
-                    {/*    <DeleteButton onClick={handleDeleteClick}>*/}
-                    {/*        <i className="fas fa-trash-alt"></i>*/}
-                    {/*        Удалить команду*/}
-                    {/*    </DeleteButton>*/}
-                    {/*)}*/}
-
+                    {isCaptain && onDelete && (
                         <DeleteButton onClick={handleDeleteClick}>
                             <i className="fas fa-trash-alt"></i>
                             Удалить команду
                         </DeleteButton>
-
+                    )}
                 </ContentCard>
             </ContentGrid>
 

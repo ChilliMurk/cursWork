@@ -1,5 +1,4 @@
-import {FC, useState} from 'react';
-import {Team} from "@/modules/user/teams/components/mockTeams.tsx";
+import { FC, useState } from 'react';
 import {
     CreateTeamContainer,
     BackButton,
@@ -15,45 +14,40 @@ import {
     Arrow,
     SelectList,
     SelectItem,
-    TextArea, RoleTags, RoleTag, SubmitButton, CancelButton, ActionButtons
+    TextArea,
+    SubmitButton,
+    CancelButton,
+    ActionButtons,
+    LoadingOverlay
 } from "@/modules/user/teams/components/сreateTeamPage/styles.ts";
+import { useCreateTeamMutation } from "@/store/reducers/teamApi/teamApi.ts";
 
 interface CreateTeamPageProps {
-    onCreateTeam: (teamData: Omit<Team, 'id' | 'created' | 'members' | 'membersList'>) => void;
+    onCreateTeam: () => void;
     onCancel: () => void;
 }
 
-const gameRoles: Record<string, string[]> = {
-    "Counter-Strike 2": ["Rifler", "AWPer", "Lurker", "Support", "IGL", "Entry Fragger"],
-    "Dota 2": ["Carry", "Mid", "Offlane", "Support", "Hard Support", "Roamer"],
-    "Valorant": ["Duelist", "Initiator", "Controller", "Sentinel", "Flex"],
-    "Mobile Legend": ["Tank", "Fighter", "Assassin", "Mage", "Marksman", "Support"]
-};
-
 const gameOptions = [
-    {value: "", label: "Выберите игру"},
-    {value: "Counter-Strike 2", label: "Counter-Strike 2"},
-    {value: "Dota 2", label: "Dota 2"},
-    {value: "Valorant", label: "Valorant"},
-    {value: "Mobile Legend", label: "Mobile Legend"}
+    { value: "Counter-Strike 2", label: "Counter-Strike 2" },
+    { value: "Dota 2", label: "Dota 2" },
+    { value: "Valorant", label: "Valorant" },
+    { value: "Mobile Legend", label: "Mobile Legend" }
 ];
 
-export const CreateTeamPage: FC<CreateTeamPageProps> = ({onCreateTeam, onCancel}) => {
+export const CreateTeamPage: FC<CreateTeamPageProps> = ({ onCreateTeam, onCancel }) => {
+    const [createTeam, { isLoading }] = useCreateTeamMutation();
     const [formData, setFormData] = useState({
         name: '',
         game: '',
         description: '',
         requirements: '',
-        contact: '',
-        practiceSchedule: ''
+        contacts: '',
     });
-
-    const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSelectOpen, setIsSelectOpen] = useState(false);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const {name, value} = e.target;
+        const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
             [name]: value
@@ -82,18 +76,12 @@ export const CreateTeamPage: FC<CreateTeamPageProps> = ({onCreateTeam, onCancel}
         }
     };
 
-    const handleRoleToggle = (role: string) => {
-        setSelectedRoles(prev =>
-            prev.includes(role)
-                ? prev.filter(r => r !== role)
-                : [...prev, role]
-        );
-    };
-
     const validateForm = () => {
         const newErrors: Record<string, string> = {};
 
         if (!formData.name.trim()) newErrors.name = 'Название команды обязательно';
+        if (formData.name.length < 3) newErrors.name = 'Название должно содержать минимум 3 символа';
+        if (formData.name.length > 50) newErrors.name = 'Название не должно превышать 50 символов';
         if (!formData.game) newErrors.game = 'Выберите игру';
         if (!formData.description.trim()) newErrors.description = 'Описание обязательно';
 
@@ -101,27 +89,43 @@ export const CreateTeamPage: FC<CreateTeamPageProps> = ({onCreateTeam, onCancel}
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!validateForm()) return;
 
-        const teamData = {
-            ...formData,
-            lookingFor: selectedRoles,
-            rating: 0,
-            achievements: [],
-            captain: "CurrentUser",
-        };
+        try {
+            await createTeam({
+                name: formData.name,
+                game: formData.game,
+                description: formData.description,
+                requirements: formData.requirements,
+                contacts: formData.contacts,
+            }).unwrap();
 
-        onCreateTeam(teamData);
+            alert('Команда успешно создана!');
+            onCreateTeam();
+        } catch (error: any) {
+            console.error('Error creating team:', error);
+            if (error.data?.message) {
+                alert(`Ошибка: ${error.data.message}`);
+            } else {
+                alert('Произошла ошибка при создании команды');
+            }
+        }
     };
 
-    const availableRoles = formData.game ? gameRoles[formData.game] || [] : [];
     const selectedGameLabel = gameOptions.find(opt => opt.value === formData.game)?.label || "Выберите игру";
 
     return (
         <CreateTeamContainer>
+            {isLoading && (
+                <LoadingOverlay>
+                    <i className="fas fa-spinner fa-spin"></i>
+                    <span>Создание команды...</span>
+                </LoadingOverlay>
+            )}
+
             <BackButton onClick={onCancel}>
                 <i className="fas fa-arrow-left"></i>
                 Назад к списку команд
@@ -150,7 +154,7 @@ export const CreateTeamPage: FC<CreateTeamPageProps> = ({onCreateTeam, onCancel}
                             <Select>
                                 <SelectHeader onClick={() => setIsSelectOpen(!isSelectOpen)}>
                                     <span>{selectedGameLabel}</span>
-                                    <Arrow isOpen={isSelectOpen}/>
+                                    <Arrow isOpen={isSelectOpen} />
                                 </SelectHeader>
                                 <SelectList isOpen={isSelectOpen}>
                                     {gameOptions.map(option => (
@@ -179,17 +183,6 @@ export const CreateTeamPage: FC<CreateTeamPageProps> = ({onCreateTeam, onCancel}
                         </FormGroup>
 
                         <FormGroup className="full-width">
-                            <Label>Расписание тренировок</Label>
-                            <Input
-                                type="text"
-                                name="practiceSchedule"
-                                value={formData.practiceSchedule}
-                                onChange={handleInputChange}
-                                placeholder="Например: Пн, Ср, Пт с 19:00 до 21:00"
-                            />
-                        </FormGroup>
-
-                        <FormGroup className="full-width">
                             <Label>Требования к участникам</Label>
                             <TextArea
                                 name="requirements"
@@ -204,32 +197,15 @@ export const CreateTeamPage: FC<CreateTeamPageProps> = ({onCreateTeam, onCancel}
                             <Label>Контактная информация</Label>
                             <Input
                                 type="text"
-                                name="contact"
-                                value={formData.contact}
+                                name="contacts"
+                                value={formData.contacts}
                                 onChange={handleInputChange}
                                 placeholder="Discord, Telegram или другой способ связи"
                             />
                         </FormGroup>
 
-                        {availableRoles.length > 0 && (
-                            <FormGroup className="full-width">
-                                <Label>Ищем игроков на позиции</Label>
-                                <RoleTags>
-                                    {availableRoles.map(role => (
-                                        <RoleTag
-                                            key={role}
-                                            selected={selectedRoles.includes(role)}
-                                            onClick={() => handleRoleToggle(role)}
-                                        >
-                                            {role}
-                                        </RoleTag>
-                                    ))}
-                                </RoleTags>
-                            </FormGroup>
-                        )}
-
                         <ActionButtons>
-                            <SubmitButton type="submit">
+                            <SubmitButton type="submit" disabled={isLoading}>
                                 <i className="fas fa-plus"></i>
                                 Создать команду
                             </SubmitButton>

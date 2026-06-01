@@ -1,13 +1,14 @@
-import {combineReducers, configureStore} from '@reduxjs/toolkit';
-import {rememberReducer, rememberEnhancer} from 'redux-remember';
-import {authReducer} from "@/store/reducers/authSlice.ts";
-import {userReducer} from "@/store/reducers/userSlice.ts";
-import {methodologyReducer} from "@/store/reducers/methodologySlice.ts";
-import {authApi} from "@/store/reducers/auth/auth.ts";
-import {eventsApi} from "@/store/reducers/eventApi/eventApi.ts";
-import {methodologyApi} from "@/store/reducers/methodologyApi/methodologyApi.ts";
-import {uploadApi} from "@/store/reducers/uploadApi/uploadApi.ts";
-import {userApi} from "@/store/reducers/userApi/userApi.ts";
+import { combineReducers, configureStore } from '@reduxjs/toolkit';
+import { rememberReducer, rememberEnhancer } from 'redux-remember';
+import { authReducer } from "@/store/reducers/authSlice.ts";
+import { userReducer } from "@/store/reducers/userSlice.ts";
+import { methodologyReducer } from "@/store/reducers/methodologySlice.ts";
+import { authApi } from "@/store/reducers/auth/auth.ts";
+import { eventsApi } from "@/store/reducers/eventApi/eventApi.ts";
+import { methodologyApi } from "@/store/reducers/methodologyApi/methodologyApi.ts";
+import { uploadApi } from "@/store/reducers/uploadApi/uploadApi.ts";
+import { userApi } from "@/store/reducers/userApi/userApi.ts";
+import { teamApi } from "@/store/reducers/teamApi/teamApi.ts"; // Добавляем импорт teamApi
 
 const rememberedReducers = [
     'authReducer',
@@ -18,6 +19,7 @@ const rememberedReducers = [
     'methodologyApi',
     'uploadApi',
     'userApi',
+    'teamApi', // Добавляем teamApi в список сохраняемых редьюсеров
 ];
 
 const rootReducer = combineReducers({
@@ -29,6 +31,7 @@ const rootReducer = combineReducers({
     [methodologyApi.reducerPath]: methodologyApi.reducer,
     [uploadApi.reducerPath]: uploadApi.reducer,
     [userApi.reducerPath]: userApi.reducer,
+    [teamApi.reducerPath]: teamApi.reducer, // Добавляем teamApi в rootReducer
 });
 
 const rememberedReducer = rememberReducer(rootReducer);
@@ -46,6 +49,7 @@ export const store = configureStore({
             methodologyApi.middleware,
             uploadApi.middleware,
             userApi.middleware,
+            teamApi.middleware, // Добавляем teamApi middleware
         ),
     enhancers: (getDefaultEnhancer) =>
         getDefaultEnhancer().concat(rememberEnhancer(window.localStorage, rememberedReducers)),

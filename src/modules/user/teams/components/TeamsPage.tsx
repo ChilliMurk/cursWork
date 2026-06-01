@@ -1,51 +1,52 @@
-import {FC, useState, useCallback} from 'react';
-import {mockTeams, Team} from "@/modules/user/teams/components/mockTeams.tsx";
+import { FC, useState } from 'react';
 import {
     CreateTeamButton, EmptyIcon, EmptyState, EmptyText,
     GameButton,
     GameFilter, JoinButton, TeamCard, TeamGame, TeamInfo, TeamMeta, TeamName,
     TeamsContainer,
-    TeamsGrid
+    TeamsGrid, LoadingSpinner
 } from "@/modules/user/teams/components/style.ts";
-import {CreateTeamPage} from "@/modules/user/teams/components/сreateTeamPage/CreateTeamPage.tsx";
-import {JoinTeamModal} from "@/modules/user/events/components/eventDetailsPage/modals/joinTeamModal/JoinTeamModal.tsx";
-import {getTeamMembersCount} from "@/modules/user/teams/hook/getTeamMembersCount.tsx";
-import {TeamDetailsPage} from "@/modules/user/teams/components/teamDetailsPage/TeamDetailsPage.tsx";
+import { CreateTeamPage } from "@/modules/user/teams/components/сreateTeamPage/CreateTeamPage.tsx";
+import { JoinTeamModal } from "@/modules/user/events/components/eventDetailsPage/modals/joinTeamModal/JoinTeamModal.tsx";
+import { TeamDetailsPage } from "@/modules/user/teams/components/teamDetailsPage/TeamDetailsPage.tsx";
+import { useGetAllTeamsQuery, useDeleteTeamMutation, TeamInfoResponse, gameToBackend } from "@/store/reducers/teamApi/teamApi.ts";
+import { useGetCurrentUserQuery } from "@/store/reducers/userApi/userApi.ts";
 
 interface TeamsPageProps {
-    onTeamSelect?: (team: Team) => void;
+    onTeamSelect?: (team: TeamInfoResponse) => void;
 }
 
 const games = ["Все", "Counter-Strike 2", "Dota 2", "Valorant", "Mobile Legend"];
 
-export const TeamsPage: FC<TeamsPageProps> = ({onTeamSelect}) => {
+const transformTeam = (apiTeam: TeamInfoResponse) => ({
+    id: apiTeam.id,
+    name: apiTeam.name,
+    game: apiTeam.game,
+    description: apiTeam.description,
+    created: new Date(apiTeam.created_date).toLocaleDateString('ru-RU'),
+    captain: apiTeam.captain_name,
+    membersList: apiTeam.members?.map(m => m.username) || [],
+    requirements: apiTeam.requirements || "Требования не указаны",
+    contact: apiTeam.contacts || "Контактная информация не указана",
+    rating: 4.5,
+});
+
+export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
     const [selectedGame, setSelectedGame] = useState("Все");
-    const [teams, setTeams] = useState<Team[]>(() => {
-        const savedTeams = localStorage.getItem('teams');
-        if (savedTeams) {
-            try {
-                return JSON.parse(savedTeams);
-            } catch {
-                return [...mockTeams];
-            }
-        }
-        return [...mockTeams];
-    });
+    const [selectedTeam, setSelectedTeam] = useState<TeamInfoResponse | null>(null);
     const [isCreating, setIsCreating] = useState(false);
-    const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
     const [joinModal, setJoinModal] = useState({
         isOpen: false,
         teamId: 0,
         teamName: ''
     });
 
-    const saveTeamsToLocalStorage = useCallback((newTeams: Team[]) => {
-        localStorage.setItem('teams', JSON.stringify(newTeams));
-    }, []);
+    // Получаем game для бекенда (если не "Все")
+    const backendGame = selectedGame === "Все" ? undefined : gameToBackend[selectedGame];
 
-    const filteredTeams = selectedGame === "Все"
-        ? teams
-        : teams.filter(team => team.game === selectedGame);
+    const { data: teamsData, isLoading, refetch } = useGetAllTeamsQuery(backendGame);
+    const [deleteTeam] = useDeleteTeamMutation();
+    const { data: currentUser } = useGetCurrentUserQuery();
 
     const handleJoinClick = (teamId: number, teamName: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -81,33 +82,7 @@ export const TeamsPage: FC<TeamsPageProps> = ({onTeamSelect}) => {
         setIsCreating(false);
     };
 
-    const handleCreateTeam = (teamData: Omit<Team, 'id' | 'created' | 'membersList'>) => {
-        // TODO: Добавить валидацию позже
-        // if (!teamData.name.trim()) {
-        //     alert("Название команды обязательно");
-        //     return;
-        // }
-        // if (!teamData.game) {
-        //     alert("Выберите игру");
-        //     return;
-        // }
-
-        const newTeam: Team = {
-            ...teamData,
-            id: Math.max(...teams.map(t => t.id), 0) + 1,
-            created: "Только что",
-            membersList: ["CurrentUser"],
-            captain: "CurrentUser"
-        };
-
-        const updatedTeams = [...teams, newTeam];
-        setTeams(updatedTeams);
-        saveTeamsToLocalStorage(updatedTeams);
-        setIsCreating(false);
-        alert(`Команда "${newTeam.name}" успешно создана!`);
-    };
-
-    const handleTeamClick = (team: Team) => {
+    const handleTeamClick = (team: TeamInfoResponse) => {
         setSelectedTeam(team);
         if (onTeamSelect) {
             onTeamSelect(team);
@@ -116,45 +91,57 @@ export const TeamsPage: FC<TeamsPageProps> = ({onTeamSelect}) => {
 
     const handleBackToList = () => {
         setSelectedTeam(null);
+        refetch();
     };
 
-    const handleDeleteTeam = useCallback((teamId: number) => {
-        // TODO: Добавить проверку прав позже
-        // const team = teams.find(t => t.id === teamId);
-        // if (team?.captain !== "CurrentUser") {
-        //     alert("Только капитан может удалить команду");
-        //     return;
-        // }
+    const handleDeleteTeam = async (teamId: number) => {
+        try {
+            await deleteTeam(teamId).unwrap();
+            alert('Команда успешно удалена!');
+            refetch();
+            setSelectedTeam(null);
+        } catch (error) {
+            console.error('Error deleting team:', error);
+            alert('Ошибка при удалении команды');
+        }
+    };
 
-        const deletedTeam = teams.find(t => t.id === teamId);
-        const updatedTeams = teams.filter(team => team.id !== teamId);
-
-        setTeams(updatedTeams);
-        saveTeamsToLocalStorage(updatedTeams);
-
-        // Сообщение об успешном удалении
-        setTimeout(() => {
-            alert(`Команда "${deletedTeam?.name}" успешно удалена!`);
-        }, 100);
-
-        // Возвращаемся к списку команд
-        setSelectedTeam(null);
-    }, [teams, saveTeamsToLocalStorage]);
+    const handleCreateTeam = () => {
+        setIsCreating(false);
+        refetch();
+        alert('Команда успешно создана!');
+    };
 
     if (selectedTeam) {
+        const transformedTeam = transformTeam(selectedTeam);
         return (
             <TeamDetailsPage
-                team={selectedTeam}
+                team={transformedTeam}
                 onBack={handleBackToList}
                 onDelete={handleDeleteTeam}
-                currentUser="CurrentUser"
+                currentTeamId={selectedTeam.id}
+                currentUserId={currentUser?.id}
+                captainId={selectedTeam.captain_id}
             />
         );
     }
 
     if (isCreating) {
-        return <CreateTeamPage onCreateTeam={handleCreateTeam} onCancel={handleCancelCreate}/>;
+        return <CreateTeamPage onCreateTeam={handleCreateTeam} onCancel={handleCancelCreate} />;
     }
+
+    if (isLoading) {
+        return (
+            <TeamsContainer>
+                <LoadingSpinner>
+                    <i className="fas fa-spinner fa-spin"></i>
+                    <span>Загрузка команд...</span>
+                </LoadingSpinner>
+            </TeamsContainer>
+        );
+    }
+
+    const teams = teamsData || [];
 
     return (
         <TeamsContainer>
@@ -181,16 +168,16 @@ export const TeamsPage: FC<TeamsPageProps> = ({onTeamSelect}) => {
                 onJoin={handleJoinTeam}
             />
 
-            {filteredTeams.length > 0 ? (
+            {teams.length > 0 ? (
                 <TeamsGrid>
-                    {filteredTeams.map(team => (
+                    {teams.map(team => (
                         <TeamCard key={team.id} onClick={() => handleTeamClick(team)}>
                             <TeamGame>{team.game}</TeamGame>
                             <TeamName>{team.name}</TeamName>
                             <TeamInfo>{team.description}</TeamInfo>
                             <TeamMeta>
-                                <span>Участников: {getTeamMembersCount(team)}</span>
-                                <span>Создана: {team.created}</span>
+                                <span>Участников: {team.members?.length || 0}</span>
+                                <span>Создана: {new Date(team.created_date).toLocaleDateString('ru-RU')}</span>
                             </TeamMeta>
                             <JoinButton onClick={(e) => handleJoinClick(team.id, team.name, e)}>
                                 Вступить в команду

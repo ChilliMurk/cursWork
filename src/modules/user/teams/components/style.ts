@@ -156,3 +156,22 @@ export const EmptyText = styled.p`
     margin-right: auto;
     line-height: 1.6;
 `;
+
+export const LoadingSpinner = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 60px;
+    color: #00e6ff;
+    
+    i {
+        font-size: 3rem;
+    }
+    
+    span {
+        font-size: 1.2rem;
+        font-family: 'Rajdhani', sans-serif;
+    }
+`;

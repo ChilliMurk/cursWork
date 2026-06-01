@@ -258,3 +258,28 @@ export const ErrorMessage = styled.div`
   font-size: 0.9rem;
   margin-top: 5px;
 `;
+
+export const LoadingOverlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    z-index: 1000;
+    color: #00e6ff;
+    
+    i {
+        font-size: 3rem;
+    }
+    
+    span {
+        font-size: 1.2rem;
+        font-family: 'Rajdhani', sans-serif;
+    }
+`;
