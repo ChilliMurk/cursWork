@@ -53,7 +53,6 @@ export const CreateTeamButton = styled.button`
     }
 `;
 
-// Стили для отображения команды
 export const TeamInfoCard = styled.div`
     background: linear-gradient(145deg, #132f4c, #0a1929);
     border: 1px solid rgba(0, 180, 216, 0.2);
@@ -269,29 +268,6 @@ export const KickButton = styled.button`
         background: rgba(244, 67, 54, 0.3);
     }
 `;
-
-// export const ManageButtons = styled.div`
-//     margin-top: 20px;
-//     padding-top: 15px;
-//     border-top: 1px solid rgba(0, 180, 216, 0.15);
-// `;
-//
-// export const ManageButton = styled.button`
-//     width: 100%;
-//     padding: 10px;
-//     background: rgba(0, 180, 216, 0.1);
-//     color: #00e6ff;
-//     border: 1px solid rgba(0, 180, 216, 0.3);
-//     border-radius: 8px;
-//     cursor: pointer;
-//     transition: all 0.3s;
-//     font-family: 'Rajdhani', sans-serif;
-//     font-weight: 600;
-//
-//     &:hover {
-//         background: rgba(0, 180, 216, 0.2);
-//     }
-// `;
 
 export const AchievementList = styled.ul`
     list-style: none;

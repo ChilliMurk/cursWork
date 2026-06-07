@@ -1,4 +1,3 @@
-// store/reducers/methodologySlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Methodology } from '@/store/reducers/methodologyApi/methodologyApi.ts';
 

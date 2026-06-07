@@ -1,7 +1,6 @@
 import styled from "@emotion/styled";
 import {keyframes} from "@emotion/react";
 
-
 export const Style = styled('div')`
     display: inline-block;
 `

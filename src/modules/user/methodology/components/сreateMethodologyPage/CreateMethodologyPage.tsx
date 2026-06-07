@@ -8,7 +8,7 @@ interface CreateMethodologyPageProps {
     onCancel: () => void;
 }
 
-interface MethodologyContent {
+export interface MethodologyContent {
     type: 'heading' | 'text' | 'image';
     content: string;
 }
@@ -524,10 +524,6 @@ const UploadText = styled.p`
     font-size: 1.1rem;
 `;
 
-// const UploadInput = styled.input`
-//     display: none;
-// `;
-
 const ImagePreviewContainer = styled.div`
     position: relative;
     display: inline-block;
@@ -609,23 +605,6 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
         setIsDropdownOpen(false);
     };
 
-    // const handleImageUpload = async (index: number, files: FileList | null) => {
-    //     if (files && files[0]) {
-    //         setUploadingIndex(index);
-    //         try {
-    //             const result = await uploadImage(files[0]).unwrap();
-    //             setContent(prev => prev.map((item, i) =>
-    //                 i === index ? { ...item, content: result.image_url } : item
-    //             ));
-    //         } catch (err) {
-    //             console.error('Error uploading image:', err);
-    //             alert('Ошибка при загрузке изображения');
-    //         } finally {
-    //             setUploadingIndex(null);
-    //         }
-    //     }
-    // };
-
     const handleImageUpload = async (index: number, files: FileList | null) => {
         if (files && files[0]) {
             setUploadingIndex(index);
@@ -659,48 +638,6 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
         };
         fileInput.click();
     };
-
-    // const renderImageBlock = (item: MethodologyContent, index: number) => {
-    //     const isUploadingThis = uploadingIndex === index;
-    //
-    //     if (!item.content) {
-    //         return (
-    //             <ImageUploadContainer>
-    //                 <UploadArea onClick={() => handleChangeImage(index)}>
-    //                     <UploadIcon>
-    //                         <i className="fas fa-plus"></i>
-    //                     </UploadIcon>
-    //                     <UploadText>Добавить файлы</UploadText>
-    //                     <UploadText>Нажмите чтобы загрузить изображение</UploadText>
-    //                 </UploadArea>
-    //             </ImageUploadContainer>
-    //         );
-    //     }
-    //
-    //     return (
-    //         <ImageBlock>
-    //             <ImagePreviewContainer>
-    //                 <PreviewImage
-    //                     src={item.content}
-    //                     alt="Загруженное изображение"
-    //                     onError={() => {
-    //                         setContent(prev => prev.map((contentItem, i) =>
-    //                             i === index ? { ...contentItem, content: '' } : contentItem
-    //                         ));
-    //                     }}
-    //                 />
-    //                 <ChangeImageButton onClick={() => handleChangeImage(index)}>
-    //                     <i className="fas fa-exchange-alt"></i> Изменить
-    //                 </ChangeImageButton>
-    //                 {isUploadingThis && (
-    //                     <UploadingOverlay>
-    //                         <i className="fas fa-spinner fa-spin"></i> Загрузка...
-    //                     </UploadingOverlay>
-    //                 )}
-    //             </ImagePreviewContainer>
-    //         </ImageBlock>
-    //     );
-    // };
 
     const renderImageBlock = (item: MethodologyContent, index: number) => {
         const isUploadingThis = uploadingIndex === index;

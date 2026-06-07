@@ -190,7 +190,6 @@ export const CalendarPage: FC<CalendarPageProps> = ({ onBack }) => {
 
         const days: JSX.Element[] = [];
 
-        // Дни предыдущего месяца
         for (let i = startOffset - 1; i >= 0; i--) {
             const dayNum = prevMonthDays - i;
             const dateObj = new Date(currentDisplayYear, currentDisplayMonth - 1, dayNum);
@@ -219,7 +218,6 @@ export const CalendarPage: FC<CalendarPageProps> = ({ onBack }) => {
             );
         }
 
-        // Дни текущего месяца
         for (let d = 1; d <= daysInMonth; d++) {
             const dateObj = new Date(currentDisplayYear, currentDisplayMonth, d);
             const dateKey = formatDateKey(dateObj);
@@ -247,7 +245,6 @@ export const CalendarPage: FC<CalendarPageProps> = ({ onBack }) => {
             );
         }
 
-        // Дни следующего месяца (для заполнения сетки 6x7)
         const totalCells = days.length;
         const remaining = 42 - totalCells;
         for (let i = 1; i <= remaining; i++) {

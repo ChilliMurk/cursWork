@@ -1,11 +1,16 @@
 import { FC, useState, useRef, useEffect } from 'react';
 import styled from '@emotion/styled';
-import { Methodology, MethodologyContent } from "@/modules/user/methodology/components/MethodologyPage.tsx";
+import { Methodology, MethodologyBlock } from "@/store/reducers/methodologyApi/methodologyApi.ts";
 
 interface EditMethodologyPageProps {
     methodology: Methodology;
     onSave: (updatedMethodology: Methodology) => void;
     onCancel: () => void;
+}
+
+interface UIContent {
+    type: 'heading' | 'text' | 'image';
+    content: string;
 }
 
 const ContentBlock = styled.div`
@@ -328,8 +333,8 @@ const EmojiButton = styled.button<{ selected: boolean }>`
     padding: 12px;
     font-size: 1.8rem;
     background: ${props => props.selected
-    ? 'linear-gradient(135deg, rgba(0, 180, 216, 0.3), rgba(0, 150, 200, 0.2))'
-    : 'rgba(0, 180, 216, 0.08)'};
+            ? 'linear-gradient(135deg, rgba(0, 180, 216, 0.3), rgba(0, 150, 200, 0.2))'
+            : 'rgba(0, 180, 216, 0.08)'};
     border: 2px solid ${props => props.selected ? '#00b4d8' : 'rgba(0, 180, 216, 0.3)'};
     border-radius: 10px;
     cursor: pointer;
@@ -564,7 +569,7 @@ const InfoMessage = styled.div`
     gap: 10px;
     color: #ff9800;
     font-family: 'Rajdhani', sans-serif;
-    
+
     i {
         font-size: 1.2rem;
     }
@@ -572,24 +577,51 @@ const InfoMessage = styled.div`
 
 const popularEmojis = ['🎮', '🔫', '🧠', '💰', '⚔️', '🛡️', '🎯', '🏆', '🚀', '💡', '📚', '🎓', '🤝', '🌟', '⚡', '🔥'];
 
+// Функция для преобразования типа блока из API в UI тип
+const mapBlockTypeToUI = (type: string): 'heading' | 'text' | 'image' => {
+    switch (type) {
+        case 'heading': return 'heading';
+        case 'text': return 'text';
+        case 'image': return 'image';
+        default: return 'text';
+    }
+};
+
+// Функция для преобразования блоков из API в UI формат
+const convertBlocksToUIContent = (blocks: MethodologyBlock[]): UIContent[] => {
+    return blocks.map(block => ({
+        type: mapBlockTypeToUI(block.type),
+        content: block.content
+    }));
+};
+
+// Функция для преобразования UI контента обратно в формат API
+const convertUIContentToBlocks = (content: UIContent[]): MethodologyBlock[] => {
+    return content.map((item, index) => ({
+        id: undefined,
+        order_index: index,
+        type: item.type,
+        content: item.content
+    }));
+};
+
 export const EditMethodologyPage: FC<EditMethodologyPageProps> = ({
                                                                       methodology,
                                                                       onSave,
                                                                       onCancel
                                                                   }) => {
-    // Основные данные формы
     const [formData, setFormData] = useState({
         title: methodology.title,
         description: methodology.description,
         category: methodology.category,
         level: methodology.level,
         duration: methodology.duration,
-        image: methodology.image
+        image_url: methodology.image_url  // Используем image_url вместо image
     });
 
-    // Копия контента для редактирования - все изменения только здесь
-    const [editableContent, setEditableContent] = useState<MethodologyContent[]>(
-        JSON.parse(JSON.stringify(methodology.content || []))
+    // Преобразуем blocks из API в UI формат
+    const [editableContent, setEditableContent] = useState<UIContent[]>(
+        convertBlocksToUIContent(methodology.blocks || [])
     );
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -601,9 +633,8 @@ export const EditMethodologyPage: FC<EditMethodologyPageProps> = ({
     const dropdownRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Все операции только с editableContent
     const handleAddContent = (type: 'heading' | 'text' | 'image') => {
-        const newContent: MethodologyContent = {
+        const newContent: UIContent = {
             type: type,
             content: type === 'heading' ? 'Новый заголовок' :
                 type === 'text' ? 'Новый текст...' : ''
@@ -631,7 +662,7 @@ export const EditMethodologyPage: FC<EditMethodologyPageProps> = ({
         }
     };
 
-    const renderImageBlock = (item: MethodologyContent, index: number) => {
+    const renderImageBlock = (item: UIContent, index: number) => {
         if (!item.content) {
             return (
                 <ImageUploadContainer>
@@ -645,6 +676,7 @@ export const EditMethodologyPage: FC<EditMethodologyPageProps> = ({
                     <UploadInput
                         type="file"
                         accept="image/*"
+                        ref={fileInputRef}
                         onChange={(e) => handleImageUpload(index, e.target.files)}
                     />
                 </ImageUploadContainer>
@@ -689,7 +721,7 @@ export const EditMethodologyPage: FC<EditMethodologyPageProps> = ({
     const handleEmojiSelect = (emoji: string) => {
         setFormData(prev => ({
             ...prev,
-            image: emoji
+            image_url: emoji
         }));
     };
 
@@ -709,7 +741,6 @@ export const EditMethodologyPage: FC<EditMethodologyPageProps> = ({
         return Object.keys(newErrors).length === 0;
     };
 
-    // Сохранение происходит ТОЛЬКО здесь, при нажатии на кнопку
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -717,13 +748,20 @@ export const EditMethodologyPage: FC<EditMethodologyPageProps> = ({
 
         setIsSaving(true);
 
-        // Имитация API запроса
         await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Преобразуем UI контент обратно в формат API
+        const updatedBlocks = convertUIContentToBlocks(editableContent);
 
         const updatedMethodology: Methodology = {
             ...methodology,
-            ...formData,
-            content: editableContent
+            title: formData.title,
+            description: formData.description,
+            category: formData.category,
+            level: formData.level,
+            duration: formData.duration,
+            image_url: formData.image_url,
+            blocks: updatedBlocks
         };
 
         onSave(updatedMethodology);
@@ -750,7 +788,7 @@ export const EditMethodologyPage: FC<EditMethodologyPageProps> = ({
         setEditValue('');
     };
 
-    const renderContentBlock = (item: MethodologyContent, index: number) => {
+    const renderContentBlock = (item: UIContent, index: number) => {
         return (
             <ContentBlock key={index}>
                 <BlockActions>
@@ -872,7 +910,7 @@ export const EditMethodologyPage: FC<EditMethodologyPageProps> = ({
                                 <EmojiButton
                                     key={emoji}
                                     type="button"
-                                    selected={formData.image === emoji}
+                                    selected={formData.image_url === emoji}
                                     onClick={() => handleEmojiSelect(emoji)}
                                 >
                                     {emoji}

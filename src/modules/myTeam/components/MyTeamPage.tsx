@@ -32,7 +32,6 @@ import {TeamRequestsPage} from "@/modules/myTeam/components/teamRequestsPage/Tea
 import {DeleteConfirmModal} from "@/modules/user/teams/DeleteConfirmModal.tsx";
 import {EditTeamPage} from "./editTeamPage/EditTeamPage";
 
-// Моковые данные для команды пользователя
 const mockUserTeam: Team = {
     id: 1,
     name: "Пушистые лапки",
@@ -104,9 +103,6 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
     const handleConfirmDelete = async () => {
         if (!team) return;
 
-        //setIsDeleting(true);
-
-        // Имитация API запроса
         await new Promise(resolve => setTimeout(resolve, 500));
 
         setTeam(null);
@@ -116,8 +112,6 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
         if (onTeamDeleted) {
             onTeamDeleted();
         }
-
-        //setIsDeleting(false);
     };
 
     const handleCancelDelete = () => {

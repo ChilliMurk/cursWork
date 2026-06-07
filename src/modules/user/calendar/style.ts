@@ -1,4 +1,3 @@
-// modules/user/calendar/components/CalendarPage.style.ts
 import styled from "@emotion/styled";
 
 export const CalendarApp = styled.div`

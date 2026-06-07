@@ -30,7 +30,6 @@ const statusOptions = [
     {value: "ongoing", label: "Текущее"}
 ];
 
-// Добавляем options для категории события
 const eventTypeValueOptions = [
     {value: "", label: "Выберите тип события"},
     {value: "TEAM_BUILDING", label: "Сбор команды"},
@@ -66,7 +65,6 @@ export const CreateEventPage: FC<CreateEventPageProps> = ({
     const [isGameSelectOpen, setIsGameSelectOpen] = useState(false);
     const [isStatusSelectOpen, setIsStatusSelectOpen] = useState(false);
 
-    // Добавляем состояния для категории события
     const [selectedEventTypeValue, setSelectedEventTypeValue] = useState('');
     const [isEventTypeValueSelectOpen, setIsEventTypeValueSelectOpen] = useState(false);
 
@@ -108,7 +106,6 @@ export const CreateEventPage: FC<CreateEventPageProps> = ({
         setIsStatusSelectOpen(false);
     };
 
-    // Добавляем обработчик для категории события
     const handleEventTypeValueSelect = (typeValue: string) => {
         setSelectedEventTypeValue(typeValue);
         setIsEventTypeValueSelectOpen(false);
@@ -226,7 +223,6 @@ export const CreateEventPage: FC<CreateEventPageProps> = ({
                             </div>
                         </FormGroup>
 
-                        {/* НОВЫЙ СЕЛЕКТОР: Категория события */}
                         <FormGroup className="full-width">
                             <Label>Категория события *</Label>
                             <Select>

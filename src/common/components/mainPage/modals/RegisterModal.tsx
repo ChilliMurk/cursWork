@@ -108,7 +108,7 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
             dispatch(registerStart());
 
             const result = await register({
-                username: formData.username, // Изменено с login на username
+                username: formData.username,
                 email: formData.email,
                 password: formData.password
             }).unwrap();
@@ -117,7 +117,7 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
                 user: {
                     id: result.id,
                     email: result.email,
-                    name: result.username // Изменено с result.login на result.username
+                    name: result.username
                 }
             }));
 
@@ -153,16 +153,16 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
 
                 <form onSubmit={handleSubmit}>
                     <FormGroup>
-                        <FormLabel htmlFor="username">Имя пользователя</FormLabel> {/* Изменено id с login на username */}
+                        <FormLabel htmlFor="username">Имя пользователя</FormLabel>
                         <FormInput
                             type="text"
-                            id="username" // Изменено с login на username
+                            id="username"
                             placeholder="Придумайте имя"
-                            value={formData.username} // Изменено с formData.login на formData.username
+                            value={formData.username}
                             onChange={handleInputChange}
                             required
                         />
-                        {formErrors.username && // Изменено с formErrors.login на formErrors.username
+                        {formErrors.username &&
                             <span style={{color: '#ff6b6b', fontSize: '0.9rem'}}>{formErrors.username}</span>}
                     </FormGroup>
 

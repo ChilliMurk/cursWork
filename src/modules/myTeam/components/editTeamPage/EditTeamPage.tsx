@@ -114,7 +114,6 @@ export const EditTeamPage: FC<EditTeamPageProps> = ({ team, onSave, onCancel }) 
 
         setIsSaving(true);
 
-        // Имитация API запроса
         await new Promise(resolve => setTimeout(resolve, 500));
 
         const updatedTeam: Team = {

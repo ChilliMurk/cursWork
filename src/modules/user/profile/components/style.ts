@@ -130,7 +130,7 @@ export const StatItem = styled.div`
     margin-bottom: 12px;
     color: #e0e0e0;
 
-    span:first-child {
+    span:first-of-type {
         color: #a0a0a0;
     }
 

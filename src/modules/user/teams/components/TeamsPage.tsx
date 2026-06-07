@@ -41,7 +41,6 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
         teamName: ''
     });
 
-    // Получаем game для бекенда (если не "Все")
     const backendGame = selectedGame === "Все" ? undefined : gameToBackend[selectedGame];
 
     const { data: teamsData, isLoading, refetch } = useGetAllTeamsQuery(backendGame);

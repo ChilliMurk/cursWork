@@ -37,7 +37,6 @@ export const EventsPage: FC = () => {
     const user = useAppSelector((state) => state.authReducer.user);
     const shouldSkip = !user?.token;
 
-    // Все события
     const {
         data: allEvents = [],
         isLoading: isLoadingAll,
@@ -46,7 +45,6 @@ export const EventsPage: FC = () => {
         isFetching: isFetchingAll
     } = useGetAllEventsQuery(undefined, { skip: shouldSkip });
 
-    // События, в которых участвует пользователь
     const {
         data: participatingEventsData = [],
         isLoading: isLoadingParticipating,
@@ -55,7 +53,6 @@ export const EventsPage: FC = () => {
         isFetching: isFetchingParticipating
     } = useGetParticipatingEventsQuery(undefined, { skip: shouldSkip });
 
-    // События, организованные пользователем
     const {
         data: organizedEvents = [],
         isLoading: isLoadingOrganized,
@@ -69,7 +66,6 @@ export const EventsPage: FC = () => {
 
     const isCreating = isCreatingCommon || isCreatingTeam;
 
-    // Определяем текущие данные в зависимости от активной вкладки
     const getCurrentEvents = (): Event[] => {
         switch (activeTab) {
             case 'all':
@@ -203,7 +199,6 @@ export const EventsPage: FC = () => {
             }
 
             setShowCreateEvent(false);
-            // Обновляем все списки
             refetchAll();
             refetchParticipating();
             refetchOrganized();

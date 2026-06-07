@@ -1,11 +1,9 @@
-// Базовый интерфейс для данных с сервера
 export interface ServerEvent {
     id: number;
     title: string;
     description: string;
 }
 
-// Полный интерфейс для отображения на фронтенде
 export interface DisplayEvent extends ServerEvent {
     game: string;
     participants: number;
@@ -15,7 +13,6 @@ export interface DisplayEvent extends ServerEvent {
     prize: string;
 }
 
-// Функция для преобразования серверных данных в отображаемые
 export const transformToDisplayEvent = (serverEvent: ServerEvent): DisplayEvent => {
     return {
         ...serverEvent,

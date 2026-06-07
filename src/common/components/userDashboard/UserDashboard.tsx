@@ -33,7 +33,6 @@ import {
 import {TeamsPage} from "@/modules/user/teams/components/TeamsPage.tsx";
 import {EventsPage} from "@/modules/user/events/components/EventsPage.tsx";
 import {ProfilePage} from "@/modules/user/profile/components/ProfilePage.tsx";
-import {Team} from "@/modules/user/teams/components/mockTeams.tsx";
 import {TeamDetailsPage} from "@/modules/user/teams/components/teamDetailsPage/TeamDetailsPage.tsx";
 import {LogoutModal} from "@/common/components/mainPage/modals/logoutModal/LogoutModal.tsx";
 import {MethodologyPage} from '@/modules/user/methodology/components/MethodologyPage.tsx';
@@ -42,6 +41,7 @@ import {MyTeamPage} from "@/modules/myTeam/components/MyTeamPage.tsx";
 import {CalendarPage} from "@/modules/user/calendar/CalendarPage.tsx";
 import {Methodology} from "@/store/reducers/methodologyApi/methodologyApi.ts";
 import {useGetCurrentUserQuery} from "@/store/reducers/userApi/userApi.ts";
+import {TeamInfoResponse} from "@/store/reducers/teamApi/teamApi.ts"; // Добавлен импорт
 
 const GlobalStyles = () => (
     <>
@@ -77,7 +77,7 @@ export const UserDashboard: FC = () => {
     const navigate = useNavigate();
     const { data: userData, isLoading: isUserLoading } = useGetCurrentUserQuery();
     const [activeSection, setActiveSection] = useState('main');
-    const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+    const [selectedTeam, setSelectedTeam] = useState<TeamInfoResponse | null>(null); // Изменен тип
     const [selectedMethodology, setSelectedMethodology] = useState<Methodology | null>(null);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
@@ -106,7 +106,7 @@ export const UserDashboard: FC = () => {
         setSelectedMethodology(null);
     };
 
-    const handleTeamSelect = (team: Team) => {
+    const handleTeamSelect = (team: TeamInfoResponse) => { // Изменен тип параметра
         setSelectedTeam(team);
     };
 
@@ -133,7 +133,6 @@ export const UserDashboard: FC = () => {
     const getUserStatus = () => {
         if (!userData) return 'Загрузка...';
 
-        // Определяем статус пользователя на основе ролей
         if (userData.roles?.includes('ADMIN')) {
             return 'Администратор';
         }
@@ -192,6 +191,20 @@ export const UserDashboard: FC = () => {
 
         particles.push({size, color, left, top, duration, delay});
     }
+
+    // Функция для преобразования TeamInfoResponse в формат, понятный TeamDetailsPage
+    const transformTeamForDetails = (apiTeam: TeamInfoResponse) => ({
+        id: apiTeam.id,
+        name: apiTeam.name,
+        game: apiTeam.game,
+        description: apiTeam.description,
+        created: new Date(apiTeam.created_date).toLocaleDateString('ru-RU'),
+        captain: apiTeam.captain_name,
+        membersList: apiTeam.members?.map(m => m.username) || [],
+        requirements: apiTeam.requirements || "Требования не указаны",
+        contact: apiTeam.contacts || "Контактная информация не указана",
+        rating: 4.5,
+    });
 
     return (
         <>
@@ -409,7 +422,10 @@ export const UserDashboard: FC = () => {
 
                         <DashboardSection id="teams-section" isActive={activeSection === 'teams'}>
                             {selectedTeam ? (
-                                <TeamDetailsPage team={selectedTeam} onBack={handleBackToList}/>
+                                <TeamDetailsPage
+                                    team={transformTeamForDetails(selectedTeam)}
+                                    onBack={handleBackToList}
+                                />
                             ) : (
                                 <TeamsPage onTeamSelect={handleTeamSelect}/>
                             )}

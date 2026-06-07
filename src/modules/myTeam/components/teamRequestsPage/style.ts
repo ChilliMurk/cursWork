@@ -1,4 +1,3 @@
-// modules/user/teams/components/TeamRequestsPage.style.ts
 import styled from "@emotion/styled";
 
 export const RequestsContainer = styled.div`

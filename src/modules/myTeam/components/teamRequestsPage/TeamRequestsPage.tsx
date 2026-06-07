@@ -67,7 +67,6 @@ export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
     const [inviteNickname, setInviteNickname] = useState('');
     const [inviteCoverLetter, setInviteCoverLetter] = useState('');
 
-    // Загрузка заявок (имитация API)
     useEffect(() => {
         const mockRequests: JoinRequest[] = [
             {

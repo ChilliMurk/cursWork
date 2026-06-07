@@ -19,7 +19,7 @@ const rememberedReducers = [
     'methodologyApi',
     'uploadApi',
     'userApi',
-    'teamApi', // Добавляем teamApi в список сохраняемых редьюсеров
+    'teamApi',
 ];
 
 const rootReducer = combineReducers({
@@ -31,7 +31,7 @@ const rootReducer = combineReducers({
     [methodologyApi.reducerPath]: methodologyApi.reducer,
     [uploadApi.reducerPath]: uploadApi.reducer,
     [userApi.reducerPath]: userApi.reducer,
-    [teamApi.reducerPath]: teamApi.reducer, // Добавляем teamApi в rootReducer
+    [teamApi.reducerPath]: teamApi.reducer,
 });
 
 const rememberedReducer = rememberReducer(rootReducer);
@@ -49,7 +49,7 @@ export const store = configureStore({
             methodologyApi.middleware,
             uploadApi.middleware,
             userApi.middleware,
-            teamApi.middleware, // Добавляем teamApi middleware
+            teamApi.middleware,
         ),
     enhancers: (getDefaultEnhancer) =>
         getDefaultEnhancer().concat(rememberEnhancer(window.localStorage, rememberedReducers)),
