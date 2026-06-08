@@ -1,5 +1,4 @@
 import { FC, useState } from 'react';
-import { Team } from "@/modules/user/teams/components/mockTeams.tsx";
 import {
     EditTeamContainer,
     BackButton,
@@ -22,6 +21,27 @@ import {
     CancelButton,
     ErrorMessage
 } from "@/modules/myTeam/components/editTeamPage/style.ts";
+import { useUpdateMyTeamMutation } from "@/store/reducers/myTeamApi/myTeamApi";
+
+interface TeamMember {
+    id: number;
+    username: string;
+}
+
+interface UITeam {
+    id: number;
+    name: string;
+    game: string;
+    description: string;
+    created: string;
+    captain: string;
+    captainId: number;
+    membersList: TeamMember[];
+    requirements: string;
+    contact: string;
+    rating: number;
+    isCaptain: boolean;
+}
 
 const gameRoles: Record<string, string[]> = {
     "Counter-Strike 2": ["Rifler", "AWPer", "Lurker", "Support", "IGL", "Entry Fragger"],
@@ -38,18 +58,20 @@ const gameOptions = [
 ];
 
 interface EditTeamPageProps {
-    team: Team;
-    onSave: (updatedTeam: Team) => void;
+    team: UITeam;
+    onSave: (updatedTeam: UITeam) => void;
     onCancel: () => void;
 }
 
 export const EditTeamPage: FC<EditTeamPageProps> = ({ team, onSave, onCancel }) => {
+    const [updateMyTeam, { isLoading: isUpdating }] = useUpdateMyTeamMutation();
+
     const [formData, setFormData] = useState({
         name: team.name,
         game: team.game,
         description: team.description,
-        requirements: team.requirements || '',
-        contact: team.contact || '',
+        requirements: team.requirements === "Требования не указаны" ? "" : team.requirements,
+        contact: team.contact === "Контактная информация не указана" ? "" : team.contact,
     });
 
     const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
@@ -100,6 +122,8 @@ export const EditTeamPage: FC<EditTeamPageProps> = ({ team, onSave, onCancel }) 
         const newErrors: Record<string, string> = {};
 
         if (!formData.name.trim()) newErrors.name = 'Название команды обязательно';
+        if (formData.name.length < 3) newErrors.name = 'Название должно содержать минимум 3 символа';
+        if (formData.name.length > 50) newErrors.name = 'Название не должно превышать 50 символов';
         if (!formData.game) newErrors.game = 'Выберите игру';
         if (!formData.description.trim()) newErrors.description = 'Описание обязательно';
 
@@ -114,19 +138,32 @@ export const EditTeamPage: FC<EditTeamPageProps> = ({ team, onSave, onCancel }) 
 
         setIsSaving(true);
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        try {
+            const updatedTeamData = await updateMyTeam({
+                name: formData.name,
+                game: formData.game,
+                description: formData.description,
+                requirements: formData.requirements || "",
+                contacts: formData.contact || "",
+            }).unwrap();
 
-        const updatedTeam: Team = {
-            ...team,
-            name: formData.name,
-            game: formData.game,
-            description: formData.description,
-            requirements: formData.requirements,
-            contact: formData.contact,
-        };
+            const transformedTeam: UITeam = {
+                ...team,
+                name: updatedTeamData.name,
+                game: updatedTeamData.game,
+                description: updatedTeamData.description,
+                requirements: updatedTeamData.requirements || "Требования не указаны",
+                contact: updatedTeamData.contacts || "Контактная информация не указана",
+            };
 
-        onSave(updatedTeam);
-        setIsSaving(false);
+            onSave(transformedTeam);
+            alert("Команда успешно обновлена!");
+        } catch (error: any) {
+            console.error('Error updating team:', error);
+            alert(error.data?.message || "Ошибка при обновлении команды");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const selectedGameLabel = gameOptions.find(opt => opt.value === formData.game)?.label || formData.game;
@@ -230,9 +267,9 @@ export const EditTeamPage: FC<EditTeamPageProps> = ({ team, onSave, onCancel }) 
                         )}
 
                         <ActionButtons>
-                            <SubmitButton type="submit" disabled={isSaving}>
+                            <SubmitButton type="submit" disabled={isSaving || isUpdating}>
                                 <i className="fas fa-save"></i>
-                                {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
+                                {isSaving || isUpdating ? 'Сохранение...' : 'Сохранить изменения'}
                             </SubmitButton>
                             <CancelButton type="button" onClick={onCancel}>
                                 <i className="fas fa-times"></i>

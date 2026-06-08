@@ -1,5 +1,4 @@
-import { FC, useState, useEffect } from 'react';
-import {Team} from "@/modules/user/teams/components/mockTeams.tsx";
+import { FC, useState } from 'react';
 import {
     ActionButtonsContainer, CaptainBadge,
     CardTitle, ContactInfo,
@@ -28,71 +27,105 @@ import {
     TeamName,
     DeleteTeamButton
 } from "@/modules/myTeam/components/style.ts";
-import {TeamRequestsPage} from "@/modules/myTeam/components/teamRequestsPage/TeamRequestsPage.tsx";
-import {DeleteConfirmModal} from "@/modules/user/teams/DeleteConfirmModal.tsx";
-import {EditTeamPage} from "./editTeamPage/EditTeamPage";
+import { TeamRequestsPage } from "@/modules/myTeam/components/teamRequestsPage/TeamRequestsPage.tsx";
+import { DeleteConfirmModal } from "@/modules/user/teams/DeleteConfirmModal.tsx";
+import { EditTeamPage } from "./editTeamPage/EditTeamPage";
+import {
+    useGetMyTeamQuery,
+    useLeaveTeamMutation,
+    useKickMemberMutation,
+    useDeleteMyTeamMutation,
+    TeamInfoResponse,
+    myTeamApi
+} from "@/store/reducers/myTeamApi/myTeamApi";
+import { useGetCurrentUserQuery } from "@/store/reducers/userApi/userApi";
 
-const mockUserTeam: Team = {
-    id: 1,
-    name: "Пушистые лапки",
-    game: "Counter-Strike 2",
-    description: "Команда для начинающих и опытных игроков. Участвуем в турнирах и регулярно тренируемся.",
-    created: "15 марта 2024",
-    captain: "CurrentUser",
-    membersList: ["CurrentUser", "Player456", "Gamer789", "ProGamer", "NewRecruit"],
-    requirements: "Опыт игры от 6 месяцев, наличие микрофона, готовность к регулярным тренировкам",
-    contact: "Discord: team.leader#1234 | Telegram: @team_channel",
-    rating: 4.8
+interface TeamMemberUI {
+    id: number;
+    username: string;
+}
+
+interface UITeam {
+    id: number;
+    name: string;
+    game: string;
+    description: string;
+    created: string;
+    captain: string;
+    captainId: number;
+    membersList: TeamMemberUI[];
+    requirements: string;
+    contact: string;
+    rating: number;
+    isCaptain: boolean;
+}
+
+const transformTeamForUI = (apiTeam: TeamInfoResponse | null, currentUserId?: number): UITeam | null => {
+    if (!apiTeam) return null;
+
+    return {
+        id: apiTeam.id,
+        name: apiTeam.name,
+        game: apiTeam.game,
+        description: apiTeam.description,
+        created: new Date(apiTeam.created_date).toLocaleDateString('ru-RU'),
+        captain: apiTeam.captain_name,
+        captainId: apiTeam.captain_id,
+        membersList: apiTeam.members?.map((m: { id: number; username: string }) => ({
+            id: m.id,
+            username: m.username || 'Неизвестный'
+        })) || [],
+        requirements: apiTeam.requirements || "Требования не указаны",
+        contact: apiTeam.contacts || "Контактная информация не указана",
+        rating: 4.5,
+        isCaptain: currentUserId === apiTeam.captain_id
+    };
 };
-
-const HAS_TEAM = true;
-const IS_CAPTAIN = true;
 
 interface MyTeamPageProps {
     onTeamDeleted?: () => void;
 }
 
 export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
-    const [team, setTeam] = useState<Team | null>(null);
-    const [isCaptain, setIsCaptain] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const { data: currentUser, refetch: refetchUser } = useGetCurrentUserQuery();
+    const { data: apiTeam, isLoading, refetch: refetchMyTeam } = useGetMyTeamQuery();
+    const [leaveTeam, { isLoading: isLeaving }] = useLeaveTeamMutation();
+    const [kickMember, { isLoading: isKicking }] = useKickMemberMutation();
+    const [deleteMyTeam] = useDeleteMyTeamMutation();
+
     const [showRequests, setShowRequests] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showEditMode, setShowEditMode] = useState(false);
 
-    useEffect(() => {
-        const loadTeamData = () => {
-            setLoading(true);
-            setTimeout(() => {
-                if (HAS_TEAM) {
-                    setTeam(mockUserTeam);
-                    setIsCaptain(IS_CAPTAIN);
-                } else {
-                    setTeam(null);
-                    setIsCaptain(false);
-                }
-                setLoading(false);
-            }, 500);
-        };
+    const team = transformTeamForUI(apiTeam || null, currentUser?.id);
+    const isCaptain = team?.isCaptain || false;
 
-        loadTeamData();
-    }, []);
+    const refreshData = async () => {
+        myTeamApi.util.invalidateTags(['MyTeam']);
+        await refetchMyTeam();
+        await refetchUser();
+    };
 
     const handleEditTeam = () => {
         setShowEditMode(true);
     };
 
-    const handleSaveTeam = (updatedTeam: Team) => {
-        setTeam(updatedTeam);
+    const handleSaveTeam = async () => {
         setShowEditMode(false);
-        alert(`Команда "${updatedTeam.name}" успешно обновлена!`);
+        await refreshData();
     };
 
-    const handleLeaveTeam = () => {
+    const handleLeaveTeam = async () => {
         if (window.confirm("Вы уверены, что хотите покинуть команду?")) {
-            alert("Вы покинули команду");
-            setTeam(null);
-            setIsCaptain(false);
+            try {
+                await leaveTeam().unwrap();
+                alert("Вы покинули команду");
+                await refreshData();
+                if (onTeamDeleted) onTeamDeleted();
+            } catch (error: any) {
+                console.error('Error leaving team:', error);
+                alert(error.data?.message || "Ошибка при выходе из команды");
+            }
         }
     };
 
@@ -103,14 +136,17 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
     const handleConfirmDelete = async () => {
         if (!team) return;
 
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        setTeam(null);
-        setIsCaptain(false);
-        setShowDeleteModal(false);
-
-        if (onTeamDeleted) {
-            onTeamDeleted();
+        try {
+            await deleteMyTeam().unwrap();
+            alert("Команда успешно удалена");
+            setShowDeleteModal(false);
+            setShowEditMode(false);
+            setShowRequests(false);
+            await refreshData();
+            if (onTeamDeleted) onTeamDeleted();
+        } catch (error: any) {
+            console.error('Error deleting team:', error);
+            alert(error.data?.message || "Ошибка при удалении команды");
         }
     };
 
@@ -118,17 +154,22 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
         setShowDeleteModal(false);
     };
 
-    const handleKickMember = (memberName: string) => {
-        if (window.confirm(`Вы уверены, что хотите исключить ${memberName} из команды?`)) {
-            alert(`${memberName} исключен из команды`);
-            setTeam(prev => {
-                if (!prev) return null;
-                return {
-                    ...prev,
-                    membersList: prev.membersList.filter(m => m !== memberName)
-                };
-            });
+    const handleKickMember = async (userId: number, username: string) => {
+        if (window.confirm(`Вы уверены, что хотите исключить ${username} из команды?`)) {
+            try {
+                await kickMember(userId).unwrap();
+                alert(`${username} исключен из команды`);
+                await refreshData();
+            } catch (error: any) {
+                console.error('Error kicking member:', error);
+                alert(error.data?.message || "Ошибка при исключении участника");
+            }
         }
+    };
+
+    const getFirstLetter = (username: string): string => {
+        if (!username || username.length === 0) return '?';
+        return username.charAt(0).toUpperCase();
     };
 
     if (showEditMode && team) {
@@ -145,23 +186,16 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
         return (
             <TeamRequestsPage
                 teamName={team.name}
-                teamId={team.id}
                 onBack={() => setShowRequests(false)}
-                onRequestAccepted={(request) => {
-                    console.log('Принят игрок:', request);
-                    setTeam(prev => {
-                        if (!prev) return null;
-                        return {
-                            ...prev,
-                            membersList: [...prev.membersList, request.nickname]
-                        };
-                    });
+                onRequestAccepted={async () => {
+                    console.log('Заявка принята, обновляем данные');
+                    await refreshData();
                 }}
             />
         );
     }
 
-    if (loading) {
+    if (isLoading) {
         return (
             <MyTeamContainer>
                 <div style={{ textAlign: 'center', padding: '50px', color: '#00e6ff' }}>
@@ -172,7 +206,7 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
         );
     }
 
-    if (!team) {
+    if (!team || (apiTeam === null && !isLoading)) {
         return (
             <MyTeamContainer>
                 <NoTeamContainer>
@@ -242,9 +276,9 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
                                     </DeleteTeamButton>
                                 </>
                             )}
-                            <LeaveTeamButton onClick={handleLeaveTeam}>
+                            <LeaveTeamButton onClick={handleLeaveTeam} disabled={isLeaving}>
                                 <i className="fas fa-sign-out-alt"></i>
-                                Покинуть команду
+                                {isLeaving ? 'Выход...' : 'Покинуть команду'}
                             </LeaveTeamButton>
                         </ActionButtonsContainer>
                     </TeamHeaderSection>
@@ -257,24 +291,27 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
                             </CardTitle>
 
                             <MembersList>
-                                {team.membersList.map((member, index) => (
-                                    <MemberItem key={index}>
+                                {team.membersList.map((member: TeamMemberUI) => (
+                                    <MemberItem key={member.id}>
                                         <MemberAvatar>
-                                            {member.charAt(0).toUpperCase()}
+                                            {getFirstLetter(member.username)}
                                         </MemberAvatar>
-                                        <MemberName className={member === team.captain ? 'captain' : ''}>
-                                            {member}
-                                            {member === team.captain && (
+                                        <MemberName className={member.username === team.captain ? 'captain' : ''}>
+                                            {member.username}
+                                            {member.username === team.captain && (
                                                 <CaptainBadge>
                                                     <i className="fas fa-crown"></i> Капитан
                                                 </CaptainBadge>
                                             )}
                                         </MemberName>
                                         <MemberRole>
-                                            {member === team.captain ? 'Лидер' : 'Игрок'}
+                                            {member.username === team.captain ? 'Лидер' : 'Игрок'}
                                         </MemberRole>
-                                        {isCaptain && member !== team.captain && (
-                                            <KickButton onClick={() => handleKickMember(member)}>
+                                        {isCaptain && member.username !== team.captain && (
+                                            <KickButton
+                                                onClick={() => handleKickMember(member.id, member.username)}
+                                                disabled={isKicking}
+                                            >
                                                 <i className="fas fa-user-minus"></i>
                                             </KickButton>
                                         )}
@@ -312,7 +349,12 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
                             </ContactInfo>
 
                             {isCaptain && (
-                                <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(0, 180, 216, 0.1)', borderRadius: '8px' }}>
+                                <div style={{
+                                    marginTop: '20px',
+                                    padding: '15px',
+                                    background: 'rgba(0, 180, 216, 0.1)',
+                                    borderRadius: '8px'
+                                }}>
                                     <div style={{ color: '#00e6ff', fontWeight: '600', marginBottom: '10px' }}>
                                         <i className="fas fa-info-circle"></i> Для капитана
                                     </div>

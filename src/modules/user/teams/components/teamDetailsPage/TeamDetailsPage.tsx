@@ -65,7 +65,6 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
         setShowDeleteModal(false);
     };
 
-    // Добавляем проверку на существование membersList
     const membersCount = team.membersList?.length || 0;
 
     if (!team) {

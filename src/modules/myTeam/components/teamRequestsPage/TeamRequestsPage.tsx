@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from 'react';
+import { FC, useState } from 'react';
 import {
     RequestsContainer,
     NavBar,
@@ -40,20 +40,18 @@ import {
     ModalButtons,
     ModalButton
 } from "@/modules/myTeam/components/teamRequestsPage/style.ts";
-
-interface JoinRequest {
-    id: number;
-    nickname: string;
-    avatarLetter: string;
-    coverLetter: string;
-    submittedAt: string;
-}
+import {
+    useGetTeamRequestsQuery,
+    useAcceptTeamRequestMutation,
+    useDeclineTeamRequestMutation,
+    TeamRequestInfoResponse
+} from "@/store/reducers/myTeamApi/myTeamApi";
+import { useGetMyTeamQuery } from "@/store/reducers/myTeamApi/myTeamApi";
 
 interface TeamRequestsPageProps {
     teamName: string;
-    teamId: number;
     onBack: () => void;
-    onRequestAccepted?: (request: JoinRequest) => void;
+    onRequestAccepted?: () => void;
 }
 
 export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
@@ -61,38 +59,17 @@ export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
                                                                 onBack,
                                                                 onRequestAccepted
                                                             }) => {
-    const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
-    const [teamMembersCount, setTeamMembersCount] = useState(5);
+    const { refetch: refetchTeam } = useGetMyTeamQuery();
+    const { data: requests = [], isLoading, refetch: refetchRequests } = useGetTeamRequestsQuery();
+    const [acceptRequest] = useAcceptTeamRequestMutation();
+    const [declineRequest] = useDeclineTeamRequestMutation();
+
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [inviteNickname, setInviteNickname] = useState('');
     const [inviteCoverLetter, setInviteCoverLetter] = useState('');
 
-    useEffect(() => {
-        const mockRequests: JoinRequest[] = [
-            {
-                id: 101,
-                nickname: "X_BEAST_X",
-                avatarLetter: "X",
-                coverLetter: "Привет! Я опытный рифлер с рейтингом 2450 ELO. Участвовал в турнирах уровня Open Cup, имею отличную командную дисциплину. Могу играть каждый вечер, очень хочу усилить вашу команду и вместе расти до профессионального уровня. Готов к тренировкам и выступлениям.",
-                submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-            },
-            {
-                id: 102,
-                nickname: "SniperWolf",
-                avatarLetter: "S",
-                coverLetter: "Всем привет! Я основной AWPer, стабильный рейтинг 2380. Посещаемость 98%, имею опыт игры в коллективах из топ-100 регионального рейтинга. Умею подстраиваться под стратегии капитана, отличная коммуникация. Напишите, если нужен надёжный снайпер для турниров!",
-                submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-            },
-            {
-                id: 103,
-                nickname: "BeaverFanatic",
-                avatarLetter: "B",
-                coverLetter: "Очень нравится ваша команда и философия! Я саппорт / IGL, имею 3 года опыта в организации командных тактик. Могу помочь с демами и стратегиями. Хочу вписаться в ваш состав, много тренироваться и достигать побед. Моё сопроводительное письмо: ответственный, дисциплинированный, с микрофоном.",
-                submittedAt: new Date().toISOString()
-            }
-        ];
-        setJoinRequests(mockRequests);
-    }, []);
+    const { data: teamData } = useGetMyTeamQuery();
+    const teamMembersCount = teamData?.members?.length || 0;
 
     const getDaysAgo = (dateString: string) => {
         const past = new Date(dateString);
@@ -125,53 +102,28 @@ export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
             .replace(/\n/g, '<br>');
     };
 
-    const acceptRequest = (requestId: number) => {
-        const requestIndex = joinRequests.findIndex(r => r.id === requestId);
-        if (requestIndex === -1) return;
-
-        const acceptedPlayer = joinRequests[requestIndex];
-        setTeamMembersCount(prev => prev + 1);
-        setJoinRequests(prev => prev.filter(r => r.id !== requestId));
-
-        if (onRequestAccepted) {
-            onRequestAccepted(acceptedPlayer);
-        }
-
-        alert(`✅ Игрок ${acceptedPlayer.nickname} принят в команду!`);
-    };
-
-    const declineRequest = (requestId: number) => {
-        const requestIndex = joinRequests.findIndex(r => r.id === requestId);
-        if (requestIndex !== -1) {
-            const declinedName = joinRequests[requestIndex].nickname;
-            setJoinRequests(prev => prev.filter(r => r.id !== requestId));
-            alert(`❌ Заявка от ${declinedName} отклонена.`);
+    const handleAcceptRequest = async (requestId: number, userName: string) => {
+        try {
+            await acceptRequest(requestId).unwrap();
+            alert(`✅ Игрок ${userName} принят в команду!`);
+            refetchRequests();
+            refetchTeam();
+            if (onRequestAccepted) onRequestAccepted();
+        } catch (error: any) {
+            console.error('Error accepting request:', error);
+            alert(error.data?.message || "Ошибка при принятии заявки");
         }
     };
 
-    const createJoinRequest = (nickname: string, coverLetterText: string) => {
-        if (!nickname || nickname.trim() === '') {
-            alert("Введите никнейм игрока");
-            return false;
+    const handleDeclineRequest = async (requestId: number, userName: string) => {
+        try {
+            await declineRequest(requestId).unwrap();
+            alert(`❌ Заявка от ${userName} отклонена.`);
+            refetchRequests();
+        } catch (error: any) {
+            console.error('Error declining request:', error);
+            alert(error.data?.message || "Ошибка при отклонении заявки");
         }
-
-        if (joinRequests.some(r => r.nickname.toLowerCase() === nickname.toLowerCase())) {
-            alert(`Заявка от ${nickname} уже ожидает рассмотрения.`);
-            return false;
-        }
-
-        const newId = Date.now();
-        const newRequest: JoinRequest = {
-            id: newId,
-            nickname: nickname.trim(),
-            avatarLetter: nickname.charAt(0).toUpperCase(),
-            coverLetter: coverLetterText.trim() || "Игрок хочет присоединиться к команде.",
-            submittedAt: new Date().toISOString()
-        };
-
-        setJoinRequests(prev => [...prev, newRequest]);
-        alert(`Приглашение отправлено! Заявка от ${nickname} создана.`);
-        return true;
     };
 
     const handleInviteSubmit = () => {
@@ -179,21 +131,36 @@ export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
             alert("Укажите никнейм игрока.");
             return;
         }
-
-        if (!inviteCoverLetter) {
-            if (confirm("Сопроводительное письмо пустое. Отправить без текста?")) {
-                createJoinRequest(inviteNickname, "Игрок принял приглашение, но не оставил сопроводительного письма.");
-                setIsInviteModalOpen(false);
-                setInviteNickname('');
-                setInviteCoverLetter('');
-            }
-        } else {
-            createJoinRequest(inviteNickname, inviteCoverLetter);
-            setIsInviteModalOpen(false);
-            setInviteNickname('');
-            setInviteCoverLetter('');
-        }
+        alert(`Приглашение отправлено игроку ${inviteNickname}!`);
+        setIsInviteModalOpen(false);
+        setInviteNickname('');
+        setInviteCoverLetter('');
     };
+
+    if (isLoading) {
+        return (
+            <RequestsContainer>
+                <NavBar>
+                    <BackLink onClick={onBack}>
+                        <i className="fas fa-arrow-left"></i>
+                        Назад к команде
+                    </BackLink>
+                    <PageTitle>
+                        <i className="fas fa-door-open"></i>
+                        Заявки на вступление
+                        <TeamBadge>
+                            <i className="fas fa-paw"></i> {teamName}
+                        </TeamBadge>
+                    </PageTitle>
+                    <div style={{ width: '30px' }}></div>
+                </NavBar>
+                <div style={{ textAlign: 'center', padding: '50px', color: '#00e6ff' }}>
+                    <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem' }}></i>
+                    <p>Загрузка заявок...</p>
+                </div>
+            </RequestsContainer>
+        );
+    }
 
     return (
         <>
@@ -219,7 +186,7 @@ export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
                             <i className="fas fa-envelope-open-text"></i>
                         </StatIcon>
                         <StatInfo>
-                            <StatNumber>{joinRequests.length}</StatNumber>
+                            <StatNumber>{requests.length}</StatNumber>
                             <StatLabel>Активных заявок</StatLabel>
                         </StatInfo>
                     </StatCard>
@@ -246,7 +213,7 @@ export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
                 </StatsRow>
 
                 <RequestsList>
-                    {joinRequests.length === 0 ? (
+                    {requests.length === 0 ? (
                         <EmptyState>
                             <EmptyIcon>
                                 <i className="fas fa-inbox"></i>
@@ -257,40 +224,44 @@ export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
                             </EmptyText>
                         </EmptyState>
                     ) : (
-                        joinRequests.map(request => (
+                        requests.map((request: TeamRequestInfoResponse) => (
                             <RequestCard key={request.id}>
                                 <RequestHeader>
                                     <PlayerInfo>
-                                        <PlayerAvatar>{request.avatarLetter}</PlayerAvatar>
+                                        <PlayerAvatar>
+                                            {request.user_name?.charAt(0)?.toUpperCase() || '?'}
+                                        </PlayerAvatar>
                                         <PlayerDetails>
-                                            <PlayerName>{request.nickname}</PlayerName>
+                                            <PlayerName>{request.user_name}</PlayerName>
                                             <PlayerNick>
                                                 <i className="fas fa-id-card"></i>
-                                                Заявка от {formatDate(request.submittedAt)}
+                                                Заявка от {formatDate(request.created_date)}
                                             </PlayerNick>
                                         </PlayerDetails>
                                     </PlayerInfo>
                                     <RequestDate>
-                                        <i className="far fa-clock"></i> {getDaysAgo(request.submittedAt)}
+                                        <i className="far fa-clock"></i> {getDaysAgo(request.created_date)}
                                     </RequestDate>
                                 </RequestHeader>
 
-                                <CoverLetter>
-                                    <CoverLetterLabel>
-                                        <i className="fas fa-feather-alt"></i>
-                                        Сопроводительное письмо:
-                                    </CoverLetterLabel>
-                                    <CoverLetterText
-                                        dangerouslySetInnerHTML={{ __html: escapeHtml(request.coverLetter) }}
-                                    />
-                                </CoverLetter>
+                                {request.message && (
+                                    <CoverLetter>
+                                        <CoverLetterLabel>
+                                            <i className="fas fa-feather-alt"></i>
+                                            Сопроводительное письмо:
+                                        </CoverLetterLabel>
+                                        <CoverLetterText
+                                            dangerouslySetInnerHTML={{ __html: escapeHtml(request.message) }}
+                                        />
+                                    </CoverLetter>
+                                )}
 
                                 <RequestActions>
-                                    <AcceptButton onClick={() => acceptRequest(request.id)}>
+                                    <AcceptButton onClick={() => handleAcceptRequest(request.id, request.user_name)}>
                                         <i className="fas fa-check-circle"></i>
                                         Принять в команду
                                     </AcceptButton>
-                                    <DeclineButton onClick={() => declineRequest(request.id)}>
+                                    <DeclineButton onClick={() => handleDeclineRequest(request.id, request.user_name)}>
                                         <i className="fas fa-times-circle"></i>
                                         Отклонить
                                     </DeclineButton>

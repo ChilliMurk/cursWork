@@ -61,7 +61,6 @@ export const teamApi = createApi({
         getAllTeams: builder.query<TeamInfoResponse[], string | undefined>({
             query: (game) => {
                 if (game && game !== 'Все' && game !== '') {
-                    // Преобразуем название игры для бекенда
                     const backendGame = gameToBackend[game];
                     if (backendGame) {
                         return `/teams/all?game=${backendGame}`;

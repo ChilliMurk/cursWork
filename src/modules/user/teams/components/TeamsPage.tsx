@@ -11,6 +11,7 @@ import { JoinTeamModal } from "@/modules/user/events/components/eventDetailsPage
 import { TeamDetailsPage } from "@/modules/user/teams/components/teamDetailsPage/TeamDetailsPage.tsx";
 import { useGetAllTeamsQuery, useDeleteTeamMutation, TeamInfoResponse, gameToBackend } from "@/store/reducers/teamApi/teamApi.ts";
 import { useGetCurrentUserQuery } from "@/store/reducers/userApi/userApi.ts";
+import { myTeamApi } from "@/store/reducers/myTeamApi/myTeamApi";
 
 interface TeamsPageProps {
     onTeamSelect?: (team: TeamInfoResponse) => void;
@@ -97,6 +98,7 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
         try {
             await deleteTeam(teamId).unwrap();
             alert('Команда успешно удалена!');
+            myTeamApi.util.invalidateTags(['MyTeam']);
             refetch();
             setSelectedTeam(null);
         } catch (error) {
@@ -108,6 +110,7 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
     const handleCreateTeam = () => {
         setIsCreating(false);
         refetch();
+        myTeamApi.util.invalidateTags(['MyTeam']);
         alert('Команда успешно создана!');
     };
 
