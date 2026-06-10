@@ -442,11 +442,6 @@ export const SocialLink = styled.a`
     }
 `;
 
-export const Copyright = styled.p`
-    color: #e0e0e0;
-    font-size: 0.9rem;
-`;
-
 export const ParticlesContainer = styled.div`
     position: absolute;
     top: 0;

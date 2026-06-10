@@ -2,7 +2,6 @@ export interface Team {
     id: number;
     name: string;
     game: string;
-   // members: number;
     description: string;
     created: string;
     captain: string;

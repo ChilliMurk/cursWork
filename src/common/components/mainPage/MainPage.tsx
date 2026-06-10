@@ -11,7 +11,7 @@ import {
     BeaverIcon,
     BeaverImage,
     BeaverSection,
-    Container, Copyright,
+    Container,
     CTAButton,
     FeatureCard,
     FeatureDescription,
@@ -19,7 +19,7 @@ import {
     FeaturesGrid,
     FeaturesSection,
     FeatureTitle,
-    FloatingIcon, Footer,
+    FloatingIcon,
     HeaderContent,
     HeaderWrapper,
     HeroContent,
@@ -29,7 +29,7 @@ import {
     HeroTitle,
     Logo,
     LogoText,
-    SectionTitle, SocialLink, SocialLinks,
+    SectionTitle,
     StatItem,
     StatLabel,
     StatNumber,
@@ -263,19 +263,6 @@ export const MainPage: FC = () => {
                                 </FeaturesGrid>
                             </Container>
                         </FeaturesSection>
-
-                        <Footer>
-                            <Container>
-                                <SocialLinks>
-                                    <SocialLink href="#"><i className="fab fa-vk"></i></SocialLink>
-                                    <SocialLink href="#"><i className="fab fa-telegram"></i></SocialLink>
-                                    <SocialLink href="#"><i className="fab fa-youtube"></i></SocialLink>
-                                    <SocialLink href="#"><i className="fab fa-twitch"></i></SocialLink>
-                                    <SocialLink href="#"><i className="fab fa-discord"></i></SocialLink>
-                                </SocialLinks>
-                                <Copyright>© 2023 PREDATORY BEAVERS. Все права защищены.</Copyright>
-                            </Container>
-                        </Footer>
                     </Style>
                 </AlignContentContainer>
             </CommonWrapper>

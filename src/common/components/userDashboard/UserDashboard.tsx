@@ -3,7 +3,7 @@ import {useNavigate} from 'react-router-dom';
 import {useAppDispatch} from "@/common/hooks/useAppSelector.ts";
 import {logout} from "@/store/reducers/authSlice.ts";
 import {css, Global} from "@emotion/react";
-import {Copyright, Particle, ParticlesContainer, SocialLink, SocialLinks} from "@/common/components/mainPage/style.ts";
+import {Particle, ParticlesContainer} from "@/common/components/mainPage/style.ts";
 import {
     AppContainer,
     ContentArea,
@@ -14,7 +14,6 @@ import {
     DevTitle,
     LogoutButton,
     MainContent,
-    MainFooter,
     NavItem,
     NavList,
     PageTitle,
@@ -41,7 +40,8 @@ import {MyTeamPage} from "@/modules/myTeam/components/MyTeamPage.tsx";
 import {CalendarPage} from "@/modules/user/calendar/CalendarPage.tsx";
 import {Methodology} from "@/store/reducers/methodologyApi/methodologyApi.ts";
 import {useGetCurrentUserQuery} from "@/store/reducers/userApi/userApi.ts";
-import {TeamInfoResponse} from "@/store/reducers/teamApi/teamApi.ts"; // Добавлен импорт
+import {TeamInfoResponse} from "@/store/reducers/teamApi/teamApi.ts";
+import {StatsPage} from "@/modules/user/statistics/StatsPage.tsx"; // Добавлен импорт
 
 const GlobalStyles = () => (
     <>
@@ -75,7 +75,7 @@ const GlobalStyles = () => (
 export const UserDashboard: FC = () => {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { data: userData, isLoading: isUserLoading } = useGetCurrentUserQuery();
+    const {data: userData, isLoading: isUserLoading} = useGetCurrentUserQuery();
     const [activeSection, setActiveSection] = useState('main');
     const [selectedTeam, setSelectedTeam] = useState<TeamInfoResponse | null>(null); // Изменен тип
     const [selectedMethodology, setSelectedMethodology] = useState<Methodology | null>(null);
@@ -148,7 +148,7 @@ export const UserDashboard: FC = () => {
         if (isUserLoading) {
             return (
                 <UserAvatarPlaceholder>
-                    <i className="fas fa-spinner fa-spin" style={{ fontSize: '1.5rem' }}></i>
+                    <i className="fas fa-spinner fa-spin" style={{fontSize: '1.5rem'}}></i>
                 </UserAvatarPlaceholder>
             );
         }
@@ -406,7 +406,7 @@ export const UserDashboard: FC = () => {
 
                         <DashboardSection id="calendar-section" isActive={activeSection === 'calendar'}>
                             {showCalendar ? (
-                                <CalendarPage onBack={handleCloseCalendar} />
+                                <CalendarPage onBack={handleCloseCalendar}/>
                             ) : (
                                 <DevelopmentMessage>
                                     <DevIcon>
@@ -432,7 +432,7 @@ export const UserDashboard: FC = () => {
                         </DashboardSection>
 
                         <DashboardSection id="myteam-section" isActive={activeSection === 'myteam'}>
-                            <MyTeamPage />
+                            <MyTeamPage/>
                         </DashboardSection>
 
                         <DashboardSection id="methodology-section" isActive={activeSection === 'methodology'}>
@@ -444,16 +444,7 @@ export const UserDashboard: FC = () => {
                         </DashboardSection>
 
                         <DashboardSection id="stats-section" isActive={activeSection === 'stats'}>
-                            <DevelopmentMessage>
-                                <DevIcon>
-                                    <i className="fas fa-chart-line"></i>
-                                </DevIcon>
-                                <DevTitle>Статистика в разработке</DevTitle>
-                                <DevText>
-                                    Детальная статистика и аналитика находятся в разработке. Скоро вы сможете
-                                    отслеживать свой прогресс и достижения.
-                                </DevText>
-                            </DevelopmentMessage>
+                            <StatsPage/>
                         </DashboardSection>
 
                         <DashboardSection id="profile-section" isActive={activeSection === 'profile'}>
@@ -461,17 +452,6 @@ export const UserDashboard: FC = () => {
                         </DashboardSection>
 
                     </ContentArea>
-
-                    <MainFooter>
-                        <SocialLinks>
-                            <SocialLink href="#"><i className="fab fa-vk"></i></SocialLink>
-                            <SocialLink href="#"><i className="fab fa-telegram"></i></SocialLink>
-                            <SocialLink href="#"><i className="fab fa-youtube"></i></SocialLink>
-                            <SocialLink href="#"><i className="fab fa-twitch"></i></SocialLink>
-                            <SocialLink href="#"><i className="fab fa-discord"></i></SocialLink>
-                        </SocialLinks>
-                        <Copyright>© 2023 PREDATORY BEAVERS. Все права защищены.</Copyright>
-                    </MainFooter>
                 </MainContent>
             </AppContainer>
         </>
