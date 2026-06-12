@@ -3,34 +3,36 @@ import { rememberReducer, rememberEnhancer } from 'redux-remember';
 import { authReducer } from "@/store/reducers/authSlice.ts";
 import { userReducer } from "@/store/reducers/userSlice.ts";
 import { methodologyReducer } from "@/store/reducers/methodologySlice.ts";
-import { myTeamReducer } from "@/store/reducers/myTeamSlice.ts"; // Добавить
+import { myTeamReducer } from "@/store/reducers/myTeamSlice.ts";
 import { authApi } from "@/store/reducers/auth/auth.ts";
 import { eventsApi } from "@/store/reducers/eventApi/eventApi.ts";
 import { methodologyApi } from "@/store/reducers/methodologyApi/methodologyApi.ts";
 import { uploadApi } from "@/store/reducers/uploadApi/uploadApi.ts";
 import { userApi } from "@/store/reducers/userApi/userApi.ts";
 import { teamApi } from "@/store/reducers/teamApi/teamApi.ts";
-import { myTeamApi } from "@/store/reducers/myTeamApi/myTeamApi.ts"; // Добавить
+import { myTeamApi } from "@/store/reducers/myTeamApi/myTeamApi.ts";
+import {faceItApi} from "@/store/reducers/faceItApi/faceItApi.ts";
 
 const rememberedReducers = [
     'authReducer',
     'userReducer',
     'methodologyReducer',
-    'myTeamReducer',  // Добавить
+    'myTeamReducer',
     'authApi',
     'eventsApi',
     'methodologyApi',
     'uploadApi',
     'userApi',
     'teamApi',
-    'myTeamApi',  // Добавить
+    'myTeamApi',
+    'faceItApi',
 ];
 
 const rootReducer = combineReducers({
     authReducer,
     userReducer,
     methodologyReducer,
-    myTeamReducer,  // Добавить
+    myTeamReducer,
     [authApi.reducerPath]: authApi.reducer,
     [eventsApi.reducerPath]: eventsApi.reducer,
     [methodologyApi.reducerPath]: methodologyApi.reducer,
@@ -38,6 +40,7 @@ const rootReducer = combineReducers({
     [userApi.reducerPath]: userApi.reducer,
     [teamApi.reducerPath]: teamApi.reducer,
     [myTeamApi.reducerPath]: myTeamApi.reducer,
+    [faceItApi.reducerPath]: faceItApi.reducer,
 });
 
 const rememberedReducer = rememberReducer(rootReducer);
@@ -56,7 +59,8 @@ export const store = configureStore({
             uploadApi.middleware,
             userApi.middleware,
             teamApi.middleware,
-            myTeamApi.middleware,  // Добавить
+            myTeamApi.middleware,
+            faceItApi.middleware,
         ),
     enhancers: (getDefaultEnhancer) =>
         getDefaultEnhancer().concat(rememberEnhancer(window.localStorage, rememberedReducers)),

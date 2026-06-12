@@ -13,6 +13,7 @@ export interface UserInfoResponse {
     team_role: string | null;
     team_id: number | null;
     team_name: string | null;
+    faceit_nickname: string | null;
 }
 
 export interface UserChangesRequest {

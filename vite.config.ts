@@ -2,7 +2,6 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import * as path from "node:path";
 
-
 export default defineConfig({
     plugins: [react()],
     server: {
@@ -10,7 +9,7 @@ export default defineConfig({
         open: true,
         proxy: {
             '/api': {
-                target: 'https://192.168.1.101:8080',
+                target: 'http://esportplatform.ru:8080',
                 changeOrigin: true,
                 secure: false,
                 configure: (proxy, _options) => {

@@ -20,30 +20,44 @@ import {
     ProfileStats,
     ProfileUsername,
     SecondaryButton,
-    StatItem
+    StatItem,
+    FaceItButton,
+    FaceItConnected,
+    FaceItNickname,
+    FaceItStatus
 } from "@/modules/user/profile/components/style.ts";
 import {
     useGetCurrentUserQuery,
     useUpdateCurrentUserMutation,
 } from "@/store/reducers/userApi/userApi.ts";
 import {useUploadImageMutation} from "@/store/reducers/uploadApi/uploadApi.ts";
+import {useConnectFaceItMutation} from "@/store/reducers/faceItApi/faceItApi.ts";
 import {format} from 'date-fns';
 import {ru} from 'date-fns/locale';
+import {FaceItConnectModal} from "@/modules/user/profile/components/FaceItConnectModal/FaceItConnectModal.tsx";
 
 export const ProfilePage: FC = () => {
     const {data: userData, isLoading, refetch} = useGetCurrentUserQuery();
     const [updateCurrentUser] = useUpdateCurrentUserMutation();
     const [uploadImage] = useUploadImageMutation();
+    const [connectFaceIt] = useConnectFaceItMutation();
 
     const [isEditing, setIsEditing] = useState(false);
     const [bioText, setBioText] = useState('');
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isFaceItModalOpen, setIsFaceItModalOpen] = useState(false);
+    const [isConnecting, setIsConnecting] = useState(false);
+    const [faceItNickname, setFaceItNickname] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (userData?.bio) {
             setBioText(userData.bio);
+        }
+        // Устанавливаем faceit_nickname из данных пользователя
+        if (userData?.faceit_nickname) {
+            setFaceItNickname(userData.faceit_nickname);
         }
     }, [userData]);
 
@@ -74,38 +88,27 @@ export const ProfilePage: FC = () => {
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            // Проверка типа файла
             if (!file.type.startsWith('image/')) {
                 alert('Пожалуйста, выберите изображение');
                 return;
             }
 
-            // Проверка размера файла (максимум 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 alert('Размер изображения не должен превышать 5MB');
                 return;
             }
 
-            // Показываем превью
             const reader = new FileReader();
             reader.onloadend = () => {
                 setAvatarPreview(reader.result as string);
             };
             reader.readAsDataURL(file);
 
-            // Загружаем на сервер через uploadApi
             setIsUploading(true);
             try {
-                // 1. Загружаем изображение на сервер
                 const uploadResult = await uploadImage(file).unwrap();
-                console.log('Upload result:', uploadResult);
-
-                // uploadResult.image_url - это имя файла (например, "497e0601-5154-4ba7-96c7-04cd4465c453.jpg")
                 const imageFilename = uploadResult.image_url;
-
-                // 2. Обновляем профиль пользователя с новым avatar_url
                 await updateCurrentUser({avatar_url: imageFilename}).unwrap();
-
                 alert('Аватар успешно обновлен!');
                 refetch();
                 setAvatarPreview(null);
@@ -116,6 +119,23 @@ export const ProfilePage: FC = () => {
             } finally {
                 setIsUploading(false);
             }
+        }
+    };
+
+    const handleConnectFaceIt = async (nickname: string) => {
+        setIsConnecting(true);
+        try {
+            const result = await connectFaceIt({faceit_nickname: nickname}).unwrap();
+            setFaceItNickname(nickname);
+            alert(result.message || `FaceIt аккаунт "${nickname}" успешно подключен!`);
+            setIsFaceItModalOpen(false);
+            await refetch();
+        } catch (error: any) {
+            console.error('Ошибка при подключении FaceIt:', error);
+            const errorMessage = error?.data?.message || error?.data || error?.message || "Ошибка при подключении FaceIt аккаунта";
+            alert(errorMessage);
+        } finally {
+            setIsConnecting(false);
         }
     };
 
@@ -150,11 +170,9 @@ export const ProfilePage: FC = () => {
     };
 
     const getAvatarUrl = () => {
-
         if (avatarPreview) {
             return avatarPreview;
         }
-
         if (userData?.avatar_url) {
             return `/api/uploads/${userData.avatar_url}`;
         }
@@ -218,123 +236,149 @@ export const ProfilePage: FC = () => {
         );
     }
 
+    const displayFaceItNickname = faceItNickname || userData.faceit_nickname;
+    const isFaceItConnected = !!displayFaceItNickname;
+
     return (
-        <ProfileContainer>
-            <ProfileGrid>
-                <ProfileSidebar>
-                    <ProfileAvatarWrapper>
-                        <ProfileAvatar onClick={handleAvatarClick} isEditing={isEditing && !isUploading}>
-                            {getAvatarContent()}
-                            {isEditing && !isUploading && (
-                                <AvatarEditOverlay className="avatar-overlay">
-                                    <AvatarEditIcon className="fas fa-camera"/>
-                                </AvatarEditOverlay>
-                            )}
-                        </ProfileAvatar>
-                        <HiddenFileInput
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                        />
-                    </ProfileAvatarWrapper>
-                    <ProfileUsername>{userData.username}</ProfileUsername>
+        <>
+            <ProfileContainer>
+                <ProfileGrid>
+                    <ProfileSidebar>
+                        <ProfileAvatarWrapper>
+                            <ProfileAvatar onClick={handleAvatarClick} isEditing={isEditing && !isUploading}>
+                                {getAvatarContent()}
+                                {isEditing && !isUploading && (
+                                    <AvatarEditOverlay className="avatar-overlay">
+                                        <AvatarEditIcon className="fas fa-camera"/>
+                                    </AvatarEditOverlay>
+                                )}
+                            </ProfileAvatar>
+                            <HiddenFileInput
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                            />
+                        </ProfileAvatarWrapper>
+                        <ProfileUsername>{userData.username}</ProfileUsername>
 
-                    {userData.team_name && (
-                        <div style={{
-                            background: 'rgba(0, 180, 216, 0.15)',
-                            padding: '5px 15px',
-                            borderRadius: '15px',
-                            marginBottom: '10px',
-                            color: '#00e6ff'
-                        }}>
-                            <i className="fas fa-users"></i> {userData.team_name}
-                            {userData.team_role && ` (${userData.team_role})`}
-                        </div>
-                    )}
-
-                    <ProfileStats>
-                        <StatItem>
-                            <span>Дата регистрации:</span>
-                            <span>{formatDate(userData.join_date)}</span>
-                        </StatItem>
-                        <StatItem>
-                            <span>Был в сети:</span>
-                            <span>{formatLastOnline(userData.last_online)}</span>
-                        </StatItem>
-                        <StatItem>
-                            <span>Email:</span>
-                            <span>{userData.email}</span>
-                        </StatItem>
-                        {userData.roles && userData.roles.length > 0 && (
-                            <StatItem>
-                                <span>Роли:</span>
-                                <span>{userData.roles.join(', ')}</span>
-                            </StatItem>
+                        {userData.team_name && (
+                            <div style={{
+                                background: 'rgba(0, 180, 216, 0.15)',
+                                padding: '5px 15px',
+                                borderRadius: '15px',
+                                marginBottom: '10px',
+                                color: '#00e6ff'
+                            }}>
+                                <i className="fas fa-users"></i> {userData.team_name}
+                                {userData.team_role && ` (${userData.team_role})`}
+                            </div>
                         )}
-                    </ProfileStats>
-                </ProfileSidebar>
 
-                <ProfileContent>
-                    <ProfileCard>
-                        <CardTitle>
-                            <i className="fas fa-user"></i>
-                            Информация о профиле
-                        </CardTitle>
+                        {/* FaceIt блок - обновленное условие */}
+                        {isFaceItConnected ? (
+                            <FaceItConnected>
+                                <i className="fab fa-faceit" style={{fontSize: '1.2rem'}}></i>
+                                <FaceItNickname>{displayFaceItNickname}</FaceItNickname>
+                                <FaceItStatus>Подключен</FaceItStatus>
+                            </FaceItConnected>
+                        ) : (
+                            <FaceItButton onClick={() => setIsFaceItModalOpen(true)}>
+                                <i className="fab fa-faceit"></i>
+                                Подключить FaceIt аккаунт
+                            </FaceItButton>
+                        )}
 
-                        <div>
-                            <h4 style={{color: '#00e6ff', marginBottom: '10px'}}>О себе:</h4>
-                            {isEditing ? (
-                                <textarea
-                                    value={bioText}
-                                    onChange={(e) => setBioText(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        minHeight: '100px',
-                                        backgroundColor: 'rgba(0, 180, 216, 0.1)',
-                                        border: '1px solid rgba(0, 180, 216, 0.3)',
-                                        borderRadius: '8px',
-                                        padding: '10px',
-                                        color: '#e0e0e0',
-                                        marginBottom: '15px',
-                                        resize: 'vertical',
-                                        fontFamily: 'inherit'
-                                    }}
-                                    placeholder="Расскажите о себе..."
-                                />
-                            ) : (
-                                <BioText>{userData.bio || 'Пользователь еще ничего не рассказал о себе'}</BioText>
+                        <ProfileStats>
+                            <StatItem>
+                                <span>Дата регистрации:</span>
+                                <span>{formatDate(userData.join_date)}</span>
+                            </StatItem>
+                            <StatItem>
+                                <span>Был в сети:</span>
+                                <span>{formatLastOnline(userData.last_online)}</span>
+                            </StatItem>
+                            <StatItem>
+                                <span>Email:</span>
+                                <span>{userData.email}</span>
+                            </StatItem>
+                            {userData.roles && userData.roles.length > 0 && (
+                                <StatItem>
+                                    <span>Роли:</span>
+                                    <span>{userData.roles.join(', ')}</span>
+                                </StatItem>
                             )}
+                        </ProfileStats>
+                    </ProfileSidebar>
 
-                            {isEditing ? (
-                                <ActionButtons>
-                                    <PrimaryButton onClick={handleSaveProfile}>
-                                        Сохранить
-                                    </PrimaryButton>
-                                    <SecondaryButton onClick={handleCancelEdit}>
-                                        Отмена
-                                    </SecondaryButton>
-                                </ActionButtons>
-                            ) : (
-                                <EditButton onClick={() => setIsEditing(true)}>
-                                    <i className="fas fa-edit"></i> Редактировать профиль
-                                </EditButton>
-                            )}
-                        </div>
-                    </ProfileCard>
+                    <ProfileContent>
+                        <ProfileCard>
+                            <CardTitle>
+                                <i className="fas fa-user"></i>
+                                Информация о профиле
+                            </CardTitle>
 
-                    <ProfileCard>
-                        <CardTitle>
-                            <i className="fas fa-chart-line"></i>
-                            Статистика игрока
-                        </CardTitle>
-                        <div style={{textAlign: 'center', padding: '20px', color: '#a0a0a0'}}>
-                            <i className="fas fa-chart-simple" style={{fontSize: '3rem', marginBottom: '10px'}}></i>
-                            <p>Статистика игр будет доступна позже</p>
-                        </div>
-                    </ProfileCard>
-                </ProfileContent>
-            </ProfileGrid>
-        </ProfileContainer>
+                            <div>
+                                <h4 style={{color: '#00e6ff', marginBottom: '10px'}}>О себе:</h4>
+                                {isEditing ? (
+                                    <textarea
+                                        value={bioText}
+                                        onChange={(e) => setBioText(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            minHeight: '100px',
+                                            backgroundColor: 'rgba(0, 180, 216, 0.1)',
+                                            border: '1px solid rgba(0, 180, 216, 0.3)',
+                                            borderRadius: '8px',
+                                            padding: '10px',
+                                            color: '#e0e0e0',
+                                            marginBottom: '15px',
+                                            resize: 'vertical',
+                                            fontFamily: 'inherit'
+                                        }}
+                                        placeholder="Расскажите о себе..."
+                                    />
+                                ) : (
+                                    <BioText>{userData.bio || 'Пользователь еще ничего не рассказал о себе'}</BioText>
+                                )}
+
+                                {isEditing ? (
+                                    <ActionButtons>
+                                        <PrimaryButton onClick={handleSaveProfile}>
+                                            Сохранить
+                                        </PrimaryButton>
+                                        <SecondaryButton onClick={handleCancelEdit}>
+                                            Отмена
+                                        </SecondaryButton>
+                                    </ActionButtons>
+                                ) : (
+                                    <EditButton onClick={() => setIsEditing(true)}>
+                                        <i className="fas fa-edit"></i> Редактировать профиль
+                                    </EditButton>
+                                )}
+                            </div>
+                        </ProfileCard>
+
+                        <ProfileCard>
+                            <CardTitle>
+                                <i className="fas fa-chart-line"></i>
+                                Статистика игрока
+                            </CardTitle>
+                            <div style={{textAlign: 'center', padding: '20px', color: '#a0a0a0'}}>
+                                <i className="fas fa-chart-simple" style={{fontSize: '3rem', marginBottom: '10px'}}></i>
+                                <p>Статистика игр будет доступна после подключения FaceIt аккаунта</p>
+                            </div>
+                        </ProfileCard>
+                    </ProfileContent>
+                </ProfileGrid>
+            </ProfileContainer>
+
+            <FaceItConnectModal
+                isOpen={isFaceItModalOpen}
+                onClose={() => setIsFaceItModalOpen(false)}
+                onConnect={handleConnectFaceIt}
+                isConnecting={isConnecting}
+            />
+        </>
     );
 };

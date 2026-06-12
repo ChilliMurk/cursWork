@@ -269,3 +269,58 @@ export const SecondaryButton = styled.button`
         transform: translateY(-2px);
     }
 `;
+
+export const FaceItButton = styled.button`
+    background: linear-gradient(90deg, #ff5500, #ff8c00);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    padding: 10px 20px;
+    margin: 15px 0;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s;
+    width: auto;
+
+    i {
+        font-size: 1.2rem;
+    }
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 20px rgba(255, 85, 0, 0.4);
+    }
+`;
+
+export const FaceItConnected = styled.div`
+    background: rgba(0, 180, 216, 0.15);
+    border: 1px solid rgba(0, 180, 216, 0.3);
+    border-radius: 30px;
+    padding: 8px 20px;
+    margin: 15px 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    
+    i {
+        color: #ff8c00;
+        font-size: 1.2rem;
+    }
+`;
+
+export const FaceItNickname = styled.span`
+    color: #00e6ff;
+    font-weight: 600;
+`;
+
+export const FaceItStatus = styled.span`
+    background: rgba(0, 230, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    color: #00e6ff;
+`;
