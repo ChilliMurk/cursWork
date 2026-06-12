@@ -77,7 +77,6 @@ export const eventsApi = createApi({
         },
     }),
     endpoints: (builder) => ({
-        // Получение доступных событий для пользователя (с параметрами месяца и года)
         getAvailableEvents: builder.query<Event[], { month: number; year: number }>({
             query: ({ month, year }) => `/events/all_available?month=${month}&year=${year}`,
             transformResponse: (response: EventInfoResponse[]) => {
@@ -86,7 +85,6 @@ export const eventsApi = createApi({
             providesTags: ['Events'],
         }),
 
-        // Получение всех событий
         getAllEvents: builder.query<Event[], void>({
             query: () => '/events/all',
             transformResponse: (response: EventInfoResponse[]) => {
@@ -95,7 +93,6 @@ export const eventsApi = createApi({
             providesTags: ['Events'],
         }),
 
-// Получение событий, в которых участвует пользователь
         getParticipatingEvents: builder.query<Event[], void>({
             query: () => '/events/participating',
             transformResponse: (response: EventInfoResponse[]) => {
@@ -104,7 +101,6 @@ export const eventsApi = createApi({
             providesTags: ['Events'],
         }),
 
-// Получение событий, организованных пользователем
         getEventsOrganizedByMe: builder.query<Event[], void>({
             query: () => '/events/events_organized_by_me',
             transformResponse: (response: EventInfoResponse[]) => {
@@ -113,7 +109,6 @@ export const eventsApi = createApi({
             providesTags: ['Events'],
         }),
 
-        // Получение событий команды
         getTeamEvents: builder.query<Event[], { month: number; year: number }>({
             query: ({ month, year }) => `/events/team_events?month=${month}&year=${year}`,
             transformResponse: (response: EventInfoResponse[]) => {
@@ -122,7 +117,6 @@ export const eventsApi = createApi({
             providesTags: ['Events'],
         }),
 
-        // Получение общих событий (без авторизации)
         getCommonEvents: builder.query<Event[], { month: number; year: number }>({
             query: ({ month, year }) => `/events/common_events?month=${month}&year=${year}`,
             transformResponse: (response: EventInfoResponse[]) => {
@@ -131,7 +125,6 @@ export const eventsApi = createApi({
             providesTags: ['Events'],
         }),
 
-        // Получение события по ID
         getEventById: builder.query<Event, number>({
             query: (eventId) => `/events/${eventId}`,
             transformResponse: (response: EventInfoResponse) => {
@@ -140,7 +133,6 @@ export const eventsApi = createApi({
             providesTags: (_result, _error, id) => [{ type: 'Events', id }],
         }),
 
-        // Создание общего события
         createCommonEvent: builder.mutation<EventInfoResponse, EventCreatingRequest>({
             query: (eventData) => {
                 console.log('Sending common event data:', JSON.stringify(eventData, null, 2));
@@ -157,7 +149,6 @@ export const eventsApi = createApi({
             },
         }),
 
-        // Создание командного события
         createTeamEvent: builder.mutation<EventInfoResponse, EventCreatingRequest>({
             query: (eventData) => {
                 console.log('Sending team event data:', JSON.stringify(eventData, null, 2));

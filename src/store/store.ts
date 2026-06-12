@@ -1,23 +1,26 @@
-import { combineReducers, configureStore } from '@reduxjs/toolkit';
-import { rememberReducer, rememberEnhancer } from 'redux-remember';
-import { authReducer } from "@/store/reducers/authSlice.ts";
-import { userReducer } from "@/store/reducers/userSlice.ts";
-import { methodologyReducer } from "@/store/reducers/methodologySlice.ts";
-import { myTeamReducer } from "@/store/reducers/myTeamSlice.ts";
-import { authApi } from "@/store/reducers/auth/auth.ts";
-import { eventsApi } from "@/store/reducers/eventApi/eventApi.ts";
-import { methodologyApi } from "@/store/reducers/methodologyApi/methodologyApi.ts";
-import { uploadApi } from "@/store/reducers/uploadApi/uploadApi.ts";
-import { userApi } from "@/store/reducers/userApi/userApi.ts";
-import { teamApi } from "@/store/reducers/teamApi/teamApi.ts";
-import { myTeamApi } from "@/store/reducers/myTeamApi/myTeamApi.ts";
+import {combineReducers, configureStore} from '@reduxjs/toolkit';
+import {rememberReducer, rememberEnhancer} from 'redux-remember';
+import {authReducer} from "@/store/reducers/authSlice.ts";
+import {userReducer} from "@/store/reducers/userSlice.ts";
+import {methodologyReducer} from "@/store/reducers/methodologySlice.ts";
+import {myTeamReducer} from "@/store/reducers/myTeamSlice.ts";
+import {statsReducer} from "@/store/reducers/statsSlice.ts";
+import {authApi} from "@/store/reducers/auth/auth.ts";
+import {eventsApi} from "@/store/reducers/eventApi/eventApi.ts";
+import {methodologyApi} from "@/store/reducers/methodologyApi/methodologyApi.ts";
+import {uploadApi} from "@/store/reducers/uploadApi/uploadApi.ts";
+import {userApi} from "@/store/reducers/userApi/userApi.ts";
+import {teamApi} from "@/store/reducers/teamApi/teamApi.ts";
+import {myTeamApi} from "@/store/reducers/myTeamApi/myTeamApi.ts";
 import {faceItApi} from "@/store/reducers/faceItApi/faceItApi.ts";
+import {statsApi} from "@/store/reducers/statsApi/statsApi.ts";
 
 const rememberedReducers = [
     'authReducer',
     'userReducer',
     'methodologyReducer',
     'myTeamReducer',
+    'statsReducer',
     'authApi',
     'eventsApi',
     'methodologyApi',
@@ -26,6 +29,7 @@ const rememberedReducers = [
     'teamApi',
     'myTeamApi',
     'faceItApi',
+    'statsApi',
 ];
 
 const rootReducer = combineReducers({
@@ -33,6 +37,7 @@ const rootReducer = combineReducers({
     userReducer,
     methodologyReducer,
     myTeamReducer,
+    statsReducer,
     [authApi.reducerPath]: authApi.reducer,
     [eventsApi.reducerPath]: eventsApi.reducer,
     [methodologyApi.reducerPath]: methodologyApi.reducer,
@@ -41,6 +46,7 @@ const rootReducer = combineReducers({
     [teamApi.reducerPath]: teamApi.reducer,
     [myTeamApi.reducerPath]: myTeamApi.reducer,
     [faceItApi.reducerPath]: faceItApi.reducer,
+    [statsApi.reducerPath]: statsApi.reducer,
 });
 
 const rememberedReducer = rememberReducer(rootReducer);
@@ -61,6 +67,7 @@ export const store = configureStore({
             teamApi.middleware,
             myTeamApi.middleware,
             faceItApi.middleware,
+            statsApi.middleware,
         ),
     enhancers: (getDefaultEnhancer) =>
         getDefaultEnhancer().concat(rememberEnhancer(window.localStorage, rememberedReducers)),

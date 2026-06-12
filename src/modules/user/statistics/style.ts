@@ -173,3 +173,71 @@ export const FooterInfo = styled.div`
     border-top: 1px solid rgba(0, 180, 216, 0.2);
     padding-top: 1rem;
 `;
+
+export const TabContainer = styled.div`
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(0, 180, 216, 0.3);
+    padding-bottom: 12px;
+`;
+
+export const TabButton = styled.button<{ isActive: boolean }>`
+    background: ${props => props.isActive ? 'linear-gradient(90deg, #0066cc, #00b4d8)' : 'transparent'};
+    border: 1px solid #00b4d8;
+    padding: 8px 24px;
+    border-radius: 30px;
+    color: ${props => props.isActive ? '#fff' : '#b3e4ff'};
+    cursor: pointer;
+    font-weight: ${props => props.isActive ? 'bold' : 'normal'};
+    font-family: 'Rajdhani', sans-serif;
+    transition: all 0.3s;
+
+    &:hover {
+        background: ${props => props.isActive ? 'linear-gradient(90deg, #0066cc, #00b4d8)' : 'rgba(0, 180, 216, 0.2)'};
+        transform: translateY(-2px);
+    }
+`;
+
+export const TeamStatsTable = styled.table`
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    min-width: 500px;
+
+    th {
+        text-align: left;
+        padding: 1rem 0.8rem;
+        background: rgba(0, 180, 216, 0.15);
+        color: #c4e6ff;
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 600;
+    }
+
+    td {
+        padding: 0.8rem;
+        border-bottom: 1px solid rgba(0, 180, 216, 0.15);
+    }
+`;
+
+export const LoadingSpinner = styled.div`
+    text-align: center;
+    padding: 40px;
+    color: #00e6ff;
+
+    i {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+`;
+
+export const ErrorMessage = styled.div`
+    text-align: center;
+    padding: 40px;
+    color: #ff6b6b;
+
+    i {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+`;

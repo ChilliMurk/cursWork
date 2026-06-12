@@ -1,278 +1,218 @@
 import {FC, useState} from 'react';
 import {
     ApplyButton,
-    CardTitle, PresetButton, PresetGroup,
+    CardTitle,
+    PresetButton,
+    PresetGroup,
     SliderHeader,
     SliderItem,
     SlidersGrid,
-    StatsContainer, StatsTable, StyledRange, TableContainer, WeightNote,
-    WeightsCard, WeightValue, AvgBar, FooterInfo, MemberBadge
+    StatsContainer,
+    StatsTable,
+    StyledRange,
+    TableContainer,
+    WeightNote,
+    WeightsCard,
+    WeightValue,
+    AvgBar,
+    FooterInfo,
+    MemberBadge,
+    LoadingSpinner,
+    ErrorMessage,
+    TabContainer,
+    TabButton,
+    TeamStatsTable
 } from "@/modules/user/statistics/style.ts";
+import {
+    useGetGlobalRatingQuery,
+    useGetTeamRatingQuery,
+    useGetTeamsRatingQuery,
+    RateInfoResponse,
+    TeamRatesInfoResponse
+} from "@/store/reducers/statsApi/statsApi";
+import {useGetCurrentUserQuery} from "@/store/reducers/userApi/userApi";
 
-interface Player {
-    name: string;
-    kd: number;
-    winrate: number;
-    adr: number;
-    hours: number;
-    tournaments: number;
-    attendance: number;
-    role: string;
-    isUser: boolean;
-}
-
-interface RatedPlayer extends Player {
-    rating: number;
-}
+type TabType = 'global' | 'team' | 'teams';
 
 interface Importance {
-    kd: number;
-    winrate: number;
-    adr: number;
-    hours: number;
-    tournaments: number;
-    attendance: number;
+    wKd: number;
+    wHs: number;
+    wWr: number;
+    wTa: number;
+    wTr: number;
+    wHp: number;
 }
 
 interface Metric {
     id: keyof Importance;
     label: string;
     icon: string;
+    apiKey: string;
 }
 
-const mockPlayersData: Player[] = [
-    {
-        name: "A",
-        kd: 1.20,
-        winrate: 0.55,
-        adr: 75,
-        hours: 1200,
-        tournaments: 8,
-        attendance: 85,
-        role: "IGL/Captain",
-        isUser: true
-    },
-    {
-        name: "B",
-        kd: 0.90,
-        winrate: 0.48,
-        adr: 62,
-        hours: 3000,
-        tournaments: 15,
-        attendance: 90,
-        role: "Rifler",
-        isUser: false
-    },
-    {
-        name: "C",
-        kd: 2.10,
-        winrate: 0.70,
-        adr: 98,
-        hours: 800,
-        tournaments: 4,
-        attendance: 70,
-        role: "AWPer",
-        isUser: false
-    },
-    {
-        name: "D",
-        kd: 0.70,
-        winrate: 0.40,
-        adr: 55,
-        hours: 450,
-        tournaments: 2,
-        attendance: 95,
-        role: "Lurker",
-        isUser: false
-    },
-    {
-        name: "E",
-        kd: 1.50,
-        winrate: 0.62,
-        adr: 85,
-        hours: 2000,
-        tournaments: 10,
-        attendance: 80,
-        role: "Entry",
-        isUser: false
-    },
-    {
-        name: "F",
-        kd: 1.00,
-        winrate: 0.52,
-        adr: 70,
-        hours: 600,
-        tournaments: 3,
-        attendance: 88,
-        role: "Support",
-        isUser: false
-    },
-    {
-        name: "G",
-        kd: 1.80,
-        winrate: 0.65,
-        adr: 90,
-        hours: 1500,
-        tournaments: 12,
-        attendance: 75,
-        role: "Star Player",
-        isUser: false
-    },
-    {
-        name: "H",
-        kd: 0.80,
-        winrate: 0.45,
-        adr: 60,
-        hours: 2500,
-        tournaments: 9,
-        attendance: 92,
-        role: "Support",
-        isUser: false
-    },
-    {
-        name: "I",
-        kd: 1.30,
-        winrate: 0.58,
-        adr: 78,
-        hours: 1000,
-        tournaments: 6,
-        attendance: 82,
-        role: "Flex",
-        isUser: false
-    },
-    {
-        name: "J",
-        kd: 0.60,
-        winrate: 0.38,
-        adr: 50,
-        hours: 350,
-        tournaments: 1,
-        attendance: 96,
-        role: "Rookie",
-        isUser: false
-    }
-];
-
 const metrics: Metric[] = [
-    {id: "kd", label: "K/D (убийства/смерти)", icon: "fa-skull"},
-    {id: "winrate", label: "WinRate (побед)", icon: "fa-trophy"},
-    {id: "adr", label: "ADR (урон за раунд)", icon: "fa-bolt"},
-    {id: "hours", label: "Часы в игре", icon: "fa-clock"},
-    {id: "tournaments", label: "Турниры", icon: "fa-medal"},
-    {id: "attendance", label: "Тренировки %", icon: "fa-calendar-check"}
+    {id: "wKd", label: "K/D (убийства/смерти)", icon: "fa-skull", apiKey: "wKd"},
+    {id: "wHs", label: "Хедшоты %", icon: "fa-bullseye", apiKey: "wHs"},
+    {id: "wWr", label: "WinRate (побед)", icon: "fa-trophy", apiKey: "wWr"},
+    {id: "wTr", label: "Турниры", icon: "fa-medal", apiKey: "wTr"},
+    {id: "wTa", label: "Тренировки %", icon: "fa-calendar-check", apiKey: "wTa"},
+    {id: "wHp", label: "Часы в игре", icon: "fa-clock", apiKey: "wHp"}
 ];
 
 export const StatsPage: FC = () => {
-    const [importance, setImportance] = useState<Importance>({
-        kd: 5,
-        winrate: 5,
-        adr: 3,
-        hours: 2,
-        tournaments: 3,
-        attendance: 2
+    const {data: currentUser} = useGetCurrentUserQuery();
+    const [activeTab, setActiveTab] = useState<TabType>('global');
+    const [weights, setWeights] = useState<Importance>({
+        wKd: 5,
+        wHs: 5,
+        wWr: 5,
+        wTa: 5,
+        wTr: 5,
+        wHp: 5
     });
+    const [shouldFetch, setShouldFetch] = useState(false);
 
-    const [ratedPlayers, setRatedPlayers] = useState<RatedPlayer[]>([]);
-
-    const importanceToWeights = (imp: Importance): Importance => {
-        const total = Object.values(imp).reduce((sum, val) => sum + val, 0);
-        if (total === 0) {
-            const eq = 1 / Object.keys(imp).length;
-            const weights: Importance = {...imp};
-            Object.keys(weights).forEach(key => {
-                weights[key as keyof Importance] = eq;
-            });
-            return weights;
-        }
-        const weights: Importance = {...imp};
-        Object.keys(weights).forEach(key => {
-            weights[key as keyof Importance] = imp[key as keyof Importance] / total;
-        });
-        return weights;
+    const apiParams = {
+        wKd: weights.wKd,
+        wHs: weights.wHs,
+        wWr: weights.wWr,
+        wTa: weights.wTa,
+        wTr: weights.wTr,
+        wHp: weights.wHp
     };
 
-    const computeZMatrix = (players: Player[]) => {
-        const n = players.length;
-        const getArr = (key: keyof Player) => players.map(p => p[key] as number);
+    const {
+        data: globalRating,
+        isLoading: globalLoading,
+        error: globalError,
+        refetch: refetchGlobal
+    } = useGetGlobalRatingQuery(shouldFetch ? apiParams : undefined, {skip: !shouldFetch || activeTab !== 'global'});
 
-        const kdArr = getArr('kd');
-        const wrArr = getArr('winrate');
-        const adrArr = getArr('adr');
-        const hrsArr = getArr('hours');
-        const tourArr = getArr('tournaments');
-        const attArr = getArr('attendance');
+    const {
+        data: teamRating,
+        isLoading: teamLoading,
+        error: teamError,
+        refetch: refetchTeam
+    } = useGetTeamRatingQuery(shouldFetch ? apiParams : undefined, {skip: !shouldFetch || activeTab !== 'team'});
 
-        const calc = (arr: number[]) => {
-            const mean = arr.reduce((a, b) => a + b, 0) / n;
-            const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n;
-            const std = Math.sqrt(variance) === 0 ? 1 : Math.sqrt(variance);
-            return {mean, std};
-        };
-
-        const kdStat = calc(kdArr);
-        const wrStat = calc(wrArr);
-        const adrStat = calc(adrArr);
-        const hrsStat = calc(hrsArr);
-        const tourStat = calc(tourArr);
-        const attStat = calc(attArr);
-
-        return players.map(p => ({
-            zKd: (p.kd - kdStat.mean) / kdStat.std,
-            zWr: (p.winrate - wrStat.mean) / wrStat.std,
-            zAdr: (p.adr - adrStat.mean) / adrStat.std,
-            zHours: (p.hours - hrsStat.mean) / hrsStat.std,
-            zTour: (p.tournaments - tourStat.mean) / tourStat.std,
-            zAtt: (p.attendance - attStat.mean) / attStat.std
-        }));
-    };
-
-    const computeRatings = (players: Player[], imp: Importance): RatedPlayer[] => {
-        const weights = importanceToWeights(imp);
-        const zMat = computeZMatrix(players);
-
-        return players.map((p, idx) => {
-            const z = zMat[idx];
-            const rating = (z.zKd * weights.kd) +
-                (z.zWr * weights.winrate) +
-                (z.zAdr * weights.adr) +
-                (z.zHours * weights.hours) +
-                (z.zTour * weights.tournaments) +
-                (z.zAtt * weights.attendance);
-            return {...p, rating};
-        });
-    };
+    const {
+        data: teamsRating,
+        isLoading: teamsLoading,
+        error: teamsError,
+        refetch: refetchTeams
+    } = useGetTeamsRatingQuery(shouldFetch ? apiParams : undefined, {skip: !shouldFetch || activeTab !== 'teams'});
 
     const handleRecalculate = () => {
-        const newRatedPlayers = computeRatings(mockPlayersData, importance);
-        setRatedPlayers(newRatedPlayers);
+        setShouldFetch(true);
+        setTimeout(() => {
+            if (activeTab === 'global') refetchGlobal();
+            if (activeTab === 'team') refetchTeam();
+            if (activeTab === 'teams') refetchTeams();
+        }, 0);
     };
 
     const handleImportanceChange = (id: keyof Importance, value: number) => {
-        setImportance(prev => ({...prev, [id]: value}));
+        setWeights(prev => ({...prev, [id]: value}));
+        setShouldFetch(false);
     };
 
     const setPreset = (preset: Importance) => {
-        setImportance(preset);
-        const newRatedPlayers = computeRatings(mockPlayersData, preset);
-        setRatedPlayers(newRatedPlayers);
+        setWeights(preset);
+        setShouldFetch(false);
     };
 
-    const getPlayerPlace = (rating: number) => {
-        return ratedPlayers.filter(p => p.rating > rating).length + 1;
+    const getTopPlayer = (players: RateInfoResponse[]) => {
+        if (!players || players.length === 0) return null;
+        return [...players].sort((a, b) => b.z_score - a.z_score)[0];
     };
 
-    const getTopPlayer = () => {
-        if (ratedPlayers.length === 0) return null;
-        return [...ratedPlayers].sort((a, b) => b.rating - a.rating)[0];
+    const getAvgZScore = (players: RateInfoResponse[]) => {
+        if (!players || players.length === 0) return 0;
+        return players.reduce((sum, p) => sum + p.z_score, 0) / players.length;
     };
 
-    const getAvgRating = () => {
-        if (ratedPlayers.length === 0) return 0;
-        return ratedPlayers.reduce((sum, p) => sum + p.rating, 0) / ratedPlayers.length;
+    const isLoading = (activeTab === 'global' && globalLoading) ||
+        (activeTab === 'team' && teamLoading) ||
+        (activeTab === 'teams' && teamsLoading);
+
+    const error = (activeTab === 'global' && globalError) ||
+        (activeTab === 'team' && teamError) ||
+        (activeTab === 'teams' && teamsError);
+
+    const currentData = activeTab === 'global' ? globalRating :
+        activeTab === 'team' ? teamRating : teamsRating;
+
+    const topPlayer = activeTab !== 'teams' && currentData ? getTopPlayer(currentData as RateInfoResponse[]) : null;
+    const avgZScore = activeTab !== 'teams' && currentData ? getAvgZScore(currentData as RateInfoResponse[]) : 0;
+
+    const renderGlobalTeamTable = () => {
+        const players = currentData as RateInfoResponse[];
+        if (!players || players.length === 0) {
+            return (
+                <tr>
+                    <td colSpan={9} style={{textAlign: 'center', padding: '40px'}}>
+                        <i className="fas fa-chart-line" style={{fontSize: '2rem', color: '#00b4d8'}}></i>
+                        <p style={{marginTop: '10px'}}>Нажмите "Пересчитать рейтинг" для отображения результатов</p>
+                    </td>
+                </tr>
+            );
+        }
+
+        return players.map((player) => {
+            const isUser = currentUser?.id === player.user_id;
+            const isTopPlayer = topPlayer?.user_id === player.user_id;
+
+            return (
+                <tr key={player.user_id}
+                    style={isUser ? {background: 'rgba(0, 180, 216, 0.25)', fontWeight: 'bold'} : {}}>
+                    <td>
+                        <strong>{player.user_name}</strong>
+                        {isUser && <MemberBadge>Вы</MemberBadge>}
+                        {isTopPlayer && !isUser &&
+                            <i className="fas fa-crown" style={{color: '#ffd966', marginLeft: '6px'}}></i>}
+                    </td>
+                    <td>{player.kd.toFixed(2)}</td>
+                    <td>{player.average_headshots.toFixed(1)}%</td>
+                    <td>{player.win_rate.toFixed(1)}%</td>
+                    <td>{player.tournament_played}</td>
+                    <td>{(player.training_attendance * 100).toFixed(1)}%</td>
+                    <td>{player.hours_played.toFixed(0)}</td>
+                    <td>
+                        <span style={{color: player.z_score >= 0 ? '#00e6ff' : '#ffaa66', fontWeight: 'bold'}}>
+                            {player.z_score.toFixed(4)}
+                        </span>
+                    </td>
+                    <td>{player.rank_position}</td>
+                </tr>
+            );
+        });
     };
 
-    const topPlayer = getTopPlayer();
-    const avgRating = getAvgRating();
+    const renderTeamsTable = () => {
+        const teams = currentData as TeamRatesInfoResponse[];
+        if (!teams || teams.length === 0) {
+            return (
+                <tr>
+                    <td colSpan={3} style={{textAlign: 'center', padding: '40px'}}>
+                        <i className="fas fa-chart-line" style={{fontSize: '2rem', color: '#00b4d8'}}></i>
+                        <p style={{marginTop: '10px'}}>Нажмите "Пересчитать рейтинг" для отображения результатов</p>
+                    </td>
+                </tr>
+            );
+        }
+
+        return teams.map((team) => (
+            <tr key={team.team_id}>
+                <td><strong>{team.team_name}</strong></td>
+                <td>
+                    <span style={{color: team.z_score >= 0 ? '#00e6ff' : '#ffaa66', fontWeight: 'bold'}}>
+                        {team.z_score.toFixed(4)}
+                    </span>
+                </td>
+                <td>{team.rank_position}</td>
+            </tr>
+        ));
+    };
 
     return (
         <StatsContainer>
@@ -286,14 +226,14 @@ export const StatsPage: FC = () => {
                         <SliderItem key={metric.id}>
                             <SliderHeader>
                                 <span><i className={`fas ${metric.icon}`}></i> {metric.label}</span>
-                                <WeightValue>{importance[metric.id]}</WeightValue>
+                                <WeightValue>{weights[metric.id]}</WeightValue>
                             </SliderHeader>
                             <StyledRange
                                 type="range"
                                 min="0"
                                 max="10"
                                 step="1"
-                                value={importance[metric.id]}
+                                value={weights[metric.id]}
                                 onChange={(e) => handleImportanceChange(metric.id, parseInt(e.target.value, 10))}
                             />
                             <WeightNote>0 — неважно &nbsp;&nbsp;|&nbsp;&nbsp; 10 — максимально важно</WeightNote>
@@ -301,36 +241,19 @@ export const StatsPage: FC = () => {
                     ))}
                 </SlidersGrid>
                 <PresetGroup>
-                    <PresetButton onClick={() => setPreset({
-                        kd: 10,
-                        winrate: 10,
-                        adr: 0,
-                        hours: 0,
-                        tournaments: 0,
-                        attendance: 0
-                    })}>
+                    <PresetButton onClick={() => setPreset({wKd: 10, wHs: 0, wWr: 10, wTa: 0, wTr: 0, wHp: 0})}>
                         <i className="fas fa-chart-line"></i> Только K/D + WinRate
                     </PresetButton>
-                    <PresetButton
-                        onClick={() => setPreset({kd: 9, winrate: 2, adr: 9, hours: 1, tournaments: 1, attendance: 0})}>
-                        <i className="fas fa-crosshairs"></i> Снайпер: K/D + ADR
+                    <PresetButton onClick={() => setPreset({wKd: 9, wHs: 0, wWr: 1, wTa: 0, wTr: 0, wHp: 0})}>
+                        <i className="fas fa-crosshairs"></i> Снайпер: K/D
                     </PresetButton>
-                    <PresetButton onClick={() => setPreset({
-                        kd: 3,
-                        winrate: 3,
-                        adr: 2,
-                        hours: 10,
-                        tournaments: 8,
-                        attendance: 2
-                    })}>
+                    <PresetButton onClick={() => setPreset({wKd: 2, wHs: 2, wWr: 2, wTa: 2, wTr: 8, wHp: 8})}>
                         <i className="fas fa-clock"></i> Ветеран: Часы + Турниры
                     </PresetButton>
-                    <PresetButton
-                        onClick={() => setPreset({kd: 3, winrate: 8, adr: 2, hours: 2, tournaments: 3, attendance: 7})}>
+                    <PresetButton onClick={() => setPreset({wKd: 2, wHs: 0, wWr: 8, wTa: 8, wTr: 2, wHp: 2})}>
                         <i className="fas fa-users"></i> Командный: WinRate + Посещ.
                     </PresetButton>
-                    <PresetButton
-                        onClick={() => setPreset({kd: 5, winrate: 5, adr: 5, hours: 5, tournaments: 5, attendance: 5})}>
+                    <PresetButton onClick={() => setPreset({wKd: 5, wHs: 5, wWr: 5, wTa: 5, wTr: 5, wHp: 5})}>
                         <i className="fas fa-undo-alt"></i> Равные веса (5/5)
                     </PresetButton>
                 </PresetGroup>
@@ -346,84 +269,78 @@ export const StatsPage: FC = () => {
                 </FooterInfo>
             </WeightsCard>
 
+            <TabContainer>
+                <TabButton isActive={activeTab === 'global'} onClick={() => setActiveTab('global')}>
+                    <i className="fas fa-globe"></i> Общий рейтинг
+                </TabButton>
+                <TabButton isActive={activeTab === 'team'} onClick={() => setActiveTab('team')}>
+                    <i className="fas fa-users"></i> Рейтинг команды
+                </TabButton>
+                <TabButton isActive={activeTab === 'teams'} onClick={() => setActiveTab('teams')}>
+                    <i className="fas fa-trophy"></i> Рейтинг команд
+                </TabButton>
+            </TabContainer>
+
             <TableContainer>
                 <div style={{padding: '1rem 1rem 0 1rem'}}>
                     <h3 style={{color: '#00e6ff'}}>
-                        <i className="fas fa-chart-line"></i> Рейтинг команды (Z-оценка + взвешенная сумма)
+                        <i className="fas fa-chart-line"></i>
+                        {activeTab === 'global' && 'Общий рейтинг игроков'}
+                        {activeTab === 'team' && 'Рейтинг игроков моей команды'}
+                        {activeTab === 'teams' && 'Рейтинг команд'}
                     </h3>
                 </div>
                 <div style={{overflowX: 'auto'}}>
-                    <StatsTable>
-                        <thead>
-                        <tr>
-                            <th>Игрок</th>
-                            <th>K/D</th>
-                            <th>WinRate</th>
-                            <th>ADR</th>
-                            <th>Часы</th>
-                            <th>Турниры</th>
-                            <th>Тренировки%</th>
-                            <th>Роль</th>
-                            <th>Z-Рейтинг</th>
-                            <th>Место</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {ratedPlayers.length === 0 ? (
+                    {error ? (
+                        <ErrorMessage>
+                            <i className="fas fa-exclamation-triangle"></i> Ошибка загрузки данных
+                        </ErrorMessage>
+                    ) : isLoading && shouldFetch ? (
+                        <LoadingSpinner>
+                            <i className="fas fa-spinner fa-spin"></i> Загрузка...
+                        </LoadingSpinner>
+                    ) : activeTab === 'teams' ? (
+                        <TeamStatsTable>
+                            <thead>
                             <tr>
-                                <td colSpan={10} style={{textAlign: 'center', padding: '40px'}}>
-                                    <i className="fas fa-chart-line" style={{fontSize: '2rem', color: '#00b4d8'}}></i>
-                                    <p style={{marginTop: '10px'}}>Нажмите "Пересчитать рейтинг" для отображения
-                                        результатов</p>
-                                </td>
+                                <th>Команда</th>
+                                <th>Z-Рейтинг</th>
+                                <th>Место</th>
                             </tr>
-                        ) : (
-                            ratedPlayers.map((player, idx) => {
-                                const isUser = player.isUser;
-                                const place = getPlayerPlace(player.rating);
-                                const isTopPlayer = topPlayer?.name === player.name;
-
-                                return (
-                                    <tr key={idx} style={isUser ? {
-                                        background: 'rgba(0, 180, 216, 0.25)',
-                                        fontWeight: 'bold'
-                                    } : {}}>
-                                        <td>
-                                            <strong>{player.name}</strong>
-                                            {isUser && <MemberBadge>Вы</MemberBadge>}
-                                            {isTopPlayer && !isUser && <i className="fas fa-crown" style={{
-                                                color: '#ffd966',
-                                                marginLeft: '6px'
-                                            }}></i>}
-                                        </td>
-                                        <td>{player.kd.toFixed(2)}</td>
-                                        <td>{(player.winrate * 100).toFixed(1)}%</td>
-                                        <td>{player.adr}</td>
-                                        <td>{player.hours}</td>
-                                        <td>{player.tournaments}</td>
-                                        <td>{player.attendance}%</td>
-                                        <td>{player.role}</td>
-                                        <td>
-                                                <span style={{
-                                                    color: player.rating >= 0 ? '#00e6ff' : '#ffaa66',
-                                                    fontWeight: 'bold'
-                                                }}>
-                                                    {player.rating.toFixed(4)}
-                                                </span>
-                                        </td>
-                                        <td>{place}</td>
-                                    </tr>
-                                );
-                            })
-                        )}
-                        </tbody>
-                    </StatsTable>
+                            </thead>
+                            <tbody>
+                            {renderTeamsTable()}
+                            </tbody>
+                        </TeamStatsTable>
+                    ) : (
+                        <StatsTable>
+                            <thead>
+                            <tr>
+                                <th>Игрок</th>
+                                <th>K/D</th>
+                                <th>Хедшоты%</th>
+                                <th>WinRate</th>
+                                <th>Турниры</th>
+                                <th>Тренировки%</th>
+                                <th>Часы</th>
+                                <th>Z-Рейтинг</th>
+                                <th>Место</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {renderGlobalTeamTable()}
+                            </tbody>
+                        </StatsTable>
+                    )}
                 </div>
-                <AvgBar>
-                    <span><i className="fas fa-chart-line"></i> Средний рейтинг: <strong>{avgRating.toFixed(4)}</strong></span>
-                    <span><i
-                        className="fas fa-trophy"></i> Лучший: <strong>{topPlayer ? `${topPlayer.name} (${topPlayer.rating.toFixed(4)})` : '—'}</strong></span>
-                </AvgBar>
+                {activeTab !== 'teams' && currentData && (currentData as RateInfoResponse[]).length > 0 && (
+                    <AvgBar>
+                        <span><i
+                            className="fas fa-chart-line"></i> Средний Z-рейтинг: <strong>{avgZScore.toFixed(4)}</strong></span>
+                        <span><i
+                            className="fas fa-trophy"></i> Лучший: <strong>{topPlayer ? `${topPlayer.user_name} (${topPlayer.z_score.toFixed(4)})` : '—'}</strong></span>
+                    </AvgBar>
+                )}
             </TableContainer>
             <FooterInfo>
                 <i className="fas fa-dice-d6"></i> Веса автоматически нормализуются (сумма = 1). Рейтинг пересчитывается
