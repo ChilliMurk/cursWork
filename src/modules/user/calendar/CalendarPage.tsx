@@ -42,8 +42,6 @@ import {
     SaveAttendanceButton
 } from "@/modules/user/calendar/style.ts";
 import {
-    useGetTeamEventsQuery,
-    useGetCommonEventsQuery,
     useGetParticipatingEventsQuery,
     useGetTeamTrainingsQuery,
     useGetTrainingAttendanceQuery,
@@ -52,7 +50,6 @@ import {
     Training,
     AttendanceInfoResponse
 } from "@/store/reducers/eventApi/eventApi";
-// useGetCurrentUserQuery удален, так как не используется
 
 interface CalendarPageProps {
     onBack: () => void;
@@ -61,7 +58,6 @@ interface CalendarPageProps {
 type CalendarItem = (Event & { type: 'event' }) | (Training & { type: 'training' });
 
 export const CalendarPage: FC<CalendarPageProps> = ({ onBack }) => {
-    // useGetCurrentUserQuery удален, так как currentUser не используется
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [currentDisplayYear, setCurrentDisplayYear] = useState(new Date().getFullYear());
     const [currentDisplayMonth, setCurrentDisplayMonth] = useState(new Date().getMonth());
@@ -70,17 +66,7 @@ export const CalendarPage: FC<CalendarPageProps> = ({ onBack }) => {
     const [localAttendance, setLocalAttendance] = useState<AttendanceInfoResponse[]>([]);
     const [isSaving, setIsSaving] = useState(false);
 
-    const { data: teamEvents = [] } = useGetTeamEventsQuery({
-        month: currentDisplayMonth + 1,
-        year: currentDisplayYear
-    });
-
-    const { data: commonEvents = [] } = useGetCommonEventsQuery({
-        month: currentDisplayMonth + 1,
-        year: currentDisplayYear
-    });
-
-    const { data: participatingEvents = [] } = useGetParticipatingEventsQuery({
+    const { data: participatingEvents = [], refetch: refetchEvents } = useGetParticipatingEventsQuery({
         month: currentDisplayMonth + 1,
         year: currentDisplayYear
     });
@@ -95,20 +81,23 @@ export const CalendarPage: FC<CalendarPageProps> = ({ onBack }) => {
         { skip: !selectedTrainingId }
     );
 
-    // teamAttendance удален, так как не используется
-    // useGetTeamAttendanceQuery удален, так как не используется
-
     const [markAttendance] = useMarkAttendanceMutation();
 
     const getAllEventsForMonth = (): CalendarItem[] => {
         const events: CalendarItem[] = [
-            ...teamEvents.map(e => ({ ...e, type: 'event' as const })),
-            ...commonEvents.map(e => ({ ...e, type: 'event' as const })),
             ...participatingEvents.map(e => ({ ...e, type: 'event' as const })),
-            ...trainings.map(t => ({ ...t, type: 'training' as const }))
         ];
-        const uniqueEvents = events.filter((event, index, self) =>
-            index === self.findIndex((e) => e.id === event.id)
+
+        const userEventIds = new Set(participatingEvents.map(e => e.id));
+        const filteredTrainings = trainings.filter(t => userEventIds.has(t.id));
+
+        const allItems: CalendarItem[] = [
+            ...events,
+            ...filteredTrainings.map(t => ({ ...t, type: 'training' as const }))
+        ];
+
+        const uniqueEvents = allItems.filter((item, index, self) =>
+            index === self.findIndex((e) => e.id === item.id)
         );
         return uniqueEvents;
     };
@@ -180,6 +169,7 @@ export const CalendarPage: FC<CalendarPageProps> = ({ onBack }) => {
             }
             alert('Посещаемость успешно сохранена!');
             await refetchAttendance();
+            await refetchEvents();
         } catch (error) {
             console.error('Error saving attendance:', error);
             alert('Ошибка при сохранении посещаемости');
