@@ -7,7 +7,6 @@ import {
     useCreateCommonEventMutation,
     useCreateTeamEventMutation,
     useParticipateInEventMutation,
-    useUnparticipateFromEventMutation,
     Event
 } from "@/store/reducers/eventApi/eventApi.ts";
 import {
@@ -28,6 +27,13 @@ import {EventDetailsPage} from "./eventDetailsPage/EventDetailsPage.tsx";
 import {CreateEventPage} from "./createEventPage/CreateEventPage.tsx";
 
 type EventTab = 'all' | 'participating' | 'organized';
+
+// Функция для проверки, прошло ли событие
+const isEventPast = (eventDate: string): boolean => {
+    const eventDateTime = new Date(eventDate);
+    const now = new Date();
+    return eventDateTime < now;
+};
 
 export const EventsPage: FC = () => {
     const [activeTab, setActiveTab] = useState<EventTab>('all');
@@ -73,7 +79,6 @@ export const EventsPage: FC = () => {
     const [createTeamEvent, {isLoading: isCreatingTeam}] = useCreateTeamEventMutation();
 
     const [participateInEvent] = useParticipateInEventMutation();
-    const [unparticipateFromEvent] = useUnparticipateFromEventMutation();
 
     const isCreating = isCreatingCommon || isCreatingTeam;
     const participatingEventIds = participatingEventsData.map(e => e.id);
@@ -144,21 +149,16 @@ export const EventsPage: FC = () => {
         }
     };
 
-    const handleParticipate = async (eventId: number, isCurrentlyParticipating: boolean) => {
+    const handleParticipate = async (eventId: number) => {
         try {
-            if (isCurrentlyParticipating) {
-                await unparticipateFromEvent(eventId).unwrap();
-                alert('Вы отказались от участия в событии');
-            } else {
-                await participateInEvent(eventId).unwrap();
-                alert('Вы успешно зарегистрировались на событие!');
-            }
+            await participateInEvent(eventId).unwrap();
+            alert('Вы успешно зарегистрировались на событие!');
             refetchAll();
             refetchParticipating();
             refetchOrganized();
         } catch (error: any) {
-            console.error('Error toggling participation:', error);
-            alert(error.data?.message || 'Ошибка при изменении участия в событии');
+            console.error('Error participating in event:', error);
+            alert(error.data?.message || 'Ошибка при регистрации на событие');
         }
     };
 
@@ -335,6 +335,28 @@ export const EventsPage: FC = () => {
                 <EventsGrid>
                     {currentEvents.map((event) => {
                         const isParticipating = participatingEventIds.includes(event.id);
+                        const eventPast = isEventPast(event.date);
+
+                        // Кнопка недоступна если:
+                        // 1. Событие завершено (status === 'completed')
+                        // 2. ИЛИ событие уже прошло по дате
+                        // 3. ИЛИ пользователь уже участвует
+                        const isDisabled = event.status === 'completed' || eventPast || isParticipating;
+
+                        // Текст кнопки:
+                        // - Если уже участвуем: "Вы участвуете"
+                        // - Если событие завершено: "Событие завершено"
+                        // - Если событие прошло: "Событие прошло"
+                        // - Иначе: "Участвовать"
+                        let buttonText = 'Участвовать';
+                        if (isParticipating) {
+                            buttonText = '✓ Вы участвуете';
+                        } else if (event.status === 'completed') {
+                            buttonText = 'Событие завершено';
+                        } else if (eventPast) {
+                            buttonText = 'Событие прошло';
+                        }
+
                         return (
                             <EventCard
                                 key={event.id}
@@ -361,16 +383,14 @@ export const EventsPage: FC = () => {
                                 <ParticipateButton
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        handleParticipate(event.id, isParticipating);
+                                        if (!isDisabled && !isParticipating) {
+                                            handleParticipate(event.id);
+                                        }
                                     }}
                                     isParticipating={isParticipating}
-                                    disabled={event.status === 'completed'}
+                                    disabled={isDisabled}
                                 >
-                                    {isParticipating
-                                        ? 'Отказаться от участия'
-                                        : event.status === 'completed'
-                                            ? 'Событие завершено'
-                                            : 'Участвовать'}
+                                    {buttonText}
                                 </ParticipateButton>
                             </EventCard>
                         );

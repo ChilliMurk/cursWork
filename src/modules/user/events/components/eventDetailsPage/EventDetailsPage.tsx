@@ -40,7 +40,7 @@ interface Event {
 interface EventDetailsPageProps {
     event: Event;
     onBack: () => void;
-    onParticipate: (eventId: number, isCurrentlyParticipating: boolean) => Promise<void>;
+    onParticipate: (eventId: number) => Promise<void>;
     isParticipating: boolean;
 }
 
@@ -68,6 +68,13 @@ const formatDate = (dateString: string) => {
     });
 };
 
+// Функция для проверки, прошло ли событие
+const isEventPast = (eventDate: string): boolean => {
+    const eventDateTime = new Date(eventDate);
+    const now = new Date();
+    return eventDateTime < now;
+};
+
 export const EventDetailsPage: FC<EventDetailsPageProps> = ({
                                                                 event,
                                                                 onBack,
@@ -75,9 +82,32 @@ export const EventDetailsPage: FC<EventDetailsPageProps> = ({
                                                                 isParticipating
                                                             }) => {
     const participantsCount = event.participants;
+    const eventPast = isEventPast(event.date);
+
+    // Кнопка недоступна если:
+    // 1. Событие завершено (status === 'completed')
+    // 2. ИЛИ событие уже прошло по дате
+    // 3. ИЛИ пользователь уже участвует
+    const isDisabled = event.status === 'completed' || eventPast || isParticipating;
+
+    // Текст кнопки:
+    // - Если уже участвуем: "Вы участвуете"
+    // - Если событие завершено: "Событие завершено"
+    // - Если событие прошло: "Событие прошло"
+    // - Иначе: "Участвовать в событии"
+    let buttonText = 'Участвовать в событии';
+    if (isParticipating) {
+        buttonText = '✓ Вы участвуете';
+    } else if (event.status === 'completed') {
+        buttonText = 'Событие завершено';
+    } else if (eventPast) {
+        buttonText = 'Событие прошло';
+    }
 
     const handleParticipate = () => {
-        onParticipate(event.id, isParticipating);
+        if (!isDisabled && !isParticipating) {
+            onParticipate(event.id);
+        }
     };
 
     return (
@@ -147,13 +177,9 @@ export const EventDetailsPage: FC<EventDetailsPageProps> = ({
                     <ParticipateButton
                         onClick={handleParticipate}
                         isParticipating={isParticipating}
-                        disabled={event.status === 'completed'}
+                        disabled={isDisabled}
                     >
-                        {isParticipating
-                            ? 'Отказаться от участия'
-                            : event.status === 'completed'
-                                ? 'Событие завершено'
-                                : 'Участвовать в событии'}
+                        {buttonText}
                     </ParticipateButton>
 
                     <ParticipantsList>
