@@ -1,6 +1,5 @@
-// store/reducers/methodologyApi/methodologyApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { RootState } from '@/store/store';
+import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
+import {RootState} from '@/store/store';
 
 export interface MethodologyInfoResponse {
     id: number;
@@ -11,7 +10,7 @@ export interface MethodologyInfoResponse {
     author_name: string;
     duration: string;
     category: string;
-    level: string;  // <-- ИЗМЕНЕНО: теперь string, а не конкретные значения
+    level: string;
     team_id: number;
 }
 
@@ -76,14 +75,12 @@ export interface Methodology {
     blocks: MethodologyBlock[];
 }
 
-// Трансформация данных с проверками
 export const transformMethodology = (serverMethodology: any): Methodology | null => {
     if (!serverMethodology) {
         console.error('Server methodology is null');
         return null;
     }
 
-    // Получаем данные из info, так как сервер возвращает { info: {...}, content: [...] }
     const info = serverMethodology.info || serverMethodology;
     const contentArray = serverMethodology.content || serverMethodology.blocks || [];
 
@@ -160,7 +157,7 @@ export const methodologyApi = createApi({
     tagTypes: ['Methodologies', 'Methodology'],
     baseQuery: fetchBaseQuery({
         baseUrl: '/api',
-        prepareHeaders: (headers, { getState }) => {
+        prepareHeaders: (headers, {getState}) => {
             const token = (getState() as RootState).authReducer.user?.token;
             if (token) {
                 headers.set('Authorization', `Bearer ${token}`);
@@ -205,7 +202,7 @@ export const methodologyApi = createApi({
                 console.error('Error fetching methodology by ID:', response);
                 return response;
             },
-            providesTags: (_result, _error, id) => [{ type: 'Methodology', id }],
+            providesTags: (_result, _error, id) => [{type: 'Methodology', id}],
         }),
 
         createMethodology: builder.mutation<MethodologyContentResponse, MethodologyEditRequest>({
@@ -220,15 +217,18 @@ export const methodologyApi = createApi({
             invalidatesTags: ['Methodologies'],
         }),
 
-        updateMethodology: builder.mutation<MethodologyContentResponse, { methodologyId: number; data: MethodologyEditRequest }>({
-            query: ({ methodologyId, data }) => ({
+        updateMethodology: builder.mutation<MethodologyContentResponse, {
+            methodologyId: number;
+            data: MethodologyEditRequest
+        }>({
+            query: ({methodologyId, data}) => ({
                 url: `/methodologies/${methodologyId}`,
                 method: 'PUT',
                 body: data,
             }),
-            invalidatesTags: (_result, _error, { methodologyId }) => [
+            invalidatesTags: (_result, _error, {methodologyId}) => [
                 'Methodologies',
-                { type: 'Methodology', id: methodologyId }
+                {type: 'Methodology', id: methodologyId}
             ],
         }),
 

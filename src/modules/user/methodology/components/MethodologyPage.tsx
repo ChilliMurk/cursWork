@@ -1,16 +1,25 @@
-import { FC, useState } from 'react';
+import {FC, useState} from 'react';
 import styled from '@emotion/styled';
-import { useAppSelector } from "@/common/hooks/useAppSelector.ts";
+import {useAppSelector} from "@/common/hooks/useAppSelector.ts";
 import {
     useGetAvailableMethodologiesQuery,
     useGetAllMethodologiesQuery,
     useGetMethodologyByIdQuery,
     useDeleteMethodologyMutation
 } from "@/store/reducers/methodologyApi/methodologyApi.ts";
-import { CreateMethodologyPage } from "@/modules/user/methodology/components/сreateMethodologyPage/CreateMethodologyPage.tsx";
-import { MethodologyDetailsPage } from "@/modules/user/methodology/components/methodologyDetailsPage/MethodologyDetailsPage.tsx";
+import {
+    CreateMethodologyPage
+} from "@/modules/user/methodology/components/сreateMethodologyPage/CreateMethodologyPage.tsx";
+import {
+    MethodologyDetailsPage
+} from "@/modules/user/methodology/components/methodologyDetailsPage/MethodologyDetailsPage.tsx";
+import {useGetCurrentUserQuery} from "@/store/reducers/userApi/userApi";
 
 type MethodologyTab = 'available' | 'all';
+
+const hasRole = (userRoles: string[] | undefined, role: string): boolean => {
+    return userRoles?.some(r => r === role || r === `ROLE_${role}`) || false;
+};
 
 const MethodologyContainer = styled.div`
     padding: 20px;
@@ -85,6 +94,18 @@ const CreateButton = styled.button`
     }
 `;
 
+const CreateButtonDisabled = styled.button`
+    padding: 12px 20px;
+    background: rgba(0, 180, 216, 0.1);
+    color: #8fa3bf;
+    border: 1px solid rgba(0, 180, 216, 0.3);
+    border-radius: 8px;
+    cursor: not-allowed;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    opacity: 0.7;
+`;
+
 const MethodologyGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -131,6 +152,8 @@ const MethodologyMeta = styled.div`
     justify-content: space-between;
     align-items: center;
     margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 8px;
 `;
 
 const MethodologyCategory = styled.span`
@@ -184,8 +207,35 @@ const DeleteButton = styled.button`
     }
 `;
 
+const EditButtonCard = styled.button`
+    padding: 8px 16px;
+    background: rgba(0, 180, 216, 0.15);
+    color: #00e6ff;
+    border: 1px solid rgba(0, 180, 216, 0.3);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    width: 100%;
+    justify-content: center;
+
+    &:hover {
+        background: rgba(0, 180, 216, 0.25);
+        box-shadow: 0 0 15px rgba(0, 180, 216, 0.3);
+        transform: translateY(-2px);
+    }
+`;
+
 const CardFooter = styled.div`
     margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 `;
 
 const LoadingSpinner = styled.div`
@@ -231,33 +281,70 @@ const EmptyText = styled.p`
     line-height: 1.6;
 `;
 
+const InfoMessage = styled.div`
+    background: rgba(0, 180, 216, 0.1);
+    border-left: 4px solid #00b4d8;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #cceeff;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.9rem;
+
+    i {
+        font-size: 1.2rem;
+        color: #00b4d8;
+    }
+
+    strong {
+        color: #00e6ff;
+    }
+`;
+
 interface MethodologyPageProps {
     onMethodologySelect?: (methodology: any) => void;
 }
 
-export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect }) => {
-    const [activeTab, setActiveTab] = useState<MethodologyTab>('available');
+export const MethodologyPage: FC<MethodologyPageProps> = ({onMethodologySelect}) => {
+    const {data: currentUser} = useGetCurrentUserQuery();
+    const userRoles = currentUser?.roles || [];
+
+    const isAdmin = hasRole(userRoles, 'ADMIN');
+    const isCaptain = hasRole(userRoles, 'CAPTAIN');
+    const hasTeam = !!currentUser?.team_id;
+
+    // Капитан может создавать методички только если у него есть команда
+    const canCreateMethodology = isAdmin || (isCaptain && hasTeam);
+    // Редактировать/удалять может админ или капитан
+    const canEditDelete = isAdmin || isCaptain;
+
+    const [activeTab, setActiveTab] = useState<MethodologyTab>(
+        isAdmin ? 'all' : 'available'
+    );
     const [selectedMethodologyId, setSelectedMethodologyId] = useState<number | null>(null);
     const [isCreating, setIsCreating] = useState(false);
 
     const user = useAppSelector((state) => state.authReducer.user);
     const shouldSkip = !user?.token;
 
-    // Получение доступных методичек (методичек команды)
+    // Получение доступных методичек (методичек команды) - доступны всем участникам команды
     const {
         data: availableMethodologies = [],
         isLoading: isLoadingAvailable,
         error: errorAvailable,
         refetch: refetchAvailable
-    } = useGetAvailableMethodologiesQuery(undefined, { skip: shouldSkip });
+    } = useGetAvailableMethodologiesQuery(undefined, {skip: shouldSkip});
 
-    // Получение всех методичек (админ)
+    // Получение всех методичек (только для админа)
     const {
         data: allMethodologies = [],
         isLoading: isLoadingAll,
         error: errorAll,
         refetch: refetchAll
-    } = useGetAllMethodologiesQuery(undefined, { skip: shouldSkip });
+    } = useGetAllMethodologiesQuery(undefined, {skip: shouldSkip || !isAdmin});
 
     // Получение деталей методички по ID
     const {
@@ -294,11 +381,15 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect 
         console.log('Methodology clicked, ID:', methodologyId);
         setSelectedMethodologyId(methodologyId);
         if (onMethodologySelect) {
-            onMethodologySelect({ id: methodologyId });
+            onMethodologySelect({id: methodologyId});
         }
     };
 
     const handleCreateClick = () => {
+        if (!canCreateMethodology) {
+            alert('Создавать методички могут только администраторы и капитаны команд');
+            return;
+        }
         setIsCreating(true);
     };
 
@@ -306,16 +397,12 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect 
         setIsCreating(false);
     };
 
-    // const handleCreateSuccess = () => {
-    //     setIsCreating(false);
-    //     handleRefresh();
-    // };
-
     const handleCreateSuccess = () => {
         setIsCreating(false);
-        // Обновляем оба списка после создания
         refetchAvailable();
-        refetchAll();
+        if (isAdmin) {
+            refetchAll();
+        }
     };
 
     const handleEditSuccess = () => {
@@ -325,6 +412,11 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect 
 
     const handleDeleteMethodology = async (methodologyId: number, methodologyTitle: string, e: React.MouseEvent) => {
         e.stopPropagation();
+
+        if (!canEditDelete) {
+            alert('У вас нет прав на удаление методичек');
+            return;
+        }
 
         if (window.confirm(`Вы уверены, что хотите удалить методичку "${methodologyTitle}"?`)) {
             try {
@@ -381,7 +473,7 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect 
                     methodology={selectedMethodology}
                     onBack={handleBackToList}
                     onEdit={handleEditSuccess}
-                    canEdit={true}
+                    canEdit={canEditDelete}
                 />
             );
         }
@@ -429,10 +521,33 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect 
         <MethodologyContainer>
             <HeaderSection>
                 <PageTitle>Учебные методички</PageTitle>
-                <CreateButton onClick={handleCreateClick}>
-                    <i className="fas fa-plus"></i> Создать методичку
-                </CreateButton>
+                {canCreateMethodology ? (
+                    <CreateButton onClick={handleCreateClick}>
+                        <i className="fas fa-plus"></i> Создать методичку
+                    </CreateButton>
+                ) : (
+                    <CreateButtonDisabled>
+                        <i className="fas fa-lock"></i> Создание методичек доступно только капитанам и администраторам
+                    </CreateButtonDisabled>
+                )}
             </HeaderSection>
+
+            {/* Информационное сообщение для пользователей без команды */}
+            {!isAdmin && !hasTeam && (
+                <InfoMessage>
+                    <i className="fas fa-info-circle"></i>
+                    Вы не состоите в команде. Доступные методички появятся после вступления в команду.
+                </InfoMessage>
+            )}
+
+            {/* Информационное сообщение для игроков без прав капитана */}
+            {!isAdmin && !isCaptain && hasTeam && (
+                <InfoMessage>
+                    <i className="fas fa-info-circle"></i>
+                    Вы можете просматривать методички своей команды. Создавать и редактировать методички могут только
+                    капитаны команд.
+                </InfoMessage>
+            )}
 
             <TabContainer>
                 <TabButton
@@ -442,13 +557,17 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect 
                     <i className="fas fa-users"></i>
                     Доступные методички
                 </TabButton>
-                <TabButton
-                    isActive={activeTab === 'all'}
-                    onClick={() => setActiveTab('all')}
-                >
-                    <i className="fas fa-book"></i>
-                    Все методички
-                </TabButton>
+
+                {/* Вкладка "Все методички" доступна только администраторам */}
+                {isAdmin && (
+                    <TabButton
+                        isActive={activeTab === 'all'}
+                        onClick={() => setActiveTab('all')}
+                    >
+                        <i className="fas fa-book"></i>
+                        Все методички
+                    </TabButton>
+                )}
             </TabContainer>
 
             {methodologies.length > 0 ? (
@@ -460,7 +579,12 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect 
                         >
                             <MethodologyImage>
                                 {methodology.image_url ? (
-                                    <img src={methodology.image_url} alt={methodology.title} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px' }} />
+                                    <img src={methodology.image_url} alt={methodology.title} style={{
+                                        width: '48px',
+                                        height: '48px',
+                                        objectFit: 'cover',
+                                        borderRadius: '8px'
+                                    }}/>
                                 ) : (
                                     <i className="fas fa-book-open"></i>
                                 )}
@@ -480,12 +604,24 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect 
                             <MethodologyDuration>
                                 <i className="fas fa-user"></i> Автор: {methodology.author_name}
                             </MethodologyDuration>
-                            <CardFooter>
-                                <DeleteButton onClick={(e) => handleDeleteMethodology(methodology.id, methodology.title, e)}>
-                                    <i className="fas fa-trash-alt"></i>
-                                    Удалить методичку
-                                </DeleteButton>
-                            </CardFooter>
+
+                            {/* Кнопки управления доступны только админам и капитанам */}
+                            {canEditDelete && (
+                                <CardFooter>
+                                    <EditButtonCard onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleMethodologyClick(methodology.id);
+                                    }}>
+                                        <i className="fas fa-edit"></i>
+                                        Редактировать
+                                    </EditButtonCard>
+                                    <DeleteButton
+                                        onClick={(e) => handleDeleteMethodology(methodology.id, methodology.title, e)}>
+                                        <i className="fas fa-trash-alt"></i>
+                                        Удалить методичку
+                                    </DeleteButton>
+                                </CardFooter>
+                            )}
                         </MethodologyCard>
                     ))}
                 </MethodologyGrid>
@@ -499,9 +635,11 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({ onMethodologySelect 
                             ? 'Пока нет доступных методичек.'
                             : 'Пока нет созданных методичек. Станьте первым, создав методичку!'}
                     </EmptyText>
-                    <CreateButton onClick={handleCreateClick}>
-                        Создать методичку
-                    </CreateButton>
+                    {canCreateMethodology && (
+                        <CreateButton onClick={handleCreateClick}>
+                            Создать методичку
+                        </CreateButton>
+                    )}
                 </EmptyState>
             )}
         </MethodologyContainer>
