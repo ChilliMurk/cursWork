@@ -41,7 +41,8 @@ import {CalendarPage} from "@/modules/user/calendar/CalendarPage.tsx";
 import {Methodology} from "@/store/reducers/methodologyApi/methodologyApi.ts";
 import {useGetCurrentUserQuery} from "@/store/reducers/userApi/userApi.ts";
 import {TeamInfoResponse} from "@/store/reducers/teamApi/teamApi.ts";
-import {StatsPage} from "@/modules/user/statistics/StatsPage.tsx"; // Добавлен импорт
+import {StatsPage} from "@/modules/user/statistics/StatsPage.tsx";
+import {resetStore} from "@/store/store.ts"; // Добавлен импорт
 
 const GlobalStyles = () => (
     <>
@@ -84,6 +85,7 @@ export const UserDashboard: FC = () => {
 
     const handleLogout = () => {
         dispatch(logout());
+        resetStore();
         navigate('/');
     };
 

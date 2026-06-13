@@ -5,6 +5,9 @@ import {
     ModalContent,
     ModalOverlay, ModalText, ModalTitle
 } from "@/common/components/mainPage/modals/logoutModal/style.ts";
+import {useAppDispatch} from "@/common/hooks/useAppSelector.ts";
+import {logout} from "@/store/reducers/authSlice.ts";
+import {resetStore} from "@/store/store";
 
 interface LogoutModalProps {
     isOpen: boolean;
@@ -13,6 +16,15 @@ interface LogoutModalProps {
 }
 
 export const LogoutModal: FC<LogoutModalProps> = ({isOpen, onConfirm, onCancel}) => {
+    const dispatch = useAppDispatch();
+
+    const handleConfirm = () => {
+        dispatch(logout());
+        resetStore();
+        window.location.href = '/';
+        onConfirm();
+    };
+
     return (
         <ModalOverlay isOpen={isOpen}>
             <ModalContent>
@@ -25,7 +37,7 @@ export const LogoutModal: FC<LogoutModalProps> = ({isOpen, onConfirm, onCancel})
                     <ModalButton variant="cancel" onClick={onCancel}>
                         Отмена
                     </ModalButton>
-                    <ModalButton variant="confirm" onClick={onConfirm}>
+                    <ModalButton variant="confirm" onClick={handleConfirm}>
                         Выйти
                     </ModalButton>
                 </ModalButtons>

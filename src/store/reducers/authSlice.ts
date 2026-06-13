@@ -3,7 +3,8 @@ import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 interface User {
     id: string;
     email: string;
-    name: string;
+    username?: string;
+    name?: string;
     login?: string;
     role?: 'admin' | 'user';
     roles?: string[];
@@ -32,10 +33,10 @@ export const authSlice = createSlice({
             state.isLoading = true;
             state.error = null;
         },
-        loginSuccess: (state, action: PayloadAction<{ user: User }>) => {
+        loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
             state.isLoading = false;
             state.isAuthenticated = true;
-            state.user = action.payload.user;
+            state.user = {...action.payload.user, token: action.payload.token};
             state.error = null;
         },
         loginFailure: (state, action: PayloadAction<string>) => {
@@ -53,10 +54,10 @@ export const authSlice = createSlice({
             state.isLoading = true;
             state.error = null;
         },
-        registerSuccess: (state, action: PayloadAction<{ user: User }>) => {
+        registerSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
             state.isLoading = false;
             state.isAuthenticated = true;
-            state.user = action.payload.user;
+            state.user = {...action.payload.user, token: action.payload.token};
             state.error = null;
         },
         registerFailure: (state, action: PayloadAction<string>) => {
@@ -65,11 +66,16 @@ export const authSlice = createSlice({
             state.user = null;
             state.error = action.payload;
         },
-        // Добавляем экшн для обновления токена
         setToken: (state, action: PayloadAction<string>) => {
             if (state.user) {
                 state.user.token = action.payload;
             }
+        },
+        clearAuth: (state) => {
+            state.isAuthenticated = false;
+            state.user = null;
+            state.error = null;
+            state.isLoading = false;
         },
     },
 });
@@ -83,6 +89,7 @@ export const {
     registerSuccess,
     registerFailure,
     setToken,
+    clearAuth,
 } = authSlice.actions;
 
 export const authReducer = authSlice.reducer;

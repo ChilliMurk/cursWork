@@ -3,15 +3,15 @@ import {
     ForgotPassword, FormFooter, FormFooterLink,
     FormGroup, FormInput, FormLabel, FormOptions, FormSubmit,
     Modal,
-    ModalClose,
-    ModalHeader,
+    ModalClose, ModalHeader,
     ModalOverlay,
     ModalSubtitle,
     ModalTitle, RememberMe
 } from "@/common/components/mainPage/modals/style.ts";
-import {loginSuccess, setToken} from "@/store/reducers/authSlice.ts";
+import {loginSuccess} from "@/store/reducers/authSlice.ts";
 import {useAppDispatch} from "@/common/hooks/useAppSelector.ts";
 import {useLoginMutation} from "@/store/reducers/auth/auth.ts";
+import {resetStore} from "@/store/store";
 
 interface LoginModalProps {
     isOpen: boolean;
@@ -26,7 +26,7 @@ export const LoginModal: FC<LoginModalProps> = ({isOpen, onClose, onSwitchToRegi
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    const [login, { isLoading }] = useLoginMutation();
+    const [login, {isLoading}] = useLoginMutation();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -38,21 +38,26 @@ export const LoginModal: FC<LoginModalProps> = ({isOpen, onClose, onSwitchToRegi
                 password: password
             }).unwrap();
 
-            if (response.token) {
-                dispatch(setToken(response.token));
-            }
+            resetStore();
 
             dispatch(loginSuccess({
                 user: {
                     id: response.id,
                     email: response.email,
-                    name: response.name || response.username || response.login || username, // Добавлены значения по умолчанию
-                    login: response.username || response.login || username, // Добавлены значения по умолчанию
-                    token: response.token || '' // Добавлено значение по умолчанию для token
-                }
+                    name: response.name || response.username || response.login || username,
+                    login: response.username || response.login || username,
+                    username: response.username || response.login || username,
+                    roles: response.roles || [],
+                },
+                token: response.token || ''
             }));
 
             onClose();
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 100);
+
             onSuccess();
 
             setUsername('');
@@ -119,7 +124,7 @@ export const LoginModal: FC<LoginModalProps> = ({isOpen, onClose, onSwitchToRegi
                     <FormSubmit
                         type="submit"
                         disabled={isLoading}
-                        style={{ opacity: isLoading ? 0.7 : 1 }}
+                        style={{opacity: isLoading ? 0.7 : 1}}
                     >
                         {isLoading ? 'Вход...' : 'Войти'}
                     </FormSubmit>
@@ -128,7 +133,7 @@ export const LoginModal: FC<LoginModalProps> = ({isOpen, onClose, onSwitchToRegi
                         Нет аккаунта? <FormFooterLink
                         href="#"
                         onClick={onSwitchToRegister}
-                        style={{ pointerEvents: isLoading ? 'none' : 'auto' }}
+                        style={{pointerEvents: isLoading ? 'none' : 'auto'}}
                     >
                         Зарегистрироваться
                     </FormFooterLink>

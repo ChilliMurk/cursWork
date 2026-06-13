@@ -7,7 +7,8 @@ import {
     FormContainer, FormGrid, FormGroup,
     FormTitle, Input, Label, Select, SelectHeader, SelectItem, SelectList, SubmitButton, TextArea
 } from "@/modules/user/events/components/createEventPage/styles.ts";
-import { Event } from "@/store/reducers/eventApi/eventApi.ts";
+import {Event} from "@/store/reducers/eventApi/eventApi.ts";
+import {useGetCurrentUserQuery} from "@/store/reducers/userApi/userApi";
 
 interface CreateEventPageProps {
     onCreateEvent: (eventData: Omit<Event, 'id' | 'participants'>, eventTypeValue: string) => void;
@@ -39,6 +40,11 @@ const eventTypeValueOptions = [
     {value: "TOURNAMENT", label: "Турнир"}
 ];
 
+// Проверка ролей
+const hasRole = (userRoles: string[] | undefined, role: string): boolean => {
+    return userRoles?.some(r => r === role || r === `ROLE_${role}`) || false;
+};
+
 export const CreateEventPage: FC<CreateEventPageProps> = ({
                                                               onCreateEvent,
                                                               onCancel,
@@ -46,6 +52,15 @@ export const CreateEventPage: FC<CreateEventPageProps> = ({
                                                               eventType = 'common',
                                                               onEventTypeChange
                                                           }) => {
+    const {data: userData} = useGetCurrentUserQuery();
+    const userRoles = userData?.roles || [];
+
+    const isCaptain = hasRole(userRoles, 'CAPTAIN');
+    const isPlayer = hasRole(userRoles, 'PLAYER');
+    const hasTeam = !!userData?.team_id;
+
+    const canCreateTeamEvent = isCaptain || (isPlayer && hasTeam);
+
     const [formData, setFormData] = useState<Omit<Event, 'id' | 'participants'>>({
         title: '',
         name: '',
@@ -131,6 +146,10 @@ export const CreateEventPage: FC<CreateEventPageProps> = ({
         if (!formData.prize.trim()) newErrors.prize = 'Призовой фонд обязателен';
         if (!selectedEventTypeValue) newErrors.eventTypeValue = 'Выберите категорию события';
 
+        if (eventType === 'team' && !canCreateTeamEvent) {
+            newErrors.eventType = 'Вы не можете создавать командные события, так как не состоите в команде';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -158,6 +177,14 @@ export const CreateEventPage: FC<CreateEventPageProps> = ({
         onCreateEvent(eventData, selectedEventTypeValue);
     };
 
+    const handleEventTypeChangeInternal = (type: 'common' | 'team') => {
+        if (type === 'team' && !canCreateTeamEvent) {
+            alert('Вы не можете создавать командные события, так как не состоите в команде');
+            return;
+        }
+        onEventTypeChange?.(type);
+    };
+
     const selectedGameLabel = gameOptions.find(opt => opt.value === formData.game)?.label || "Выберите игру";
     const selectedStatusLabel = statusOptions.find(opt => opt.value === formData.status)?.label || "Выберите статус";
     const selectedEventTypeValueLabel = eventTypeValueOptions.find(opt => opt.value === selectedEventTypeValue)?.label || "Выберите категорию";
@@ -171,16 +198,31 @@ export const CreateEventPage: FC<CreateEventPageProps> = ({
 
             <FormTitle>Создание нового события</FormTitle>
 
+            {!canCreateTeamEvent && (
+                <div style={{
+                    background: 'rgba(255, 152, 0, 0.1)',
+                    borderLeft: '4px solid #ff9800',
+                    padding: '12px 16px',
+                    marginBottom: '20px',
+                    borderRadius: '8px',
+                    color: '#ff9800'
+                }}>
+                    <i className="fas fa-info-circle"></i> Вы не можете создавать командные события, так как не состоите
+                    в команде.
+                    Вам доступно создание только общих событий.
+                </div>
+            )}
+
             <FormContainer>
                 <form onSubmit={handleSubmit}>
                     <FormGrid>
                         {/* Селектор типа события (общее/командное) */}
                         <FormGroup className="full-width">
                             <Label>Тип события *</Label>
-                            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                            <div style={{display: 'flex', gap: '10px', marginTop: '8px'}}>
                                 <button
                                     type="button"
-                                    onClick={() => onEventTypeChange && onEventTypeChange('common')}
+                                    onClick={() => handleEventTypeChangeInternal('common')}
                                     style={{
                                         flex: 1,
                                         padding: '12px 20px',
@@ -201,32 +243,36 @@ export const CreateEventPage: FC<CreateEventPageProps> = ({
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => onEventTypeChange && onEventTypeChange('team')}
+                                    onClick={() => handleEventTypeChangeInternal('team')}
                                     style={{
                                         flex: 1,
                                         padding: '12px 20px',
-                                        background: eventType === 'team'
+                                        background: eventType === 'team' && canCreateTeamEvent
                                             ? 'linear-gradient(90deg, #0066cc, #00b4d8)'
                                             : 'rgba(0, 180, 216, 0.15)',
-                                        color: eventType === 'team' ? '#ffffff' : '#00e6ff',
+                                        color: eventType === 'team' && canCreateTeamEvent ? '#ffffff' : '#00e6ff',
                                         border: '1px solid #00b4d8',
                                         borderRadius: '8px',
-                                        cursor: 'pointer',
+                                        cursor: canCreateTeamEvent ? 'pointer' : 'not-allowed',
+                                        opacity: canCreateTeamEvent ? 1 : 0.5,
                                         fontFamily: 'Rajdhani, sans-serif',
                                         fontWeight: 600,
                                         fontSize: '1rem',
                                         transition: 'all 0.3s'
                                     }}
+                                    disabled={!canCreateTeamEvent}
                                 >
                                     <i className="fas fa-users"></i> Командное событие
                                 </button>
                             </div>
+                            {errors.eventType && <ErrorMessage>{errors.eventType}</ErrorMessage>}
                         </FormGroup>
 
                         <FormGroup className="full-width">
                             <Label>Категория события *</Label>
                             <Select>
-                                <SelectHeader onClick={() => setIsEventTypeValueSelectOpen(!isEventTypeValueSelectOpen)}>
+                                <SelectHeader
+                                    onClick={() => setIsEventTypeValueSelectOpen(!isEventTypeValueSelectOpen)}>
                                     <span>{selectedEventTypeValueLabel}</span>
                                     <Arrow isOpen={isEventTypeValueSelectOpen}/>
                                 </SelectHeader>

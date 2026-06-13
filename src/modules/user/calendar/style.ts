@@ -409,3 +409,65 @@ export const LoadingSpinner = styled.div`
         margin-bottom: 10px;
     }
 `;
+
+export const AttendanceHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+`;
+
+export const AttendanceCheckbox = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+`;
+
+export const MarkAttendanceButton = styled.button<{ attended: boolean }>`
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: ${props => props.attended ? 'rgba(46, 204, 113, 0.2)' : 'rgba(231, 76, 60, 0.2)'};
+    border: 1px solid ${props => props.attended ? '#2ecc71' : '#e74c3c'};
+    color: ${props => props.attended ? '#2ecc71' : '#e74c3c'};
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.3s;
+
+    &:hover {
+        background: ${props => props.attended ? 'rgba(46, 204, 113, 0.4)' : 'rgba(231, 76, 60, 0.4)'};
+        transform: scale(1.05);
+    }
+`;
+
+export const SaveAttendanceButton = styled.button`
+    padding: 8px 16px;
+    background: linear-gradient(90deg, #0066cc, #00b4d8);
+    border: none;
+    border-radius: 20px;
+    color: white;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    transition: all 0.3s;
+
+    &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 0 10px rgba(0, 180, 216, 0.5);
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+`;
+
+export const AttendanceActions = styled.div`
+    margin-top: 15px;
+    padding-top: 10px;
+    text-align: center;
+    color: #7e9ec5;
+    font-size: 0.7rem;
+    border-top: 1px solid rgba(0, 180, 216, 0.2);
+`;

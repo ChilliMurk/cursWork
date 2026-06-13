@@ -1,9 +1,10 @@
 import {FC, useState} from 'react';
-import {useAppSelector} from "@/common/hooks/useAppSelector.ts";
 import {
     useGetAllEventsQuery,
     useGetEventsOrganizedByMeQuery,
     useGetParticipatingEventsQuery,
+    useGetTeamEventsQuery,
+    useGetCommonEventsQuery,
     useCreateCommonEventMutation,
     useCreateTeamEventMutation,
     useParticipateInEventMutation,
@@ -25,8 +26,9 @@ import {
 import {EmptyIcon, EmptyState, EmptyText} from "@/modules/user/teams/components/style.ts";
 import {EventDetailsPage} from "./eventDetailsPage/EventDetailsPage.tsx";
 import {CreateEventPage} from "./createEventPage/CreateEventPage.tsx";
+import {useGetCurrentUserQuery} from "@/store/reducers/userApi/userApi";
 
-type EventTab = 'all' | 'participating' | 'organized';
+type EventTab = 'common' | 'team' | 'all' | 'participating' | 'organized';
 
 // Функция для проверки, прошло ли событие
 const isEventPast = (eventDate: string): boolean => {
@@ -35,8 +37,22 @@ const isEventPast = (eventDate: string): boolean => {
     return eventDateTime < now;
 };
 
+const hasRole = (userRoles: string[] | undefined, role: string): boolean => {
+    return userRoles?.some(r => r === role || r === `ROLE_${role}`) || false;
+};
+
 export const EventsPage: FC = () => {
-    const [activeTab, setActiveTab] = useState<EventTab>('all');
+    const {data: userData} = useGetCurrentUserQuery();
+    const userRoles = userData?.roles || [];
+
+    const isAdmin = hasRole(userRoles, 'ADMIN');
+    const isCaptain = hasRole(userRoles, 'CAPTAIN');
+    const isPlayer = hasRole(userRoles, 'PLAYER');
+    const isAuthenticated = !!userData;
+
+    const [activeTab, setActiveTab] = useState<EventTab>(
+        isAdmin ? 'all' : 'common'
+    );
     const [showCreateEvent, setShowCreateEvent] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [eventType, setEventType] = useState<'common' | 'team'>('common');
@@ -45,16 +61,40 @@ export const EventsPage: FC = () => {
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
 
-    const user = useAppSelector((state) => state.authReducer.user);
-    const shouldSkip = !user?.token;
+    const shouldSkip = !isAuthenticated;
 
+    // Все события (только для ADMIN)
     const {
         data: allEvents = [],
         isLoading: isLoadingAll,
         error: errorAll,
         refetch: refetchAll,
         isFetching: isFetchingAll
-    } = useGetAllEventsQuery(undefined, {skip: shouldSkip});
+    } = useGetAllEventsQuery(undefined, {skip: shouldSkip || !isAdmin});
+
+    // Общие события (доступны всем)
+    const {
+        data: commonEvents = [],
+        isLoading: isLoadingCommon,
+        error: errorCommon,
+        refetch: refetchCommon,
+        isFetching: isFetchingCommon
+    } = useGetCommonEventsQuery(
+        {month: currentMonth, year: currentYear},
+        {skip: shouldSkip}
+    );
+
+    // Командные события (для капитана и игроков команды)
+    const {
+        data: teamEvents = [],
+        isLoading: isLoadingTeam,
+        error: errorTeam,
+        refetch: refetchTeam,
+        isFetching: isFetchingTeam
+    } = useGetTeamEventsQuery(
+        {month: currentMonth, year: currentYear},
+        {skip: shouldSkip || !(isCaptain || isPlayer)}
+    );
 
     const {
         data: participatingEventsData = [],
@@ -77,7 +117,6 @@ export const EventsPage: FC = () => {
 
     const [createCommonEvent, {isLoading: isCreatingCommon}] = useCreateCommonEventMutation();
     const [createTeamEvent, {isLoading: isCreatingTeam}] = useCreateTeamEventMutation();
-
     const [participateInEvent] = useParticipateInEventMutation();
 
     const isCreating = isCreatingCommon || isCreatingTeam;
@@ -87,12 +126,16 @@ export const EventsPage: FC = () => {
         switch (activeTab) {
             case 'all':
                 return allEvents;
+            case 'common':
+                return commonEvents;
+            case 'team':
+                return teamEvents;
             case 'participating':
                 return participatingEventsData;
             case 'organized':
                 return organizedEvents;
             default:
-                return allEvents;
+                return commonEvents;
         }
     };
 
@@ -100,12 +143,16 @@ export const EventsPage: FC = () => {
         switch (activeTab) {
             case 'all':
                 return isLoadingAll && !allEvents.length;
+            case 'common':
+                return isLoadingCommon && !commonEvents.length;
+            case 'team':
+                return isLoadingTeam && !teamEvents.length;
             case 'participating':
                 return isLoadingParticipating && !participatingEventsData.length;
             case 'organized':
                 return isLoadingOrganized && !organizedEvents.length;
             default:
-                return isLoadingAll && !allEvents.length;
+                return isLoadingCommon && !commonEvents.length;
         }
     };
 
@@ -113,12 +160,16 @@ export const EventsPage: FC = () => {
         switch (activeTab) {
             case 'all':
                 return errorAll;
+            case 'common':
+                return errorCommon;
+            case 'team':
+                return errorTeam;
             case 'participating':
                 return errorParticipating;
             case 'organized':
                 return errorOrganized;
             default:
-                return errorAll;
+                return errorCommon;
         }
     };
 
@@ -126,12 +177,16 @@ export const EventsPage: FC = () => {
         switch (activeTab) {
             case 'all':
                 return isFetchingAll;
+            case 'common':
+                return isFetchingCommon;
+            case 'team':
+                return isFetchingTeam;
             case 'participating':
                 return isFetchingParticipating;
             case 'organized':
                 return isFetchingOrganized;
             default:
-                return isFetchingAll;
+                return isFetchingCommon;
         }
     };
 
@@ -139,6 +194,12 @@ export const EventsPage: FC = () => {
         switch (activeTab) {
             case 'all':
                 refetchAll();
+                break;
+            case 'common':
+                refetchCommon();
+                break;
+            case 'team':
+                refetchTeam();
                 break;
             case 'participating':
                 refetchParticipating();
@@ -154,6 +215,8 @@ export const EventsPage: FC = () => {
             await participateInEvent(eventId).unwrap();
             alert('Вы успешно зарегистрировались на событие!');
             refetchAll();
+            refetchCommon();
+            refetchTeam();
             refetchParticipating();
             refetchOrganized();
         } catch (error: any) {
@@ -210,8 +273,6 @@ export const EventsPage: FC = () => {
                 prize: eventData.prize
             };
 
-            console.log('Sending request data:', requestData);
-
             if (eventType === 'common') {
                 await createCommonEvent(requestData).unwrap();
                 alert('Общее событие успешно создано!');
@@ -222,6 +283,8 @@ export const EventsPage: FC = () => {
 
             setShowCreateEvent(false);
             refetchAll();
+            refetchCommon();
+            refetchTeam();
             refetchParticipating();
             refetchOrganized();
 
@@ -297,13 +360,38 @@ export const EventsPage: FC = () => {
     return (
         <EventsContainer>
             <TabContainer>
+                {/* Все события - только для ADMIN */}
+                {isAdmin && (
+                    <TabButton
+                        isActive={activeTab === 'all'}
+                        onClick={() => setActiveTab('all')}
+                    >
+                        <i className="fas fa-globe"></i>
+                        Все события
+                    </TabButton>
+                )}
+
+                {/* Общие события - доступны всем авторизованным пользователям */}
                 <TabButton
-                    isActive={activeTab === 'all'}
-                    onClick={() => setActiveTab('all')}
+                    isActive={activeTab === 'common'}
+                    onClick={() => setActiveTab('common')}
                 >
-                    <i className="fas fa-calendar-alt"></i>
-                    Все события
+                    <i className="fas fa-users"></i>
+                    Общие события
                 </TabButton>
+
+                {/* Командные события - только для капитана и игроков команды */}
+                {(isCaptain || isPlayer) && (
+                    <TabButton
+                        isActive={activeTab === 'team'}
+                        onClick={() => setActiveTab('team')}
+                    >
+                        <i className="fas fa-users-between"></i>
+                        Командные события
+                    </TabButton>
+                )}
+
+                {/* Мои события - доступны всем авторизованным пользователям */}
                 <TabButton
                     isActive={activeTab === 'participating'}
                     onClick={() => setActiveTab('participating')}
@@ -311,6 +399,8 @@ export const EventsPage: FC = () => {
                     <i className="fas fa-user-check"></i>
                     Мои события
                 </TabButton>
+
+                {/* Организованные мной - доступны всем авторизованным пользователям */}
                 <TabButton
                     isActive={activeTab === 'organized'}
                     onClick={() => setActiveTab('organized')}
@@ -337,17 +427,8 @@ export const EventsPage: FC = () => {
                         const isParticipating = participatingEventIds.includes(event.id);
                         const eventPast = isEventPast(event.date);
 
-                        // Кнопка недоступна если:
-                        // 1. Событие завершено (status === 'completed')
-                        // 2. ИЛИ событие уже прошло по дате
-                        // 3. ИЛИ пользователь уже участвует
                         const isDisabled = event.status === 'completed' || eventPast || isParticipating;
 
-                        // Текст кнопки:
-                        // - Если уже участвуем: "Вы участвуете"
-                        // - Если событие завершено: "Событие завершено"
-                        // - Если событие прошло: "Событие прошло"
-                        // - Иначе: "Участвовать"
                         let buttonText = 'Участвовать';
                         if (isParticipating) {
                             buttonText = '✓ Вы участвуете';
@@ -402,7 +483,9 @@ export const EventsPage: FC = () => {
                         <i className="fas fa-calendar-times"></i>
                     </EmptyIcon>
                     <EmptyText>
-                        {activeTab === 'all' && 'Пока нет запланированных событий.'}
+                        {activeTab === 'all' && 'Нет событий для отображения.'}
+                        {activeTab === 'common' && 'Нет общих событий.'}
+                        {activeTab === 'team' && 'Нет командных событий.'}
                         {activeTab === 'participating' && 'Вы пока не участвуете ни в одном событии.'}
                         {activeTab === 'organized' && 'Вы еще не организовали ни одного события.'}
                     </EmptyText>

@@ -10,8 +10,9 @@ import {
     ModalTitle
 } from "@/common/components/mainPage/modals/style.ts";
 import {useAppDispatch} from "@/common/hooks/useAppSelector.ts";
-import {registerStart, registerSuccess, registerFailure} from '@/store/reducers/authSlice';
+import {registerSuccess, registerFailure} from '@/store/reducers/authSlice';
 import {useRegisterMutation} from "@/store/reducers/auth/auth.ts";
+import {resetStore} from "@/store/store";
 
 interface RegisterModalProps {
     isOpen: boolean;
@@ -22,21 +23,23 @@ interface RegisterModalProps {
 
 export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitchToLogin, onSuccess}) => {
     const dispatch = useAppDispatch();
-    const [register, {isLoading, error}] = useRegisterMutation();
+    const [register, {isLoading}] = useRegisterMutation();
 
     const [formData, setFormData] = useState({
-        username: '', // Изменено с login на username
+        username: '',
         email: '',
         password: '',
         confirmPassword: ''
     });
 
     const [formErrors, setFormErrors] = useState({
-        username: '', // Изменено с login на username
+        username: '',
         email: '',
         password: '',
         confirmPassword: ''
     });
+
+    const [error, setError] = useState('');
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const {id, value} = e.target;
@@ -45,16 +48,16 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
             [id]: value
         }));
 
-        // Очищаем ошибки при изменении поля
         setFormErrors(prev => ({
             ...prev,
             [id]: ''
         }));
+        setError('');
     };
 
     const validateForm = () => {
         const errors = {
-            username: '', // Изменено с login на username
+            username: '',
             email: '',
             password: '',
             confirmPassword: ''
@@ -62,7 +65,6 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
 
         let isValid = true;
 
-        // Валидация username (3-50 символов)
         if (!formData.username.trim()) {
             errors.username = 'Имя пользователя обязательно';
             isValid = false;
@@ -99,36 +101,92 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
         return isValid;
     };
 
+    // const handleSubmit = async (e: React.FormEvent) => {
+    //     e.preventDefault();
+    //
+    //     if (!validateForm()) return;
+    //
+    //     try {
+    //         const result = await register({
+    //             username: formData.username,
+    //             email: formData.email,
+    //             password: formData.password
+    //         }).unwrap();
+    //
+    //         // Сначала очищаем store от старых данных
+    //         resetStore();
+    //
+    //         // Правильная структура: user и token отдельно
+    //         dispatch(registerSuccess({
+    //             user: {
+    //                 id: result.id,
+    //                 email: result.email,
+    //                 username: result.username,
+    //                 name: result.username,
+    //                 login: result.username,
+    //                 roles: [],
+    //             },
+    //             token: result.token || ''
+    //         }));
+    //
+    //         onClose();
+    //         onSuccess();
+    //
+    //         setFormData({
+    //             username: '',
+    //             email: '',
+    //             password: '',
+    //             confirmPassword: ''
+    //         });
+    //
+    //     } catch (error: any) {
+    //         const errorMessage = error.data?.message || 'Ошибка регистрации';
+    //         setError(errorMessage);
+    //         dispatch(registerFailure(errorMessage));
+    //     }
+    // };
+
+    // В handleSubmit после успешной регистрации:
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
         if (!validateForm()) return;
 
         try {
-            dispatch(registerStart());
-
             const result = await register({
                 username: formData.username,
                 email: formData.email,
                 password: formData.password
             }).unwrap();
 
+            resetStore();
+
             dispatch(registerSuccess({
                 user: {
                     id: result.id,
                     email: result.email,
-                    name: result.username
-                }
+                    username: result.username,
+                    name: result.username,
+                    login: result.username,
+                    roles: [],
+                },
+                token: result.token || ''
             }));
 
             onClose();
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 100);
+
             onSuccess();
 
         } catch (error: any) {
             const errorMessage = error.data?.message || 'Ошибка регистрации';
+            setError(errorMessage);
             dispatch(registerFailure(errorMessage));
         }
     };
+
 
     return (
         <ModalOverlay isOpen={isOpen} onClick={onClose}>
@@ -147,7 +205,7 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
                         backgroundColor: 'rgba(255, 107, 107, 0.1)',
                         borderRadius: '8px'
                     }}>
-                        {typeof error === 'string' ? error : 'Ошибка регистрации'}
+                        {error}
                     </div>
                 )}
 

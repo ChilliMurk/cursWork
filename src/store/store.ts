@@ -1,6 +1,6 @@
 import {combineReducers, configureStore} from '@reduxjs/toolkit';
 import {rememberReducer, rememberEnhancer} from 'redux-remember';
-import {authReducer} from "@/store/reducers/authSlice.ts";
+import {authReducer, clearAuth} from "@/store/reducers/authSlice.ts";
 import {userReducer} from "@/store/reducers/userSlice.ts";
 import {methodologyReducer} from "@/store/reducers/methodologySlice.ts";
 import {myTeamReducer} from "@/store/reducers/myTeamSlice.ts";
@@ -76,3 +76,24 @@ export const store = configureStore({
 export type RootState = ReturnType<typeof rootReducer>;
 export type AppStore = typeof store;
 export type AppDispatch = AppStore['dispatch'];
+
+export const resetStore = () => {
+    store.dispatch(authApi.util.resetApiState());
+    store.dispatch(eventsApi.util.resetApiState());
+    store.dispatch(methodologyApi.util.resetApiState());
+    store.dispatch(uploadApi.util.resetApiState());
+    store.dispatch(userApi.util.resetApiState());
+    store.dispatch(teamApi.util.resetApiState());
+    store.dispatch(myTeamApi.util.resetApiState());
+    store.dispatch(faceItApi.util.resetApiState());
+    store.dispatch(statsApi.util.resetApiState());
+
+    store.dispatch(clearAuth());
+
+    localStorage.removeItem('persist:root');
+    Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('persist:') || key.includes('redux')) {
+            localStorage.removeItem(key);
+        }
+    });
+};
