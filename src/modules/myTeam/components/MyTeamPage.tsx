@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import {FC, useState} from 'react';
 import {
     ActionButtonsContainer, CaptainBadge,
     CardTitle, ContactInfo,
@@ -27,18 +27,20 @@ import {
     TeamName,
     DeleteTeamButton
 } from "@/modules/myTeam/components/style.ts";
-import { TeamRequestsPage } from "@/modules/myTeam/components/teamRequestsPage/TeamRequestsPage.tsx";
-import { DeleteConfirmModal } from "@/modules/user/teams/DeleteConfirmModal.tsx";
-import { EditTeamPage } from "./editTeamPage/EditTeamPage";
+import {TeamRequestsPage} from "@/modules/myTeam/components/teamRequestsPage/TeamRequestsPage.tsx";
+import {DeleteConfirmModal} from "@/modules/user/teams/DeleteConfirmModal.tsx";
+import {EditTeamPage} from "./editTeamPage/EditTeamPage";
 import {
     useGetMyTeamQuery,
+    useGetMyTeamMembersQuery,
     useLeaveTeamMutation,
     useKickMemberMutation,
     useDeleteMyTeamMutation,
     TeamInfoResponse,
     myTeamApi
 } from "@/store/reducers/myTeamApi/myTeamApi";
-import { useGetCurrentUserQuery } from "@/store/reducers/userApi/userApi";
+import {useGetCurrentUserQuery} from "@/store/reducers/userApi/userApi";
+import {UserShortInfoResponse} from "@/store/reducers/teamApi/teamApi";
 
 interface TeamMemberUI {
     id: number;
@@ -60,8 +62,22 @@ interface UITeam {
     isCaptain: boolean;
 }
 
-const transformTeamForUI = (apiTeam: TeamInfoResponse | null, currentUserId?: number): UITeam | null => {
+const transformTeamForUI = (apiTeam: TeamInfoResponse | null, currentUserId?: number, members?: UserShortInfoResponse[]): UITeam | null => {
     if (!apiTeam) return null;
+
+    let membersList: TeamMemberUI[] = [];
+
+    if (members && members.length > 0) {
+        membersList = members.map((m) => ({
+            id: m.id,
+            username: m.username || 'Неизвестный'
+        }));
+    } else if (apiTeam.members && apiTeam.members.length > 0) {
+        membersList = apiTeam.members.map((m) => ({
+            id: m.id,
+            username: m.username || 'Неизвестный'
+        }));
+    }
 
     return {
         id: apiTeam.id,
@@ -71,10 +87,7 @@ const transformTeamForUI = (apiTeam: TeamInfoResponse | null, currentUserId?: nu
         created: new Date(apiTeam.created_date).toLocaleDateString('ru-RU'),
         captain: apiTeam.captain_name,
         captainId: apiTeam.captain_id,
-        membersList: apiTeam.members?.map((m: { id: number; username: string }) => ({
-            id: m.id,
-            username: m.username || 'Неизвестный'
-        })) || [],
+        membersList: membersList,
         requirements: apiTeam.requirements || "Требования не указаны",
         contact: apiTeam.contacts || "Контактная информация не указана",
         rating: 4.5,
@@ -86,23 +99,26 @@ interface MyTeamPageProps {
     onTeamDeleted?: () => void;
 }
 
-export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
-    const { data: currentUser, refetch: refetchUser } = useGetCurrentUserQuery();
-    const { data: apiTeam, isLoading, refetch: refetchMyTeam } = useGetMyTeamQuery();
-    const [leaveTeam, { isLoading: isLeaving }] = useLeaveTeamMutation();
-    const [kickMember, { isLoading: isKicking }] = useKickMemberMutation();
+export const MyTeamPage: FC<MyTeamPageProps> = ({onTeamDeleted}) => {
+    const {data: currentUser, refetch: refetchUser} = useGetCurrentUserQuery();
+    const {data: apiTeam, isLoading, refetch: refetchMyTeam} = useGetMyTeamQuery();
+    const {data: teamMembers, isLoading: membersLoading, refetch: refetchMembers} = useGetMyTeamMembersQuery();
+    const [leaveTeam, {isLoading: isLeaving}] = useLeaveTeamMutation();
+    const [kickMember, {isLoading: isKicking}] = useKickMemberMutation();
     const [deleteMyTeam] = useDeleteMyTeamMutation();
 
     const [showRequests, setShowRequests] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showEditMode, setShowEditMode] = useState(false);
 
-    const team = transformTeamForUI(apiTeam || null, currentUser?.id);
+    //const memberUIList: TeamMemberUI[] = teamMembers?.map(m => ({ id: m.id, username: m.username })) || [];
+    const team = transformTeamForUI(apiTeam || null, currentUser?.id, teamMembers);
     const isCaptain = team?.isCaptain || false;
 
     const refreshData = async () => {
-        myTeamApi.util.invalidateTags(['MyTeam']);
+        myTeamApi.util.invalidateTags(['MyTeam', 'MyTeamMembers']);
         await refetchMyTeam();
+        await refetchMembers();
         await refetchUser();
     };
 
@@ -195,11 +211,11 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
         );
     }
 
-    if (isLoading) {
+    if (isLoading || membersLoading) {
         return (
             <MyTeamContainer>
-                <div style={{ textAlign: 'center', padding: '50px', color: '#00e6ff' }}>
-                    <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem' }}></i>
+                <div style={{textAlign: 'center', padding: '50px', color: '#00e6ff'}}>
+                    <i className="fas fa-spinner fa-spin" style={{fontSize: '2rem'}}></i>
                     <p>Загрузка информации о команде...</p>
                 </div>
             </MyTeamContainer>
@@ -291,32 +307,38 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
                             </CardTitle>
 
                             <MembersList>
-                                {team.membersList.map((member: TeamMemberUI) => (
-                                    <MemberItem key={member.id}>
-                                        <MemberAvatar>
-                                            {getFirstLetter(member.username)}
-                                        </MemberAvatar>
-                                        <MemberName className={member.username === team.captain ? 'captain' : ''}>
-                                            {member.username}
-                                            {member.username === team.captain && (
-                                                <CaptainBadge>
-                                                    <i className="fas fa-crown"></i> Капитан
-                                                </CaptainBadge>
+                                {team.membersList.length === 0 ? (
+                                    <div style={{textAlign: 'center', padding: '20px', color: '#a0a0a0'}}>
+                                        Нет участников
+                                    </div>
+                                ) : (
+                                    team.membersList.map((member: TeamMemberUI) => (
+                                        <MemberItem key={member.id}>
+                                            <MemberAvatar>
+                                                {getFirstLetter(member.username)}
+                                            </MemberAvatar>
+                                            <MemberName className={member.username === team.captain ? 'captain' : ''}>
+                                                {member.username}
+                                                {member.username === team.captain && (
+                                                    <CaptainBadge>
+                                                        <i className="fas fa-crown"></i> Капитан
+                                                    </CaptainBadge>
+                                                )}
+                                            </MemberName>
+                                            <MemberRole>
+                                                {member.username === team.captain ? 'Лидер' : 'Игрок'}
+                                            </MemberRole>
+                                            {isCaptain && member.username !== team.captain && (
+                                                <KickButton
+                                                    onClick={() => handleKickMember(member.id, member.username)}
+                                                    disabled={isKicking}
+                                                >
+                                                    <i className="fas fa-user-minus"></i>
+                                                </KickButton>
                                             )}
-                                        </MemberName>
-                                        <MemberRole>
-                                            {member.username === team.captain ? 'Лидер' : 'Игрок'}
-                                        </MemberRole>
-                                        {isCaptain && member.username !== team.captain && (
-                                            <KickButton
-                                                onClick={() => handleKickMember(member.id, member.username)}
-                                                disabled={isKicking}
-                                            >
-                                                <i className="fas fa-user-minus"></i>
-                                            </KickButton>
-                                        )}
-                                    </MemberItem>
-                                ))}
+                                        </MemberItem>
+                                    ))
+                                )}
                             </MembersList>
 
                             {isCaptain && (
@@ -355,10 +377,10 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({ onTeamDeleted }) => {
                                     background: 'rgba(0, 180, 216, 0.1)',
                                     borderRadius: '8px'
                                 }}>
-                                    <div style={{ color: '#00e6ff', fontWeight: '600', marginBottom: '10px' }}>
+                                    <div style={{color: '#00e6ff', fontWeight: '600', marginBottom: '10px'}}>
                                         <i className="fas fa-info-circle"></i> Для капитана
                                     </div>
-                                    <div style={{ color: '#e0e0e0', fontSize: '0.9rem' }}>
+                                    <div style={{color: '#e0e0e0', fontSize: '0.9rem'}}>
                                         Вы можете изменить контактную информацию в настройках команды
                                     </div>
                                 </div>

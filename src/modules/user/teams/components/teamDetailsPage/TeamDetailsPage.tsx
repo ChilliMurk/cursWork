@@ -1,5 +1,4 @@
-import {FC, useState} from 'react';
-import {Team} from "@/modules/user/teams/components/mockTeams.tsx";
+import { FC, useState, useEffect } from 'react';
 import {
     BackButton, ContactInfo,
     ContentCard,
@@ -15,15 +14,26 @@ import {
     TeamGameBadge,
     TeamHeader,
     TeamTitle,
-    DeleteButton, DisabledButton
+    DeleteButton
 } from "@/modules/user/teams/components/teamDetailsPage/style.ts";
-import {TeamMeta} from "@/modules/user/teams/components/style.ts";
-import {ActionButtons, CardTitle, PrimaryButton, SecondaryButton} from "@/modules/user/profile/components/style.ts";
-import {DeleteConfirmModal} from "@/modules/user/teams/DeleteConfirmModal.tsx";
-import {useGetCurrentUserQuery} from "@/store/reducers/userApi/userApi.ts";
+import { TeamMeta } from "@/modules/user/teams/components/style.ts";
+import { ActionButtons, CardTitle, PrimaryButton, SecondaryButton } from "@/modules/user/profile/components/style.ts";
+import { DeleteConfirmModal } from "@/modules/user/teams/DeleteConfirmModal.tsx";
+import { useGetTeamMembersQuery } from "@/store/reducers/teamApi/teamApi";
 
 interface TeamDetailsPageProps {
-    team: Team;
+    team: {
+        id: number;
+        name: string;
+        game: string;
+        description: string;
+        created: string;
+        captain: string;
+        membersList?: string[];
+        requirements: string;
+        contact: string;
+        rating: number;
+    };
     onBack: () => void;
     onDelete?: (teamId: number) => void;
     currentTeamId?: number;
@@ -42,9 +52,19 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const isCaptain = currentUserId === captainId;
 
-    const {data: currentUser} = useGetCurrentUserQuery();
-    const hasTeam = !!currentUser?.team_id;
-    const isUserTeam = team.id === currentUser?.team_id;
+    const { data: membersData, isLoading: membersLoading, error: membersError } = useGetTeamMembersQuery(team.id);
+
+    // Отладка
+    useEffect(() => {
+        console.log('=== TeamDetailsPage Debug ===');
+        console.log('Team ID:', team.id);
+        console.log('Members data from API:', membersData);
+        console.log('Members loading:', membersLoading);
+        console.log('Members error:', membersError);
+    }, [team.id, membersData, membersLoading, membersError]);
+
+    // Получаем имена участников
+    const membersList = membersData?.map(m => m.username) || [];
 
     const handleJoinTeam = () => {
         alert(`Запрос на вступление в команду ${team.name} отправлен!`);
@@ -70,7 +90,7 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
         setShowDeleteModal(false);
     };
 
-    const membersCount = team.membersList?.length || 0;
+    const membersCount = membersList.length;
 
     if (!team) {
         return (
@@ -79,8 +99,8 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
                     <i className="fas fa-arrow-left"></i>
                     Назад к списку команд
                 </BackButton>
-                <div style={{textAlign: 'center', padding: '50px', color: '#e0e0e0'}}>
-                    <i className="fas fa-exclamation-triangle" style={{fontSize: '2rem', color: '#ff7e5f'}}></i>
+                <div style={{ textAlign: 'center', padding: '50px', color: '#e0e0e0' }}>
+                    <i className="fas fa-exclamation-triangle" style={{ fontSize: '2rem', color: '#ff7e5f' }}></i>
                     <p>Команда не найдена</p>
                 </div>
             </TeamDetailsContainer>
@@ -133,9 +153,13 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
                     </CardTitle>
 
                     <MembersList>
-                        {team.membersList && team.membersList.length > 0 ? (
-                            team.membersList.map((member, index) => (
-                                <MemberItem key={index}>
+                        {membersLoading ? (
+                            <div style={{ textAlign: 'center', padding: '20px', color: '#a0a0a0' }}>
+                                <i className="fas fa-spinner fa-spin"></i> Загрузка участников...
+                            </div>
+                        ) : membersList.length > 0 ? (
+                            membersList.map((member) => (
+                                <MemberItem key={member}>
                                     <MemberAvatar>
                                         {member?.charAt(0)?.toUpperCase() || '?'}
                                     </MemberAvatar>
@@ -145,7 +169,7 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
                                 </MemberItem>
                             ))
                         ) : (
-                            <div style={{textAlign: 'center', padding: '20px', color: '#a0a0a0'}}>
+                            <div style={{ textAlign: 'center', padding: '20px', color: '#a0a0a0' }}>
                                 Нет участников
                             </div>
                         )}
@@ -172,24 +196,10 @@ export const TeamDetailsPage: FC<TeamDetailsPageProps> = ({
                     </ContactInfo>
 
                     <ActionButtons>
-                        {!hasTeam && !isUserTeam && (
-                            <PrimaryButton onClick={handleJoinTeam}>
-                                <i className="fas fa-sign-in-alt"></i>
-                                Вступить в команду
-                            </PrimaryButton>
-                        )}
-
-                        {hasTeam && !isUserTeam && (
-                            <DisabledButton disabled>
-                                <i className="fas fa-lock"></i> Вы уже в команде
-                            </DisabledButton>
-                        )}
-
-                        {isUserTeam && (
-                            <DisabledButton disabled>
-                                <i className="fas fa-check"></i> Ваша команда
-                            </DisabledButton>
-                        )}
+                        <PrimaryButton onClick={handleJoinTeam}>
+                            <i className="fas fa-sign-in-alt"></i>
+                            Вступить в команду
+                        </PrimaryButton>
 
                         <SecondaryButton onClick={handleContact}>
                             <i className="fas fa-comment"></i>

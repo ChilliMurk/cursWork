@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { RootState } from '@/store/store';
+import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
+import {RootState} from '@/store/store';
 
 export interface UserShortInfoResponse {
     id: number;
@@ -28,7 +28,6 @@ export interface TeamCreatingRequest {
     game: string;
 }
 
-// Маппинг для отправки на бекенд (фронт -> бек)
 export const gameToBackend: Record<string, string> = {
     "Counter-Strike 2": "CS",
     "Dota 2": "DOTA",
@@ -36,7 +35,6 @@ export const gameToBackend: Record<string, string> = {
     "Mobile Legend": "MOBILE_LEGEND",
 };
 
-// Маппинг для отображения на фронте (бек -> фронт)
 export const gameToFrontend: Record<string, string> = {
     "CS": "Counter-Strike 2",
     "DOTA": "Dota 2",
@@ -48,7 +46,7 @@ export const teamApi = createApi({
     reducerPath: 'teamApi',
     baseQuery: fetchBaseQuery({
         baseUrl: '/api',
-        prepareHeaders: (headers, { getState }) => {
+        prepareHeaders: (headers, {getState}) => {
             const token = (getState() as RootState).authReducer?.user?.token;
             if (token) {
                 headers.set('Authorization', `Bearer ${token}`);
@@ -56,7 +54,7 @@ export const teamApi = createApi({
             return headers;
         },
     }),
-    tagTypes: ['Teams', 'Team'],
+    tagTypes: ['Teams', 'Team', 'TeamMembers'],
     endpoints: (builder) => ({
         getAllTeams: builder.query<TeamInfoResponse[], string | undefined>({
             query: (game) => {
@@ -87,7 +85,11 @@ export const teamApi = createApi({
                 members: response.members || [],
                 team_roles: response.team_roles || {},
             }),
-            providesTags: (_result, _error, teamId) => [{ type: 'Team', id: teamId }],
+            providesTags: (_result, _error, teamId) => [{type: 'Team', id: teamId}],
+        }),
+        getTeamMembers: builder.query<UserShortInfoResponse[], number>({
+            query: (teamId) => `/teams/${teamId}/members`,
+            providesTags: (_result, _error, teamId) => [{type: 'TeamMembers', id: teamId}],
         }),
         createTeam: builder.mutation<TeamInfoResponse, TeamCreatingRequest>({
             query: (body) => {
@@ -116,6 +118,7 @@ export const teamApi = createApi({
 export const {
     useGetAllTeamsQuery,
     useGetTeamByIdQuery,
+    useGetTeamMembersQuery,
     useCreateTeamMutation,
     useDeleteTeamMutation,
 } = teamApi;

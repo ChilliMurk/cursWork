@@ -5,7 +5,6 @@ import {
     GameFilter, JoinButton, TeamCard, TeamGame, TeamInfo, TeamMeta, TeamName,
     TeamsContainer,
     TeamsGrid, LoadingSpinner,
-
 } from "@/modules/user/teams/components/style.ts";
 import {CreateTeamPage} from "@/modules/user/teams/components/сreateTeamPage/CreateTeamPage.tsx";
 import {JoinTeamModal} from "@/modules/user/events/components/eventDetailsPage/modals/joinTeamModal/JoinTeamModal.tsx";
