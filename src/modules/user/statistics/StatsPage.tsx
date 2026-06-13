@@ -21,7 +21,8 @@ import {
     ErrorMessage,
     TabContainer,
     TabButton,
-    TeamStatsTable
+    TeamStatsTable,
+    AccessDeniedMessage
 } from "@/modules/user/statistics/style.ts";
 import {
     useGetGlobalRatingQuery,
@@ -59,8 +60,24 @@ const metrics: Metric[] = [
     {id: "wHp", label: "Часы в игре", icon: "fa-clock", apiKey: "wHp"}
 ];
 
+// Функция для проверки ролей
+const hasRole = (userRoles: string[] | undefined, role: string): boolean => {
+    return userRoles?.some(r => r === role || r === `ROLE_${role}`) || false;
+};
+
 export const StatsPage: FC = () => {
-    const {data: currentUser} = useGetCurrentUserQuery();
+    const {data: currentUser, isLoading: isUserLoading} = useGetCurrentUserQuery();
+    const userRoles = currentUser?.roles || [];
+
+    const isAdmin = hasRole(userRoles, 'ADMIN');
+    const isCaptain = hasRole(userRoles, 'CAPTAIN');
+    const isPlayer = hasRole(userRoles, 'PLAYER');
+    const hasTeam = !!currentUser?.team_id;
+
+    // Рейтинг команды доступен только игрокам и капитанам (которые состоят в команде) или админам
+    const canViewTeamRating = (isPlayer && hasTeam) || (isCaptain && hasTeam) || isAdmin;
+
+    // Все авторизованные пользователи могут видеть общий рейтинг и рейтинг команд
     const [activeTab, setActiveTab] = useState<TabType>('global');
     const [weights, setWeights] = useState<Importance>({
         wKd: 5,
@@ -93,7 +110,9 @@ export const StatsPage: FC = () => {
         isLoading: teamLoading,
         error: teamError,
         refetch: refetchTeam
-    } = useGetTeamRatingQuery(shouldFetch ? apiParams : undefined, {skip: !shouldFetch || activeTab !== 'team'});
+    } = useGetTeamRatingQuery(shouldFetch ? apiParams : undefined, {
+        skip: !shouldFetch || activeTab !== 'team' || !canViewTeamRating
+    });
 
     const {
         data: teamsRating,
@@ -106,7 +125,7 @@ export const StatsPage: FC = () => {
         setShouldFetch(true);
         setTimeout(() => {
             if (activeTab === 'global') refetchGlobal();
-            if (activeTab === 'team') refetchTeam();
+            if (activeTab === 'team' && canViewTeamRating) refetchTeam();
             if (activeTab === 'teams') refetchTeams();
         }, 0);
     };
@@ -132,11 +151,11 @@ export const StatsPage: FC = () => {
     };
 
     const isLoading = (activeTab === 'global' && globalLoading) ||
-        (activeTab === 'team' && teamLoading) ||
+        (activeTab === 'team' && canViewTeamRating && teamLoading) ||
         (activeTab === 'teams' && teamsLoading);
 
     const error = (activeTab === 'global' && globalError) ||
-        (activeTab === 'team' && teamError) ||
+        (activeTab === 'team' && canViewTeamRating && teamError) ||
         (activeTab === 'teams' && teamsError);
 
     const currentData = activeTab === 'global' ? globalRating :
@@ -144,6 +163,14 @@ export const StatsPage: FC = () => {
 
     const topPlayer = activeTab !== 'teams' && currentData ? getTopPlayer(currentData as RateInfoResponse[]) : null;
     const avgZScore = activeTab !== 'teams' && currentData ? getAvgZScore(currentData as RateInfoResponse[]) : 0;
+
+    if (isUserLoading) {
+        return (
+            <StatsContainer>
+                <LoadingSpinner>Загрузка...</LoadingSpinner>
+            </StatsContainer>
+        );
+    }
 
     const renderGlobalTeamTable = () => {
         const players = currentData as RateInfoResponse[];
@@ -273,20 +300,41 @@ export const StatsPage: FC = () => {
                 <TabButton isActive={activeTab === 'global'} onClick={() => setActiveTab('global')}>
                     <i className="fas fa-globe"></i> Общий рейтинг
                 </TabButton>
-                <TabButton isActive={activeTab === 'team'} onClick={() => setActiveTab('team')}>
-                    <i className="fas fa-users"></i> Рейтинг команды
-                </TabButton>
+
+                {canViewTeamRating && (
+                    <TabButton isActive={activeTab === 'team'} onClick={() => setActiveTab('team')}>
+                        <i className="fas fa-users"></i> Рейтинг команды
+                    </TabButton>
+                )}
+
                 <TabButton isActive={activeTab === 'teams'} onClick={() => setActiveTab('teams')}>
                     <i className="fas fa-trophy"></i> Рейтинг команд
                 </TabButton>
             </TabContainer>
+
+            {/* Сообщение о недоступности рейтинга команды для не-игроков */}
+            {activeTab === 'team' && !canViewTeamRating && (
+                <AccessDeniedMessage>
+                    <i className="fas fa-lock" style={{fontSize: '3rem', marginBottom: '15px'}}></i>
+                    <h3>Доступ ограничен</h3>
+                    <p>
+                        Рейтинг команды доступен только игрокам и капитанам команд.<br/>
+                        Чтобы получить доступ к рейтингу команды, вступите в команду.
+                    </p>
+                    {!currentUser?.team_id && (
+                        <p style={{marginTop: '15px', fontSize: '0.9rem', color: '#00b4d8'}}>
+                            <i className="fas fa-info-circle"></i> Вы можете вступить в команду в разделе "Команды"
+                        </p>
+                    )}
+                </AccessDeniedMessage>
+            )}
 
             <TableContainer>
                 <div style={{padding: '1rem 1rem 0 1rem'}}>
                     <h3 style={{color: '#00e6ff'}}>
                         <i className="fas fa-chart-line"></i>
                         {activeTab === 'global' && 'Общий рейтинг игроков'}
-                        {activeTab === 'team' && 'Рейтинг игроков моей команды'}
+                        {activeTab === 'team' && canViewTeamRating && 'Рейтинг игроков моей команды'}
                         {activeTab === 'teams' && 'Рейтинг команд'}
                     </h3>
                 </div>
@@ -312,7 +360,7 @@ export const StatsPage: FC = () => {
                             {renderTeamsTable()}
                             </tbody>
                         </TeamStatsTable>
-                    ) : (
+                    ) : activeTab === 'team' && canViewTeamRating ? (
                         <StatsTable>
                             <thead>
                             <tr>
@@ -331,6 +379,27 @@ export const StatsPage: FC = () => {
                             {renderGlobalTeamTable()}
                             </tbody>
                         </StatsTable>
+                    ) : (
+                        activeTab === 'global' && (
+                            <StatsTable>
+                                <thead>
+                                <tr>
+                                    <th>Игрок</th>
+                                    <th>K/D</th>
+                                    <th>Хедшоты%</th>
+                                    <th>WinRate</th>
+                                    <th>Турниры</th>
+                                    <th>Тренировки%</th>
+                                    <th>Часы</th>
+                                    <th>Z-Рейтинг</th>
+                                    <th>Место</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {renderGlobalTeamTable()}
+                                </tbody>
+                            </StatsTable>
+                        )
                     )}
                 </div>
                 {activeTab !== 'teams' && currentData && (currentData as RateInfoResponse[]).length > 0 && (

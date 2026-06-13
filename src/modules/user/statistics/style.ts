@@ -241,3 +241,46 @@ export const ErrorMessage = styled.div`
         margin-bottom: 10px;
     }
 `;
+
+export const AccessDeniedMessage = styled.div`
+    text-align: center;
+    padding: 60px 20px;
+    background: linear-gradient(145deg, #132f4c, #0a1929);
+    border: 1px solid rgba(0, 180, 216, 0.2);
+    border-radius: 12px;
+    margin: 20px 0;
+
+    h3 {
+        color: #ff6b6b;
+        font-family: 'Orbitron', sans-serif;
+        margin-bottom: 15px;
+    }
+
+    p {
+        color: #a0a0a0;
+        line-height: 1.6;
+    }
+`;
+
+export const InfoMessage = styled.div`
+    background: rgba(0, 180, 216, 0.1);
+    border-left: 4px solid #00b4d8;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #cceeff;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.9rem;
+
+    i {
+        font-size: 1.2rem;
+        color: #00b4d8;
+    }
+
+    strong {
+        color: #00e6ff;
+    }
+`;
