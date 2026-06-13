@@ -61,6 +61,7 @@ export const TeamsGrid = styled.div`
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 25px;
     margin-bottom: 40px;
+    margin-top: 30px;
 `;
 
 export const TeamCard = styled.div`
@@ -165,11 +166,11 @@ export const LoadingSpinner = styled.div`
     gap: 20px;
     padding: 60px;
     color: #00e6ff;
-    
+
     i {
         font-size: 3rem;
     }
-    
+
     span {
         font-size: 1.2rem;
         font-family: 'Rajdhani', sans-serif;

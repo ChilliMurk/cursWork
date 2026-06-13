@@ -1,17 +1,24 @@
-import { FC, useState } from 'react';
+import {FC, useState} from 'react';
 import {
     CreateTeamButton, EmptyIcon, EmptyState, EmptyText,
     GameButton,
     GameFilter, JoinButton, TeamCard, TeamGame, TeamInfo, TeamMeta, TeamName,
     TeamsContainer,
-    TeamsGrid, LoadingSpinner
+    TeamsGrid, LoadingSpinner,
+
 } from "@/modules/user/teams/components/style.ts";
-import { CreateTeamPage } from "@/modules/user/teams/components/сreateTeamPage/CreateTeamPage.tsx";
-import { JoinTeamModal } from "@/modules/user/events/components/eventDetailsPage/modals/joinTeamModal/JoinTeamModal.tsx";
-import { TeamDetailsPage } from "@/modules/user/teams/components/teamDetailsPage/TeamDetailsPage.tsx";
-import { useGetAllTeamsQuery, useDeleteTeamMutation, TeamInfoResponse, gameToBackend } from "@/store/reducers/teamApi/teamApi.ts";
-import { useGetCurrentUserQuery } from "@/store/reducers/userApi/userApi.ts";
-import { myTeamApi } from "@/store/reducers/myTeamApi/myTeamApi";
+import {CreateTeamPage} from "@/modules/user/teams/components/сreateTeamPage/CreateTeamPage.tsx";
+import {JoinTeamModal} from "@/modules/user/events/components/eventDetailsPage/modals/joinTeamModal/JoinTeamModal.tsx";
+import {TeamDetailsPage} from "@/modules/user/teams/components/teamDetailsPage/TeamDetailsPage.tsx";
+import {
+    useGetAllTeamsQuery,
+    useDeleteTeamMutation,
+    TeamInfoResponse,
+    gameToBackend
+} from "@/store/reducers/teamApi/teamApi.ts";
+import {useGetCurrentUserQuery} from "@/store/reducers/userApi/userApi.ts";
+import {myTeamApi} from "@/store/reducers/myTeamApi/myTeamApi";
+import {DisabledButton, InfoMessage} from "@/modules/user/teams/components/teamDetailsPage/style.ts";
 
 interface TeamsPageProps {
     onTeamSelect?: (team: TeamInfoResponse) => void;
@@ -32,7 +39,7 @@ const transformTeam = (apiTeam: TeamInfoResponse) => ({
     rating: 4.5,
 });
 
-export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
+export const TeamsPage: FC<TeamsPageProps> = ({onTeamSelect}) => {
     const [selectedGame, setSelectedGame] = useState("Все");
     const [selectedTeam, setSelectedTeam] = useState<TeamInfoResponse | null>(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -44,12 +51,18 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
 
     const backendGame = selectedGame === "Все" ? undefined : gameToBackend[selectedGame];
 
-    const { data: teamsData, isLoading, refetch } = useGetAllTeamsQuery(backendGame);
+    const {data: teamsData, isLoading, refetch} = useGetAllTeamsQuery(backendGame);
     const [deleteTeam] = useDeleteTeamMutation();
-    const { data: currentUser } = useGetCurrentUserQuery();
+    const {data: currentUser} = useGetCurrentUserQuery();
+
+    const hasTeam = !!currentUser?.team_id;
 
     const handleJoinClick = (teamId: number, teamName: string, e: React.MouseEvent) => {
         e.stopPropagation();
+        if (hasTeam) {
+            alert('Вы уже состоите в команде. Чтобы вступить в другую команду, сначала покиньте текущую.');
+            return;
+        }
         setJoinModal({
             isOpen: true,
             teamId,
@@ -75,6 +88,10 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
     };
 
     const handleCreateTeamClick = () => {
+        if (hasTeam) {
+            alert('Вы уже состоите в команде. Чтобы создать новую команду, сначала покиньте текущую.');
+            return;
+        }
         setIsCreating(true);
     };
 
@@ -129,7 +146,7 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
     }
 
     if (isCreating) {
-        return <CreateTeamPage onCreateTeam={handleCreateTeam} onCancel={handleCancelCreate} />;
+        return <CreateTeamPage onCreateTeam={handleCreateTeam} onCancel={handleCancelCreate}/>;
     }
 
     if (isLoading) {
@@ -147,6 +164,15 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
 
     return (
         <TeamsContainer>
+            {hasTeam && (
+                <InfoMessage>
+                    <i className="fas fa-info-circle"></i>
+                    Вы уже состоите в команде "<strong>{currentUser.team_name}</strong>".
+                    Вы можете только просматривать другие команды.
+                    Чтобы вступить в другую команду или создать новую, сначала покиньте текущую команду.
+                </InfoMessage>
+            )}
+
             <GameFilter>
                 {games.map(game => (
                     <GameButton
@@ -159,9 +185,16 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
                 ))}
             </GameFilter>
 
-            <CreateTeamButton onClick={handleCreateTeamClick}>
-                Создать свою команду
-            </CreateTeamButton>
+            {hasTeam ? (
+                <DisabledButton disabled>
+                    <i className="fas fa-ban"></i>
+                    Создание команды недоступно (вы уже в команде)
+                </DisabledButton>
+            ) : (
+                <CreateTeamButton onClick={handleCreateTeamClick}>
+                    Создать свою команду
+                </CreateTeamButton>
+            )}
 
             <JoinTeamModal
                 isOpen={joinModal.isOpen}
@@ -172,20 +205,44 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
 
             {teams.length > 0 ? (
                 <TeamsGrid>
-                    {teams.map(team => (
-                        <TeamCard key={team.id} onClick={() => handleTeamClick(team)}>
-                            <TeamGame>{team.game}</TeamGame>
-                            <TeamName>{team.name}</TeamName>
-                            <TeamInfo>{team.description}</TeamInfo>
-                            <TeamMeta>
-                                <span>Участников: {team.members?.length || 0}</span>
-                                <span>Создана: {new Date(team.created_date).toLocaleDateString('ru-RU')}</span>
-                            </TeamMeta>
-                            <JoinButton onClick={(e) => handleJoinClick(team.id, team.name, e)}>
-                                Вступить в команду
-                            </JoinButton>
-                        </TeamCard>
-                    ))}
+                    {teams.map(team => {
+                        const isUserTeam = team.id === currentUser?.team_id;
+
+                        return (
+                            <TeamCard key={team.id} onClick={() => handleTeamClick(team)}>
+                                <TeamGame>{team.game}</TeamGame>
+                                <TeamName>{team.name}</TeamName>
+                                {isUserTeam && <span style={{
+                                    position: 'absolute',
+                                    top: '10px',
+                                    right: '10px',
+                                    background: '#2ecc71',
+                                    padding: '2px 8px',
+                                    borderRadius: '20px',
+                                    fontSize: '0.7rem'
+                                }}>Ваша команда</span>}
+                                <TeamInfo>{team.description}</TeamInfo>
+                                <TeamMeta>
+                                    <span>Участников: {team.members?.length || 0}</span>
+                                    <span>Создана: {new Date(team.created_date).toLocaleDateString('ru-RU')}</span>
+                                </TeamMeta>
+
+                                {hasTeam ? (
+                                    <DisabledButton disabled>
+                                        <i className="fas fa-lock"></i> Вступление недоступно
+                                    </DisabledButton>
+                                ) : isUserTeam ? (
+                                    <DisabledButton disabled>
+                                        <i className="fas fa-check"></i> Ваша команда
+                                    </DisabledButton>
+                                ) : (
+                                    <JoinButton onClick={(e) => handleJoinClick(team.id, team.name, e)}>
+                                        Вступить в команду
+                                    </JoinButton>
+                                )}
+                            </TeamCard>
+                        );
+                    })}
                 </TeamsGrid>
             ) : (
                 <EmptyState>
@@ -197,9 +254,11 @@ export const TeamsPage: FC<TeamsPageProps> = ({ onTeamSelect }) => {
                             ? "Пока нет созданных команд. Станьте первым, создав свою команду!"
                             : `Нет команд по игре ${selectedGame}. Станьте первым, создав команду!`}
                     </EmptyText>
-                    <CreateTeamButton onClick={handleCreateTeamClick}>
-                        Создать команду
-                    </CreateTeamButton>
+                    {!hasTeam && (
+                        <CreateTeamButton onClick={handleCreateTeamClick}>
+                            Создать команду
+                        </CreateTeamButton>
+                    )}
                 </EmptyState>
             )}
         </TeamsContainer>
