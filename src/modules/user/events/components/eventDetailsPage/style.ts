@@ -49,17 +49,17 @@ export const EventStatus = styled.div<{ status: string }>`
     font-weight: 600;
     margin-bottom: 15px;
     background: ${props =>
-    props.status === 'upcoming' ? 'rgba(0, 180, 216, 0.2)' :
-        props.status === 'ongoing' ? 'rgba(76, 175, 80, 0.2)' :
-            'rgba(158, 158, 158, 0.2)'};
+            props.status === 'upcoming' ? 'rgba(0, 180, 216, 0.2)' :
+                    props.status === 'ongoing' ? 'rgba(76, 175, 80, 0.2)' :
+                            'rgba(158, 158, 158, 0.2)'};
     color: ${props =>
-    props.status === 'upcoming' ? '#00b4d8' :
-        props.status === 'ongoing' ? '#4caf50' :
-            '#9e9e9e'};
+            props.status === 'upcoming' ? '#00b4d8' :
+                    props.status === 'ongoing' ? '#4caf50' :
+                            '#9e9e9e'};
     border: 1px solid ${props =>
-    props.status === 'upcoming' ? 'rgba(0, 180, 216, 0.3)' :
-        props.status === 'ongoing' ? 'rgba(76, 175, 80, 0.3)' :
-            'rgba(158, 158, 158, 0.3)'};
+            props.status === 'upcoming' ? 'rgba(0, 180, 216, 0.3)' :
+                    props.status === 'ongoing' ? 'rgba(76, 175, 80, 0.3)' :
+                            'rgba(158, 158, 158, 0.3)'};
 `;
 
 export const EventTitle = styled.h1`
@@ -160,17 +160,17 @@ export const ParticipateButton = styled.button<{ isParticipating: boolean; disab
     width: 100%;
     padding: 15px;
     background: ${props =>
-    props.isParticipating ? 'rgba(244, 67, 54, 0.2)' :
-        props.disabled ? 'rgba(158, 158, 158, 0.2)' :
-            'linear-gradient(90deg, #0066cc, #00b4d8)'};
+            props.isParticipating ? 'rgba(244, 67, 54, 0.2)' :
+                    props.disabled ? 'rgba(158, 158, 158, 0.2)' :
+                            'linear-gradient(90deg, #0066cc, #00b4d8)'};
     color: ${props =>
-    props.isParticipating ? '#ff5252' :
-        props.disabled ? '#9e9e9e' :
-            '#ffffff'};
+            props.isParticipating ? '#ff5252' :
+                    props.disabled ? '#9e9e9e' :
+                            '#ffffff'};
     border: 1px solid ${props =>
-    props.isParticipating ? 'rgba(244, 67, 54, 0.3)' :
-        props.disabled ? 'rgba(158, 158, 158, 0.3)' :
-            'rgba(0, 180, 216, 0.3)'};
+            props.isParticipating ? 'rgba(244, 67, 54, 0.3)' :
+                    props.disabled ? 'rgba(158, 158, 158, 0.3)' :
+                            'rgba(0, 180, 216, 0.3)'};
     border-radius: 8px;
     cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
     font-family: 'Rajdhani', sans-serif;
@@ -180,12 +180,12 @@ export const ParticipateButton = styled.button<{ isParticipating: boolean; disab
 
     &:hover:not(:disabled) {
         ${props => !props.disabled && !props.isParticipating && `
-      box-shadow: 0 0 20px rgba(0, 180, 216, 0.5);
-      transform: translateY(-2px);
-    `}
+            box-shadow: 0 0 20px rgba(0, 180, 216, 0.5);
+            transform: translateY(-2px);
+        `}
         ${props => props.isParticipating && `
-      background: rgba(244, 67, 54, 0.3);
-    `}
+            background: rgba(244, 67, 54, 0.3);
+        `}
     }
 `;
 

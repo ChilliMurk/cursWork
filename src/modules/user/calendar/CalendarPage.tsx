@@ -1,4 +1,4 @@
-import {FC, useState, JSX} from 'react';
+import React, {FC, useState} from 'react';
 import {
     CalendarApp,
     NavButtons,
@@ -26,82 +26,91 @@ import {
     EventTime,
     EventGame,
     EventPrize,
-    EmptyMessage
+    EmptyMessage,
+    TrainingItem,
+    TrainingTitle,
+    TrainingDate,
+    AttendanceButton,
+    AttendanceStatus,
+    AttendanceSection,
+    AttendanceTitle,
+    AttendanceList,
+    AttendanceItem,
+    AttendanceUserName,
 } from "@/modules/user/calendar/style.ts";
-
-interface Tournament {
-    id: number;
-    title: string;
-    date: string;
-    time: string;
-    type: 'tournament';
-    game?: string;
-    prize?: string;
-}
-
-interface SubscribedEvent {
-    id: number;
-    title: string;
-    date: string;
-    time: string;
-    type: 'subscribed';
-    description?: string;
-    game?: string;
-}
-
-type CalendarEvent = Tournament | SubscribedEvent;
+import {
+    useGetTeamEventsQuery,
+    useGetCommonEventsQuery,
+    useGetParticipatingEventsQuery,
+    useGetTeamTrainingsQuery,
+    useGetTrainingAttendanceQuery,
+    useMarkAttendanceMutation,
+    Event,
+    Training,
+} from "@/store/reducers/eventApi/eventApi";
+import {useGetCurrentUserQuery} from "@/store/reducers/userApi/userApi";
 
 interface CalendarPageProps {
     onBack: () => void;
 }
 
-const tournaments: Tournament[] = [
-    {
-        id: 1,
-        title: "Кубок Хищных Бобров (CS2)",
-        date: "2026-05-28",
-        time: "19:00",
-        type: "tournament",
-        game: "CS2",
-        prize: "30 000₽"
-    },
-    {id: 2, title: "Dota 2: Northern Clash", date: "2026-05-30", time: "17:30", type: "tournament", game: "Dota 2"},
-    {id: 3, title: "Valorant Pro League", date: "2026-06-05", time: "20:00", type: "tournament", game: "Valorant"},
-    {id: 4, title: "Mobile Legends: Midseason Cup", date: "2026-06-12", time: "15:00", type: "tournament"},
-    {id: 5, title: "CS2: Faceit Friday Showdown", date: "2026-05-23", time: "21:00", type: "tournament"}
-];
-
-const subscribedEvents: SubscribedEvent[] = [
-    {
-        id: 101,
-        title: "Тренировка команды (основной состав)",
-        date: "2026-05-25",
-        time: "19:00 - 21:00",
-        type: "subscribed",
-        description: "Разбор тактик + демки"
-    },
-    {id: 102, title: "Стрим капитана: разбор меты", date: "2026-05-26", time: "20:00", type: "subscribed"},
-    {id: 103, title: "Индивидуальные занятия с тренером", date: "2026-05-27", time: "18:30", type: "subscribed"},
-    {id: 104, title: "Открытый воркшоп по психологии", date: "2026-06-02", time: "17:00", type: "subscribed"},
-    {id: 105, title: "Матч с командой 'Wolves' (товарищеский)", date: "2026-05-29", time: "20:30", type: "subscribed"}
-];
+type CalendarItem = (Event & { type: 'event' }) | (Training & { type: 'training' });
 
 export const CalendarPage: FC<CalendarPageProps> = ({onBack}) => {
+    const {data: currentUser} = useGetCurrentUserQuery();
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [currentDisplayYear, setCurrentDisplayYear] = useState(new Date().getFullYear());
     const [currentDisplayMonth, setCurrentDisplayMonth] = useState(new Date().getMonth());
-    const [currentFilter, setCurrentFilter] = useState<'all' | 'tournament' | 'subscribed'>('all');
+    const [currentFilter, setCurrentFilter] = useState<'all' | 'event' | 'training'>('all');
+    const [selectedTrainingId, setSelectedTrainingId] = useState<number | null>(null);
 
-    const getEventsForDate = (dateKey: string): CalendarEvent[] => {
-        const events: CalendarEvent[] = [];
-        tournaments.forEach(t => {
-            if (t.date === dateKey) events.push({...t});
+    const {data: teamEvents = []} = useGetTeamEventsQuery({
+        month: currentDisplayMonth + 1,
+        year: currentDisplayYear
+    });
+
+    const {data: commonEvents = []} = useGetCommonEventsQuery({
+        month: currentDisplayMonth + 1,
+        year: currentDisplayYear
+    });
+
+    const {data: participatingEvents = []} = useGetParticipatingEventsQuery({
+        month: currentDisplayMonth + 1,
+        year: currentDisplayYear
+    });
+
+    const {data: trainings = []} = useGetTeamTrainingsQuery({
+        month: currentDisplayMonth + 1,
+        year: currentDisplayYear
+    });
+
+    const {data: attendance = [], refetch: refetchAttendance} = useGetTrainingAttendanceQuery(
+        selectedTrainingId || 0,
+        {skip: !selectedTrainingId}
+    );
+
+    const [markAttendance] = useMarkAttendanceMutation();
+
+    const getAllEventsForMonth = (): CalendarItem[] => {
+        const events: CalendarItem[] = [
+            ...teamEvents.map(e => ({...e, type: 'event' as const})),
+            ...commonEvents.map(e => ({...e, type: 'event' as const})),
+            ...participatingEvents.map(e => ({...e, type: 'event' as const})),
+            ...trainings.map(t => ({...t, type: 'training' as const}))
+        ];
+        const uniqueEvents = events.filter((event, index, self) =>
+            index === self.findIndex((e) => e.id === event.id)
+        );
+        return uniqueEvents;
+    };
+
+    const getEventsForDate = (dateKey: string): CalendarItem[] => {
+        const allEvents = getAllEventsForMonth();
+        return allEvents.filter(item => {
+            // Сравниваем только дату (без времени)
+            const itemDate = item.date.split('T')[0];
+            return itemDate === dateKey;
         });
-        subscribedEvents.forEach(s => {
-            if (s.date === dateKey) events.push({...s});
-        });
-        events.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-        return events;
     };
 
     const handlePrevMonth = () => {
@@ -130,6 +139,19 @@ export const CalendarPage: FC<CalendarPageProps> = ({onBack}) => {
         setSelectedDate(date);
     };
 
+    const handleTrainingClick = (trainingId: number) => {
+        setSelectedTrainingId(selectedTrainingId === trainingId ? null : trainingId);
+    };
+
+    const handleAttendanceToggle = async (eventId: number, userId: number, currentAttended: boolean) => {
+        try {
+            await markAttendance({eventId, userId, attended: !currentAttended}).unwrap();
+            refetchAttendance();
+        } catch (error) {
+            console.error('Error marking attendance:', error);
+        }
+    };
+
     const renderCalendar = () => {
         const firstDayOfMonth = new Date(currentDisplayYear, currentDisplayMonth, 1);
         let startWeekday = firstDayOfMonth.getDay();
@@ -137,31 +159,26 @@ export const CalendarPage: FC<CalendarPageProps> = ({onBack}) => {
         const daysInMonth = new Date(currentDisplayYear, currentDisplayMonth + 1, 0).getDate();
         const prevMonthDays = new Date(currentDisplayYear, currentDisplayMonth, 0).getDate();
 
-        const days: JSX.Element[] = [];
+        const days: React.ReactElement[] = [];
 
         for (let i = startOffset - 1; i >= 0; i--) {
             const dayNum = prevMonthDays - i;
             const dateObj = new Date(currentDisplayYear, currentDisplayMonth - 1, dayNum);
-            const dateKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dayNum).padStart(2, '0');
+            const dateKey = `${year}-${month}-${day}`;
             const eventsToday = getEventsForDate(dateKey);
-            const tourneyEvents = eventsToday.filter(e => e.type === 'tournament');
-            const subscribedNow = eventsToday.filter(e => e.type === 'subscribed');
+            const eventCount = eventsToday.filter(e => e.type === 'event').length;
+            const trainingCount = eventsToday.filter(e => e.type === 'training').length;
             const isSelected = selectedDate.toDateString() === dateObj.toDateString();
 
             days.push(
                 <DayCell key={`prev-${i}`} isOtherMonth isSelected={isSelected}
                          onClick={() => handleDateSelect(dateObj)}>
                     <DayNumber>{dayNum}</DayNumber>
-                    {tourneyEvents.length > 0 && (
-                        <EventBadge type="tournament">
-                            {tourneyEvents.length === 1 ? tourneyEvents[0].title.substring(0, 14) : `${tourneyEvents.length} турнира`}
-                        </EventBadge>
-                    )}
-                    {subscribedNow.length > 0 && tourneyEvents.length < 2 && (
-                        <EventBadge type="subscribed">
-                            {subscribedNow.length === 1 ? subscribedNow[0].title.substring(0, 14) : `${subscribedNow.length} подписки`}
-                        </EventBadge>
-                    )}
+                    {eventCount > 0 && <EventBadge type="event">📅 {eventCount} событий</EventBadge>}
+                    {trainingCount > 0 && <EventBadge type="training">🏋️ {trainingCount} тренировок</EventBadge>}
                 </DayCell>
             );
         }
@@ -170,24 +187,16 @@ export const CalendarPage: FC<CalendarPageProps> = ({onBack}) => {
             const dateObj = new Date(currentDisplayYear, currentDisplayMonth, d);
             const dateKey = `${currentDisplayYear}-${String(currentDisplayMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             const eventsToday = getEventsForDate(dateKey);
-            const tourneyEvents = eventsToday.filter(e => e.type === 'tournament');
-            const subscribedNow = eventsToday.filter(e => e.type === 'subscribed');
+            const eventCount = eventsToday.filter(e => e.type === 'event').length;
+            const trainingCount = eventsToday.filter(e => e.type === 'training').length;
             const isSelected = selectedDate.toDateString() === dateObj.toDateString();
 
             days.push(
                 <DayCell key={`current-${d}`} isOtherMonth={false} isSelected={isSelected}
                          onClick={() => handleDateSelect(dateObj)}>
                     <DayNumber>{d}</DayNumber>
-                    {tourneyEvents.length > 0 && (
-                        <EventBadge type="tournament">
-                            {tourneyEvents.length === 1 ? tourneyEvents[0].title.substring(0, 14) : `${tourneyEvents.length} турнира`}
-                        </EventBadge>
-                    )}
-                    {subscribedNow.length > 0 && tourneyEvents.length < 2 && (
-                        <EventBadge type="subscribed">
-                            {subscribedNow.length === 1 ? subscribedNow[0].title.substring(0, 14) : `${subscribedNow.length} подписки`}
-                        </EventBadge>
-                    )}
+                    {eventCount > 0 && <EventBadge type="event">📅 {eventCount} событий</EventBadge>}
+                    {trainingCount > 0 && <EventBadge type="training">🏋️ {trainingCount} тренировок</EventBadge>}
                 </DayCell>
             );
         }
@@ -196,26 +205,21 @@ export const CalendarPage: FC<CalendarPageProps> = ({onBack}) => {
         const remaining = 42 - totalCells;
         for (let i = 1; i <= remaining; i++) {
             const dateObj = new Date(currentDisplayYear, currentDisplayMonth + 1, i);
-            const dateKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(i).padStart(2, '0');
+            const dateKey = `${year}-${month}-${day}`;
             const eventsToday = getEventsForDate(dateKey);
-            const tourneyEvents = eventsToday.filter(e => e.type === 'tournament');
-            const subscribedNow = eventsToday.filter(e => e.type === 'subscribed');
+            const eventCount = eventsToday.filter(e => e.type === 'event').length;
+            const trainingCount = eventsToday.filter(e => e.type === 'training').length;
             const isSelected = selectedDate.toDateString() === dateObj.toDateString();
 
             days.push(
                 <DayCell key={`next-${i}`} isOtherMonth isSelected={isSelected}
                          onClick={() => handleDateSelect(dateObj)}>
                     <DayNumber>{i}</DayNumber>
-                    {tourneyEvents.length > 0 && (
-                        <EventBadge type="tournament">
-                            {tourneyEvents.length === 1 ? tourneyEvents[0].title.substring(0, 14) : `${tourneyEvents.length} турнира`}
-                        </EventBadge>
-                    )}
-                    {subscribedNow.length > 0 && tourneyEvents.length < 2 && (
-                        <EventBadge type="subscribed">
-                            {subscribedNow.length === 1 ? subscribedNow[0].title.substring(0, 14) : `${subscribedNow.length} подписки`}
-                        </EventBadge>
-                    )}
+                    {eventCount > 0 && <EventBadge type="event">📅 {eventCount} событий</EventBadge>}
+                    {trainingCount > 0 && <EventBadge type="training">🏋️ {trainingCount} тренировок</EventBadge>}
                 </DayCell>
             );
         }
@@ -232,8 +236,8 @@ export const CalendarPage: FC<CalendarPageProps> = ({onBack}) => {
         let events = getEventsForDate(dateKey);
 
         let filteredEvents = events;
-        if (currentFilter === 'tournament') filteredEvents = events.filter(e => e.type === 'tournament');
-        if (currentFilter === 'subscribed') filteredEvents = events.filter(e => e.type === 'subscribed');
+        if (currentFilter === 'event') filteredEvents = events.filter(e => e.type === 'event');
+        if (currentFilter === 'training') filteredEvents = events.filter(e => e.type === 'training');
 
         if (filteredEvents.length === 0) {
             return (
@@ -243,20 +247,58 @@ export const CalendarPage: FC<CalendarPageProps> = ({onBack}) => {
             );
         }
 
-        return filteredEvents.map(ev => (
-            <EventItem key={ev.id} type={ev.type}>
-                <EventTitle>
-                    {ev.type === 'tournament' ? <i className="fas fa-trophy"></i> : <i className="fas fa-bell"></i>}
-                    {' '}{ev.title}
-                </EventTitle>
-                <EventTime><i className="far fa-clock"></i> {ev.time || 'время уточняется'}</EventTime>
-                {ev.game && <EventGame>Игра: {ev.game}</EventGame>}
-                {'prize' in ev && ev.prize && <EventPrize>Приз: {ev.prize}</EventPrize>}
-            </EventItem>
-        ));
+        return filteredEvents.map(item => {
+            if (item.type === 'event') {
+                const event = item as Event & { type: 'event' };
+                return (
+                    <EventItem key={event.id} type="event">
+                        <EventTitle>
+                            <i className="fas fa-trophy"></i> {event.title}
+                        </EventTitle>
+                        <EventTime>
+                            <i className="far fa-clock"></i>
+                            {new Date(event.date).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}
+                        </EventTime>
+                        {event.game && <EventGame>Игра: {event.game}</EventGame>}
+                        {event.prize && event.prize !== '0' && <EventPrize>Приз: {event.prize}</EventPrize>}
+                    </EventItem>
+                );
+            } else {
+                const training = item as Training & { type: 'training' };
+                const userAttendance = attendance.find(a => a.user_id === currentUser?.id);
+                return (
+                    <TrainingItem key={training.id} onClick={() => handleTrainingClick(training.id)}>
+                        <TrainingTitle>
+                            <i className="fas fa-futbol"></i> {training.title}
+                        </TrainingTitle>
+                        <TrainingDate>{training.date} в {training.time}</TrainingDate>
+                        {selectedTrainingId === training.id && (
+                            <AttendanceSection>
+                                <AttendanceTitle>
+                                    <i className="fas fa-users"></i> Посещаемость:
+                                    <AttendanceButton
+                                        onClick={() => handleAttendanceToggle(training.id, currentUser?.id || 0, userAttendance?.attended || false)}>
+                                        {userAttendance?.attended ? '✅ Отметить отсутствие' : '❌ Отметить присутствие'}
+                                    </AttendanceButton>
+                                </AttendanceTitle>
+                                <AttendanceList>
+                                    {attendance.map(a => (
+                                        <AttendanceItem key={a.id}>
+                                            <AttendanceUserName>{a.user_name}</AttendanceUserName>
+                                            <AttendanceStatus attended={a.attended}>
+                                                {a.attended ? '✅ Присутствовал' : '❌ Отсутствовал'}
+                                            </AttendanceStatus>
+                                        </AttendanceItem>
+                                    ))}
+                                </AttendanceList>
+                            </AttendanceSection>
+                        )}
+                    </TrainingItem>
+                );
+            }
+        });
     };
 
-    const weekdays = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
     return (
@@ -287,7 +329,7 @@ export const CalendarPage: FC<CalendarPageProps> = ({onBack}) => {
                         </MonthNav>
                     </MonthHeader>
                     <Weekdays>
-                        {weekdays.map(day => (
+                        {['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(day => (
                             <Weekday key={day}>{day}</Weekday>
                         ))}
                     </Weekdays>
@@ -305,13 +347,12 @@ export const CalendarPage: FC<CalendarPageProps> = ({onBack}) => {
                         <FilterButton isActive={currentFilter === 'all'} onClick={() => setCurrentFilter('all')}>
                             Все события
                         </FilterButton>
-                        <FilterButton isActive={currentFilter === 'tournament'}
-                                      onClick={() => setCurrentFilter('tournament')}>
+                        <FilterButton isActive={currentFilter === 'event'} onClick={() => setCurrentFilter('event')}>
                             Турниры
                         </FilterButton>
-                        <FilterButton isActive={currentFilter === 'subscribed'}
-                                      onClick={() => setCurrentFilter('subscribed')}>
-                            Мои подписки
+                        <FilterButton isActive={currentFilter === 'training'}
+                                      onClick={() => setCurrentFilter('training')}>
+                            Тренировки
                         </FilterButton>
                     </FilterSwitch>
 

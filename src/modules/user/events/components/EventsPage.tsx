@@ -1,11 +1,13 @@
-import { FC, useState } from 'react';
-import { useAppSelector } from "@/common/hooks/useAppSelector.ts";
+import {FC, useState} from 'react';
+import {useAppSelector} from "@/common/hooks/useAppSelector.ts";
 import {
     useGetAllEventsQuery,
     useGetEventsOrganizedByMeQuery,
     useGetParticipatingEventsQuery,
     useCreateCommonEventMutation,
     useCreateTeamEventMutation,
+    useParticipateInEventMutation,
+    useUnparticipateFromEventMutation,
     Event
 } from "@/store/reducers/eventApi/eventApi.ts";
 import {
@@ -21,18 +23,21 @@ import {
     TabContainer,
     TabButton
 } from "@/modules/user/events/components/style.ts";
-import { EmptyIcon, EmptyState, EmptyText } from "@/modules/user/teams/components/style.ts";
-import { EventDetailsPage } from "./eventDetailsPage/EventDetailsPage.tsx";
-import { CreateEventPage } from "./createEventPage/CreateEventPage.tsx";
+import {EmptyIcon, EmptyState, EmptyText} from "@/modules/user/teams/components/style.ts";
+import {EventDetailsPage} from "./eventDetailsPage/EventDetailsPage.tsx";
+import {CreateEventPage} from "./createEventPage/CreateEventPage.tsx";
 
 type EventTab = 'all' | 'participating' | 'organized';
 
 export const EventsPage: FC = () => {
     const [activeTab, setActiveTab] = useState<EventTab>('all');
     const [showCreateEvent, setShowCreateEvent] = useState(false);
-    const [participatingEvents, setParticipatingEvents] = useState<number[]>([]);
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [eventType, setEventType] = useState<'common' | 'team'>('common');
+
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
 
     const user = useAppSelector((state) => state.authReducer.user);
     const shouldSkip = !user?.token;
@@ -43,7 +48,7 @@ export const EventsPage: FC = () => {
         error: errorAll,
         refetch: refetchAll,
         isFetching: isFetchingAll
-    } = useGetAllEventsQuery(undefined, { skip: shouldSkip });
+    } = useGetAllEventsQuery(undefined, {skip: shouldSkip});
 
     const {
         data: participatingEventsData = [],
@@ -51,7 +56,10 @@ export const EventsPage: FC = () => {
         error: errorParticipating,
         refetch: refetchParticipating,
         isFetching: isFetchingParticipating
-    } = useGetParticipatingEventsQuery(undefined, { skip: shouldSkip });
+    } = useGetParticipatingEventsQuery(
+        {month: currentMonth, year: currentYear},
+        {skip: shouldSkip}
+    );
 
     const {
         data: organizedEvents = [],
@@ -59,12 +67,16 @@ export const EventsPage: FC = () => {
         error: errorOrganized,
         refetch: refetchOrganized,
         isFetching: isFetchingOrganized
-    } = useGetEventsOrganizedByMeQuery(undefined, { skip: shouldSkip });
+    } = useGetEventsOrganizedByMeQuery(undefined, {skip: shouldSkip});
 
-    const [createCommonEvent, { isLoading: isCreatingCommon }] = useCreateCommonEventMutation();
-    const [createTeamEvent, { isLoading: isCreatingTeam }] = useCreateTeamEventMutation();
+    const [createCommonEvent, {isLoading: isCreatingCommon}] = useCreateCommonEventMutation();
+    const [createTeamEvent, {isLoading: isCreatingTeam}] = useCreateTeamEventMutation();
+
+    const [participateInEvent] = useParticipateInEventMutation();
+    const [unparticipateFromEvent] = useUnparticipateFromEventMutation();
 
     const isCreating = isCreatingCommon || isCreatingTeam;
+    const participatingEventIds = participatingEventsData.map(e => e.id);
 
     const getCurrentEvents = (): Event[] => {
         switch (activeTab) {
@@ -132,12 +144,22 @@ export const EventsPage: FC = () => {
         }
     };
 
-    const handleParticipate = (eventId: number) => {
-        setParticipatingEvents(prev =>
-            prev.includes(eventId)
-                ? prev.filter(id => id !== eventId)
-                : [...prev, eventId]
-        );
+    const handleParticipate = async (eventId: number, isCurrentlyParticipating: boolean) => {
+        try {
+            if (isCurrentlyParticipating) {
+                await unparticipateFromEvent(eventId).unwrap();
+                alert('Вы отказались от участия в событии');
+            } else {
+                await participateInEvent(eventId).unwrap();
+                alert('Вы успешно зарегистрировались на событие!');
+            }
+            refetchAll();
+            refetchParticipating();
+            refetchOrganized();
+        } catch (error: any) {
+            console.error('Error toggling participation:', error);
+            alert(error.data?.message || 'Ошибка при изменении участия в событии');
+        }
     };
 
     const handleCreateEvent = () => {
@@ -227,7 +249,7 @@ export const EventsPage: FC = () => {
                 event={selectedEvent}
                 onBack={handleBackToList}
                 onParticipate={handleParticipate}
-                participatingEvents={participatingEvents}
+                isParticipating={participatingEventIds.includes(selectedEvent.id)}
             />
         );
     }
@@ -274,7 +296,6 @@ export const EventsPage: FC = () => {
 
     return (
         <EventsContainer>
-            {/* Вкладки навигации */}
             <TabContainer>
                 <TabButton
                     isActive={activeTab === 'all'}
@@ -299,11 +320,11 @@ export const EventsPage: FC = () => {
                 </TabButton>
             </TabContainer>
 
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+            <div style={{display: 'flex', gap: '10px', marginBottom: '20px'}}>
                 <CreateEventButton onClick={handleCreateEvent}>
                     Создать свое событие
                 </CreateEventButton>
-                <button onClick={handleRefresh} style={{ padding: '10px 20px' }}>
+                <button onClick={handleRefresh} style={{padding: '10px 20px'}}>
                     Обновить события
                 </button>
             </div>
@@ -312,45 +333,48 @@ export const EventsPage: FC = () => {
 
             {currentEvents.length > 0 ? (
                 <EventsGrid>
-                    {currentEvents.map((event) => (
-                        <EventCard
-                            key={event.id}
-                            onClick={() => handleEventClick(event)}
-                            style={{ cursor: 'pointer' }}
-                        >
-                            <EventTitle>{event.title || event.name || 'Без названия'}</EventTitle>
-                            <EventInfo>{event.description || 'Нет описания'}</EventInfo>
-                            <EventInfo>
-                                <strong>Игра:</strong> {event.game || 'Не указана'}
-                            </EventInfo>
-                            <EventInfo>
-                                <strong>Участников:</strong> {event.participants}/{event.maxParticipants}
-                            </EventInfo>
-                            <EventInfo>
-                                <strong>Дата:</strong> {new Date(event.date).toLocaleDateString()}
-                            </EventInfo>
-                            {activeTab === 'organized' && (
-                                <EventInfo>
-                                    <strong>Организатор:</strong> {event.organizerName}
-                                </EventInfo>
-                            )}
-
-                            <ParticipateButton
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleParticipate(event.id);
-                                }}
-                                isParticipating={participatingEvents.includes(event.id)}
-                                disabled={event.status === 'completed'}
+                    {currentEvents.map((event) => {
+                        const isParticipating = participatingEventIds.includes(event.id);
+                        return (
+                            <EventCard
+                                key={event.id}
+                                onClick={() => handleEventClick(event)}
+                                style={{cursor: 'pointer'}}
                             >
-                                {participatingEvents.includes(event.id)
-                                    ? 'Отказаться от участия'
-                                    : event.status === 'completed'
-                                        ? 'Событие завершено'
-                                        : 'Участвовать'}
-                            </ParticipateButton>
-                        </EventCard>
-                    ))}
+                                <EventTitle>{event.title || event.name || 'Без названия'}</EventTitle>
+                                <EventInfo>{event.description || 'Нет описания'}</EventInfo>
+                                <EventInfo>
+                                    <strong>Игра:</strong> {event.game || 'Не указана'}
+                                </EventInfo>
+                                <EventInfo>
+                                    <strong>Участников:</strong> {event.participants}/{event.maxParticipants}
+                                </EventInfo>
+                                <EventInfo>
+                                    <strong>Дата:</strong> {new Date(event.date).toLocaleDateString()}
+                                </EventInfo>
+                                {activeTab === 'organized' && (
+                                    <EventInfo>
+                                        <strong>Организатор:</strong> {event.organizerName}
+                                    </EventInfo>
+                                )}
+
+                                <ParticipateButton
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleParticipate(event.id, isParticipating);
+                                    }}
+                                    isParticipating={isParticipating}
+                                    disabled={event.status === 'completed'}
+                                >
+                                    {isParticipating
+                                        ? 'Отказаться от участия'
+                                        : event.status === 'completed'
+                                            ? 'Событие завершено'
+                                            : 'Участвовать'}
+                                </ParticipateButton>
+                            </EventCard>
+                        );
+                    })}
                 </EventsGrid>
             ) : (
                 <EmptyState>

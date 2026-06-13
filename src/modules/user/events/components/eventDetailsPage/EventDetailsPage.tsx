@@ -20,7 +20,8 @@ import {
     EventSidebar,
     ParticipateButton,
     ParticipantsList,
-    ParticipantCount, EmptyParticipants
+    ParticipantCount,
+    EmptyParticipants
 } from "@/modules/user/events/components/eventDetailsPage/style.ts";
 
 interface Event {
@@ -33,15 +34,15 @@ interface Event {
     date: string;
     status: 'upcoming' | 'ongoing' | 'completed';
     prize: string;
+    organizerName?: string;
 }
 
 interface EventDetailsPageProps {
     event: Event;
     onBack: () => void;
-    onParticipate: (eventId: number) => void;
-    participatingEvents: number[];
+    onParticipate: (eventId: number, isCurrentlyParticipating: boolean) => Promise<void>;
+    isParticipating: boolean;
 }
-
 
 const getStatusText = (status: string) => {
     switch (status) {
@@ -71,13 +72,12 @@ export const EventDetailsPage: FC<EventDetailsPageProps> = ({
                                                                 event,
                                                                 onBack,
                                                                 onParticipate,
-                                                                participatingEvents
+                                                                isParticipating
                                                             }) => {
-    const isParticipating = participatingEvents.includes(event.id);
     const participantsCount = event.participants;
 
     const handleParticipate = () => {
-        onParticipate(event.id);
+        onParticipate(event.id, isParticipating);
     };
 
     return (
@@ -117,6 +117,13 @@ export const EventDetailsPage: FC<EventDetailsPageProps> = ({
                             <InfoLabel>Статус</InfoLabel>
                             <InfoValue>{getStatusText(event.status)}</InfoValue>
                         </InfoItem>
+
+                        {event.organizerName && (
+                            <InfoItem>
+                                <InfoLabel>Организатор</InfoLabel>
+                                <InfoValue>{event.organizerName}</InfoValue>
+                            </InfoItem>
+                        )}
                     </InfoGrid>
 
                     <Description>
@@ -126,10 +133,10 @@ export const EventDetailsPage: FC<EventDetailsPageProps> = ({
                     <Requirements>
                         <RequirementsTitle>Требования к участникам</RequirementsTitle>
                         <RequirementsList>
-                            <li>Минимальный уровень: 10</li>
                             <li>Стабильное интернет-соединение</li>
                             <li>Голосовая связь (Discord)</li>
                             <li>Готовность к командной игре</li>
+                            <li>Соблюдение правил fair play</li>
                         </RequirementsList>
                     </Requirements>
                 </EventInfo>

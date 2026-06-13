@@ -157,13 +157,13 @@ export const DayNumber = styled.div`
     color: #cceeff;
 `;
 
-export const EventBadge = styled.div<{ type: 'tournament' | 'subscribed' }>`
-    font-size: 0.7rem;
-    background: ${props => props.type === 'tournament' ? '#f39c12cc' : '#2ecc71cc'};
+export const EventBadge = styled.div<{ type: 'event' | 'training' }>`
+    font-size: 0.65rem;
+    background: ${props => props.type === 'event' ? '#f39c12cc' : '#2ecc71cc'};
     border-radius: 20px;
-    padding: 2px 8px;
+    padding: 2px 6px;
     margin-top: 4px;
-    width: 90%;
+    width: 95%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -216,12 +216,12 @@ export const EventsList = styled.div`
     margin-bottom: 28px;
 `;
 
-export const EventItem = styled.div<{ type: 'tournament' | 'subscribed' }>`
+export const EventItem = styled.div<{ type: 'event' }>`
     background: rgba(0, 180, 216, 0.1);
     border-radius: 18px;
     padding: 12px 16px;
     margin-bottom: 12px;
-    border-left: 3px solid ${props => props.type === 'tournament' ? '#f39c12' : '#2ecc71'};
+    border-left: 3px solid ${props => props.type === 'event' ? '#f39c12' : '#2ecc71'};
 `;
 
 export const EventTitle = styled.div`
@@ -309,4 +309,103 @@ export const UserNotesDisplay = styled.div`
     margin-top: 16px;
     font-style: italic;
     color: #cae9ff;
+`;
+
+export const TrainingItem = styled.div`
+    background: rgba(0, 180, 216, 0.1);
+    border-radius: 18px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    border-left: 3px solid #2ecc71;
+    cursor: pointer;
+    transition: all 0.3s;
+
+    &:hover {
+        background: rgba(0, 180, 216, 0.2);
+        transform: translateY(-2px);
+    }
+`;
+
+export const TrainingTitle = styled.div`
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+export const TrainingDate = styled.div`
+    font-size: 0.75rem;
+    color: #98c1e0;
+    margin-top: 4px;
+`;
+
+export const AttendanceSection = styled.div`
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 180, 216, 0.2);
+`;
+
+export const AttendanceTitle = styled.div`
+    font-size: 0.85rem;
+    color: #00e6ff;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+`;
+
+export const AttendanceButton = styled.button`
+    background: rgba(0, 180, 216, 0.2);
+    border: 1px solid #00b4d8;
+    padding: 5px 12px;
+    border-radius: 20px;
+    color: #00e6ff;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.3s;
+
+    &:hover {
+        background: rgba(0, 180, 216, 0.4);
+    }
+`;
+
+export const AttendanceList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+`;
+
+export const AttendanceItem = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+`;
+
+export const AttendanceUserName = styled.span`
+    color: #cceeff;
+    font-weight: 500;
+`;
+
+export const AttendanceStatus = styled.span<{ attended: boolean }>`
+    color: ${props => props.attended ? '#2ecc71' : '#e74c3c'};
+    font-size: 0.8rem;
+`;
+
+export const LoadingSpinner = styled.div`
+    text-align: center;
+    padding: 20px;
+    color: #00e6ff;
+
+    i {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
 `;
