@@ -1,5 +1,5 @@
-import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
-import {RootState} from '@/store/store';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { RootState } from '@/store/store';
 
 export interface UserShortInfoResponse {
     id: number;
@@ -28,6 +28,10 @@ export interface TeamCreatingRequest {
     game: string;
 }
 
+export interface TeamRequestMessageRequest {
+    message: string;
+}
+
 export const gameToBackend: Record<string, string> = {
     "Counter-Strike 2": "CS",
     "Dota 2": "DOTA",
@@ -46,7 +50,7 @@ export const teamApi = createApi({
     reducerPath: 'teamApi',
     baseQuery: fetchBaseQuery({
         baseUrl: '/api',
-        prepareHeaders: (headers, {getState}) => {
+        prepareHeaders: (headers, { getState }) => {
             const token = (getState() as RootState).authReducer?.user?.token;
             if (token) {
                 headers.set('Authorization', `Bearer ${token}`);
@@ -85,11 +89,11 @@ export const teamApi = createApi({
                 members: response.members || [],
                 team_roles: response.team_roles || {},
             }),
-            providesTags: (_result, _error, teamId) => [{type: 'Team', id: teamId}],
+            providesTags: (_result, _error, teamId) => [{ type: 'Team', id: teamId }],
         }),
         getTeamMembers: builder.query<UserShortInfoResponse[], number>({
             query: (teamId) => `/teams/${teamId}/members`,
-            providesTags: (_result, _error, teamId) => [{type: 'TeamMembers', id: teamId}],
+            providesTags: (_result, _error, teamId) => [{ type: 'TeamMembers', id: teamId }],
         }),
         createTeam: builder.mutation<TeamInfoResponse, TeamCreatingRequest>({
             query: (body) => {
@@ -112,6 +116,15 @@ export const teamApi = createApi({
             }),
             invalidatesTags: ['Teams'],
         }),
+        // Подача заявки в команду
+        sendTeamRequest: builder.mutation<void, { teamId: number; message: string }>({
+            query: ({ teamId, message }) => ({
+                url: `/teams/${teamId}/requests/new`,
+                method: 'POST',
+                body: { message } as TeamRequestMessageRequest,
+            }),
+            invalidatesTags: ['Teams'],
+        }),
     }),
 });
 
@@ -121,4 +134,5 @@ export const {
     useGetTeamMembersQuery,
     useCreateTeamMutation,
     useDeleteTeamMutation,
+    useSendTeamRequestMutation,
 } = teamApi;

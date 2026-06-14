@@ -44,6 +44,10 @@ export interface TeamRoleChangesRequest {
     role: string;
 }
 
+export interface TeamRequestMessageRequest {
+    message: string;
+}
+
 export const gameToFrontend: Record<string, string> = {
     "CS": "Counter-Strike 2",
     "DOTA": "Dota 2",
@@ -133,6 +137,30 @@ export const myTeamApi = createApi({
             providesTags: ['MyTeamMembers'],
         }),
 
+        // Получение заявок на вступление в свою команду
+        getTeamRequests: builder.query<TeamRequestInfoResponse[], void>({
+            query: () => '/teams/my_team/requests',
+            providesTags: ['TeamRequests'],
+        }),
+
+        // Принять заявку на вступление в свою команду
+        acceptTeamRequest: builder.mutation<void, number>({
+            query: (teamRequestId) => ({
+                url: `/teams/my_team/requests/${teamRequestId}`,
+                method: 'POST',
+            }),
+            invalidatesTags: ['MyTeam', 'MyTeamMembers', 'TeamRequests'],
+        }),
+
+        // Отклонить заявку на вступление
+        declineTeamRequest: builder.mutation<void, number>({
+            query: (teamRequestId) => ({
+                url: `/teams/my_team/requests/${teamRequestId}`,
+                method: 'PUT',
+            }),
+            invalidatesTags: ['TeamRequests'],
+        }),
+
         kickMember: builder.mutation<void, number>({
             query: (userId) => ({
                 url: `/teams/my_team/members/${userId}`,
@@ -147,35 +175,6 @@ export const myTeamApi = createApi({
                     console.error('Kick member failed:', error);
                 }
             },
-        }),
-
-        getTeamRequests: builder.query<TeamRequestInfoResponse[], void>({
-            query: () => '/teams/my_team/requests',
-            providesTags: ['TeamRequests'],
-        }),
-
-        acceptTeamRequest: builder.mutation<void, number>({
-            query: (teamRequestId) => ({
-                url: `/teams/my_team/requests/${teamRequestId}`,
-                method: 'POST',
-            }),
-            invalidatesTags: ['MyTeam', 'MyTeamMembers', 'TeamRequests'],
-            async onQueryStarted(_, { dispatch, queryFulfilled }) {
-                try {
-                    await queryFulfilled;
-                    dispatch(teamApi.util.invalidateTags(['Teams']));
-                } catch (error) {
-                    console.error('Accept request failed:', error);
-                }
-            },
-        }),
-
-        declineTeamRequest: builder.mutation<void, number>({
-            query: (teamRequestId) => ({
-                url: `/teams/my_team/requests/${teamRequestId}`,
-                method: 'PUT',
-            }),
-            invalidatesTags: ['TeamRequests'],
         }),
 
         changeMemberRole: builder.mutation<void, { userId: number; role: string }>({

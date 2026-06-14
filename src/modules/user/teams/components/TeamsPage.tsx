@@ -198,6 +198,7 @@ export const TeamsPage: FC<TeamsPageProps> = ({onTeamSelect}) => {
             <JoinTeamModal
                 isOpen={joinModal.isOpen}
                 teamName={joinModal.teamName}
+                teamId={joinModal.teamId}
                 onClose={handleCloseModal}
                 onJoin={handleJoinTeam}
             />
