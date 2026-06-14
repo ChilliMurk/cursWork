@@ -7,6 +7,11 @@ export interface UserShortInfoResponse {
     username: string;
 }
 
+interface ServerUserShortInfoResponse {
+    user_id: number;
+    user_name: string;
+}
+
 export interface TeamInfoResponse {
     id: number;
     name: string;
@@ -62,6 +67,15 @@ export const gameToBackend: Record<string, string> = {
     "Mobile Legend": "MOBILE_LEGEND",
 };
 
+// Функция для трансформации участников из формата сервера в формат клиента
+const transformMembers = (members: ServerUserShortInfoResponse[] | undefined): UserShortInfoResponse[] => {
+    if (!members || !Array.isArray(members)) return [];
+    return members.map(m => ({
+        id: m.user_id,
+        username: m.user_name || 'Неизвестный'
+    }));
+};
+
 export const myTeamApi = createApi({
     reducerPath: 'myTeamApi',
     baseQuery: fetchBaseQuery({
@@ -83,7 +97,7 @@ export const myTeamApi = createApi({
                 return {
                     ...response,
                     game: gameToFrontend[response.game] || response.game,
-                    members: response.members || [],
+                    members: transformMembers(response.members as unknown as ServerUserShortInfoResponse[]),
                     team_roles: response.team_roles || {},
                 };
             },
@@ -134,6 +148,12 @@ export const myTeamApi = createApi({
 
         getMyTeamMembers: builder.query<UserShortInfoResponse[], void>({
             query: () => '/teams/my_team/members',
+            transformResponse: (response: ServerUserShortInfoResponse[]) => {
+                console.log('Raw members response:', response);
+                const transformed = transformMembers(response);
+                console.log('Transformed members:', transformed);
+                return transformed;
+            },
             providesTags: ['MyTeamMembers'],
         }),
 

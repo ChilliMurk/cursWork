@@ -6,6 +6,11 @@ export interface UserShortInfoResponse {
     username: string;
 }
 
+interface ServerUserShortInfoResponse {
+    user_id: number;
+    user_name: string;
+}
+
 export interface TeamInfoResponse {
     id: number;
     name: string;
@@ -46,6 +51,15 @@ export const gameToFrontend: Record<string, string> = {
     "MOBILE_LEGEND": "Mobile Legend",
 };
 
+// Функция для трансформации участников
+const transformMembers = (members: ServerUserShortInfoResponse[] | undefined): UserShortInfoResponse[] => {
+    if (!members || !Array.isArray(members)) return [];
+    return members.map(m => ({
+        id: m.user_id,
+        username: m.user_name || 'Неизвестный'
+    }));
+};
+
 export const teamApi = createApi({
     reducerPath: 'teamApi',
     baseQuery: fetchBaseQuery({
@@ -75,7 +89,7 @@ export const teamApi = createApi({
                 return response.map(team => ({
                     ...team,
                     game: gameToFrontend[team.game] || team.game,
-                    members: team.members || [],
+                    members: transformMembers(team.members as unknown as ServerUserShortInfoResponse[]),
                     team_roles: team.team_roles || {},
                 }));
             },
@@ -86,13 +100,17 @@ export const teamApi = createApi({
             transformResponse: (response: TeamInfoResponse) => ({
                 ...response,
                 game: gameToFrontend[response.game] || response.game,
-                members: response.members || [],
+                members: transformMembers(response.members as unknown as ServerUserShortInfoResponse[]),
                 team_roles: response.team_roles || {},
             }),
             providesTags: (_result, _error, teamId) => [{ type: 'Team', id: teamId }],
         }),
         getTeamMembers: builder.query<UserShortInfoResponse[], number>({
             query: (teamId) => `/teams/${teamId}/members`,
+            transformResponse: (response: ServerUserShortInfoResponse[]) => {
+                console.log('Raw team members response:', response);
+                return transformMembers(response);
+            },
             providesTags: (_result, _error, teamId) => [{ type: 'TeamMembers', id: teamId }],
         }),
         createTeam: builder.mutation<TeamInfoResponse, TeamCreatingRequest>({
@@ -116,7 +134,6 @@ export const teamApi = createApi({
             }),
             invalidatesTags: ['Teams'],
         }),
-        // Подача заявки в команду
         sendTeamRequest: builder.mutation<void, { teamId: number; message: string }>({
             query: ({ teamId, message }) => ({
                 url: `/teams/${teamId}/requests/new`,
