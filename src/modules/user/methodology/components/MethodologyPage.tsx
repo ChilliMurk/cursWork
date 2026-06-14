@@ -579,12 +579,20 @@ export const MethodologyPage: FC<MethodologyPageProps> = ({onMethodologySelect})
                         >
                             <MethodologyImage>
                                 {methodology.image_url ? (
-                                    <img src={methodology.image_url} alt={methodology.title} style={{
-                                        width: '48px',
-                                        height: '48px',
-                                        objectFit: 'cover',
-                                        borderRadius: '8px'
-                                    }}/>
+                                    <img
+                                        src={`/api/uploads/${methodology.image_url}`}
+                                        alt={methodology.title}
+                                        style={{width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px'}}
+                                        onError={(e) => {
+                                            console.error('Icon load error:', `/api/uploads/${methodology.image_url}`);
+                                            e.currentTarget.style.display = 'none';
+                                            // Показываем эмодзи-заглушку
+                                            const parent = e.currentTarget.parentElement;
+                                            if (parent) {
+                                                parent.innerHTML = '📚';
+                                            }
+                                        }}
+                                    />
                                 ) : (
                                     <i className="fas fa-book-open"></i>
                                 )}

@@ -48,9 +48,10 @@ import {
     ImagePreviewContainer,
     PreviewImage,
     ChangeImageButton,
-    UploadingOverlay,
-    popularEmojis
+    UploadingOverlay
 } from "@/modules/user/methodology/components/сreateMethodologyPage/style.ts";
+
+const popularEmojis = ['🎮', '🔫', '🧠', '💰', '⚔️', '🛡️', '🎯', '🏆', '🚀', '💡', '📚', '🎓', '🤝', '🌟', '⚡', '🔥'];
 
 interface CreateMethodologyPageProps {
     onCreateMethodology: () => void;
@@ -61,6 +62,42 @@ export interface MethodologyContent {
     type: 'heading' | 'text' | 'image';
     content: string;
 }
+
+// Функция для преобразования эмодзи в Blob (изображение)
+const emojiToImageBlob = async (emoji: string, size: number = 128): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+            reject(new Error('Cannot get canvas context'));
+            return;
+        }
+
+        ctx.clearRect(0, 0, size, size);
+
+        // Прозрачный фон
+        ctx.fillStyle = 'transparent';
+        ctx.fillRect(0, 0, size, size);
+
+        // Рисуем эмодзи
+        ctx.font = `${size * 0.6}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#00e6ff';
+        ctx.fillText(emoji, size / 2, size / 2);
+
+        canvas.toBlob((blob) => {
+            if (blob) {
+                resolve(blob);
+            } else {
+                reject(new Error('Failed to create blob from emoji'));
+            }
+        }, 'image/png');
+    });
+};
 
 export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                                                                           onCreateMethodology,
@@ -84,6 +121,8 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
     const [editValue, setEditValue] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+    const [isUploadingEmoji, setIsUploadingEmoji] = useState(false);
+    const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const handleAddContent = (type: 'heading' | 'text' | 'image') => {
@@ -96,24 +135,53 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
         setIsDropdownOpen(false);
     };
 
+    // Обработчик выбора эмодзи - загружает его как изображение на сервер
+    const handleEmojiSelect = async (emoji: string) => {
+        if (isUploadingEmoji) return;
+
+        setSelectedEmoji(emoji);
+        setIsUploadingEmoji(true);
+
+        try {
+            // 1. Преобразуем эмодзи в изображение PNG
+            const emojiBlob = await emojiToImageBlob(emoji, 128);
+
+            // 2. Создаем файл из Blob
+            const file = new File([emojiBlob], `emoji_${Date.now()}.png`, {type: 'image/png'});
+
+            // 3. Загружаем на сервер через uploadImage
+            const result = await uploadImage(file).unwrap();
+            const imageUrl = result.image_url;
+
+            // 4. Сохраняем URL (имя файла) в formData
+            setFormData(prev => ({...prev, image_url: imageUrl}));
+
+            console.log('Emoji uploaded successfully:', imageUrl);
+            alert('Иконка успешно загружена!');
+        } catch (error) {
+            console.error('Error uploading emoji:', error);
+            alert('Ошибка при загрузке иконки');
+            setSelectedEmoji(null);
+        } finally {
+            setIsUploadingEmoji(false);
+        }
+    };
+
     const handleImageUpload = async (index: number, files: FileList | null) => {
         if (files && files[0]) {
             setUploadingIndex(index);
             try {
                 const result = await uploadImage(files[0]).unwrap();
-                console.log('Upload result:', result);
-
-                // Сохраняем только имя файла (без слешей и без /api/uploads/)
-                // result.image_url должно быть просто "497e0601-5154-4ba7-96c7-04cd4465c453.jpg"
                 const imageUrl = result.image_url;
-                console.log('Saving image filename:', imageUrl);
-
                 setContent(prev => prev.map((item, i) =>
                     i === index ? {...item, content: imageUrl} : item
                 ));
             } catch (err) {
                 console.error('Error uploading image:', err);
                 alert('Ошибка при загрузке изображения');
+                setContent(prev => prev.map((item, i) =>
+                    i === index ? {...item, content: ''} : item
+                ));
             } finally {
                 setUploadingIndex(null);
             }
@@ -147,9 +215,6 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
             );
         }
 
-        // Правильное формирование URL для отображения изображения
-        // item.content - это имя файла (например, "497e0601-5154-4ba7-96c7-04cd4465c453.jpg")
-        // Полный URL для получения изображения: /api/uploads/{имя_файла}
         const imageSrc = `/api/uploads/${item.content}`;
 
         return (
@@ -158,12 +223,10 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                     <PreviewImage
                         src={imageSrc}
                         alt="Загруженное изображение"
-                        onError={(e) => {
-                            console.error('Image load error:', imageSrc);
-                            e.currentTarget.style.display = 'none';
-                        }}
-                        onLoad={() => {
-                            console.log('Image loaded successfully:', imageSrc);
+                        onError={() => {
+                            setContent(prev => prev.map((contentItem, i) =>
+                                i === index ? {...contentItem, content: ''} : contentItem
+                            ));
                         }}
                     />
                     <ChangeImageButton onClick={() => handleChangeImage(index)}>
@@ -205,6 +268,7 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
         if (!formData.description.trim()) newErrors.description = 'Описание обязательно';
         if (!formData.category.trim()) newErrors.category = 'Категория обязательна';
         if (!formData.duration.trim()) newErrors.duration = 'Длительность обязательна';
+        if (!formData.image_url) newErrors.image_url = 'Выберите иконку методички';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -245,16 +309,14 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
             content: blocks
         };
 
-        console.log('Sending methodology data:', JSON.stringify(requestData, null, 2));
-
         try {
             await createMethodology(requestData).unwrap();
             alert('Методичка успешно создана!');
             onCreateMethodology();
         } catch (err: any) {
             console.error('Error creating methodology:', err);
-            if (err.data) {
-                alert(`Ошибка: ${err.data.message || JSON.stringify(err.data)}`);
+            if (err.data?.message) {
+                alert(`Ошибка: ${err.data.message}`);
             } else {
                 alert('Ошибка при создании методички');
             }
@@ -317,6 +379,40 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Отображение превью выбранной иконки
+    const renderIconPreview = () => {
+        if (!formData.image_url) return null;
+
+        const iconUrl = `/api/uploads/${formData.image_url}`;
+        return (
+            <div style={{textAlign: 'center', marginBottom: '20px'}}>
+                <div style={{
+                    width: '80px',
+                    height: '80px',
+                    margin: '0 auto',
+                    background: 'rgba(0, 180, 216, 0.1)',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <img
+                        src={iconUrl}
+                        alt="Иконка методички"
+                        style={{width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px'}}
+                        onError={(e) => {
+                            console.error('Icon load error:', iconUrl);
+                            e.currentTarget.style.display = 'none';
+                        }}
+                    />
+                </div>
+                <div style={{marginTop: '8px', color: '#00e6ff', fontSize: '0.8rem'}}>
+                    Иконка загружена
+                </div>
+            </div>
+        );
+    };
+
     return (
         <CreateMethodologyContainer>
             <BackButton onClick={onCancel}>
@@ -325,6 +421,8 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
             </BackButton>
 
             <FormTitle>Создание новой методички</FormTitle>
+
+            {renderIconPreview()}
 
             <FormContainer>
                 <form onSubmit={handleSubmit}>
@@ -391,19 +489,48 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                     </FormGroup>
 
                     <FormGroup className="full-width">
-                        <Label>Иконка методички</Label>
+                        <Label>Иконка методички *</Label>
+                        <div style={{marginBottom: '10px', color: '#a0a0a0', fontSize: '0.9rem'}}>
+                            <i className="fas fa-info-circle"></i> Нажмите на эмодзи, чтобы загрузить его как иконку
+                        </div>
+
+                        {isUploadingEmoji && (
+                            <div style={{
+                                textAlign: 'center',
+                                padding: '10px',
+                                marginBottom: '15px',
+                                background: 'rgba(0, 180, 216, 0.1)',
+                                borderRadius: '8px'
+                            }}>
+                                <i className="fas fa-spinner fa-spin"></i> Загрузка иконки {selectedEmoji}...
+                            </div>
+                        )}
+
                         <EmojiGrid>
                             {popularEmojis.map(emoji => (
                                 <EmojiButton
                                     key={emoji}
                                     type="button"
-                                    selected={formData.image_url === emoji}
-                                    onClick={() => setFormData(prev => ({...prev, image_url: emoji}))}
+                                    selected={formData.image_url !== '' && selectedEmoji === emoji}
+                                    onClick={() => handleEmojiSelect(emoji)}
+                                    disabled={isUploadingEmoji}
+                                    style={{
+                                        opacity: isUploadingEmoji ? 0.5 : 1,
+                                        cursor: isUploadingEmoji ? 'not-allowed' : 'pointer'
+                                    }}
                                 >
                                     {emoji}
                                 </EmojiButton>
                             ))}
                         </EmojiGrid>
+
+                        {errors.image_url && <ErrorMessage>{errors.image_url}</ErrorMessage>}
+
+                        {formData.image_url && !isUploadingEmoji && (
+                            <div style={{marginTop: '10px', fontSize: '0.8rem', color: '#2ecc71'}}>
+                                <i className="fas fa-check-circle"></i> Иконка выбрана
+                            </div>
+                        )}
                     </FormGroup>
 
                     <ContentSection className="full-width">
@@ -445,7 +572,7 @@ export const CreateMethodologyPage: FC<CreateMethodologyPageProps> = ({
                     </ContentSection>
 
                     <ActionButtons>
-                        <SubmitButton type="submit" disabled={isLoading || content.length === 0}>
+                        <SubmitButton type="submit" disabled={isLoading || content.length === 0 || isUploadingEmoji}>
                             {isLoading ? 'Создание...' : 'Создать методичку'}
                         </SubmitButton>
                         <CancelButton type="button" onClick={onCancel}>

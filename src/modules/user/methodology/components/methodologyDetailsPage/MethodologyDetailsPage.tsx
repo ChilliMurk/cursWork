@@ -1,6 +1,6 @@
-import {FC, useState} from 'react';
-import {Methodology} from "@/store/reducers/methodologyApi/methodologyApi.ts"; // Импортируем из API, а не из MethodologyPage
-import {EditMethodologyPage} from "../editMethodologyPage/EditMethodologyPage";
+import { FC, useState } from 'react';
+import { Methodology } from "@/store/reducers/methodologyApi/methodologyApi.ts";
+import { EditMethodologyPage } from "../editMethodologyPage/EditMethodologyPage";
 import {
     BackButton,
     ButtonGroup, ContentHeading, ContentImage, ContentItem, ContentSection, ContentText,
@@ -9,6 +9,7 @@ import {
     MethodologyHeader, MethodologyImage, MethodologyMeta, MethodologyTitle,
     SectionTitle
 } from "@/modules/user/methodology/components/methodologyDetailsPage/style.ts";
+import { useUpdateMethodologyMutation } from "@/store/reducers/methodologyApi/methodologyApi";
 
 interface MethodologyDetailsPageProps {
     methodology: Methodology;
@@ -24,16 +25,62 @@ export const MethodologyDetailsPage: FC<MethodologyDetailsPageProps> = ({
                                                                             canEdit = true
                                                                         }) => {
     const [isEditing, setIsEditing] = useState(false);
+    const [updateMethodology, { isLoading: isUpdating }] = useUpdateMethodologyMutation();
 
     const handleEdit = () => {
         setIsEditing(true);
     };
 
-    const handleSave = (updatedMethodology: Methodology) => {
-        if (onEdit) {
-            onEdit(updatedMethodology);
+    const handleSave = async (updatedMethodology: Methodology) => {
+        try {
+            // Преобразуем блоки в формат API
+            const blocks = updatedMethodology.blocks.map((block, index) => ({
+                orderIndex: index,
+                type: block.type === 'heading' ? 'HEADER' :
+                    block.type === 'text' ? 'TEXT' : 'IMAGE',
+                content: block.content || ''  // Убеждаемся, что content не undefined
+            }));
+
+            const levelMap: Record<string, string> = {
+                'beginner': 'EASY',
+                'intermediate': 'INTERMEDIATE',
+                'advanced': 'ADVANCED'
+            };
+
+            const requestData = {
+                info: {
+                    title: updatedMethodology.title || '',
+                    description: updatedMethodology.description || '',
+                    image_url: updatedMethodology.image_url || '',
+                    duration: updatedMethodology.duration || '',
+                    category: updatedMethodology.category || '',
+                    level: levelMap[updatedMethodology.level] || 'EASY'
+                },
+                content: blocks
+            };
+
+            console.log('Updating methodology with data:', requestData);
+
+            const result = await updateMethodology({
+                methodologyId: updatedMethodology.id,
+                data: requestData
+            }).unwrap();
+
+            console.log('Update result:', result);
+
+            // Показываем успешное уведомление
+            alert('Методичка успешно обновлена!');
+
+            if (onEdit) {
+                onEdit(updatedMethodology);
+            }
+            setIsEditing(false);
+        } catch (error: any) {
+            console.error('Error updating methodology:', error);
+            // Показываем детальную ошибку
+            const errorMessage = error.data?.message || error.data?.error || 'Ошибка при обновлении методички';
+            alert(`Ошибка: ${errorMessage}`);
         }
-        setIsEditing(false);
     };
 
     const handleCancel = () => {
@@ -58,7 +105,7 @@ export const MethodologyDetailsPage: FC<MethodologyDetailsPageProps> = ({
                     Назад к методичкам
                 </BackButton>
                 {canEdit && onEdit && (
-                    <EditButton onClick={handleEdit}>
+                    <EditButton onClick={handleEdit} disabled={isUpdating}>
                         <i className="fas fa-edit"></i>
                         Редактировать
                     </EditButton>
@@ -66,10 +113,25 @@ export const MethodologyDetailsPage: FC<MethodologyDetailsPageProps> = ({
             </ButtonGroup>
 
             <MethodologyHeader>
-                <MethodologyImage>{methodology.image_url ? (
-                    <img src={methodology.image_url} alt={methodology.title}
-                         style={{width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px'}}/>
-                ) : '📚'}</MethodologyImage>
+                <MethodologyImage>
+                    {methodology.image_url ? (
+                        <img
+                            src={`/api/uploads/${methodology.image_url}`}
+                            alt={methodology.title}
+                            style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px' }}
+                            onError={(e) => {
+                                console.error('Image load error:', `/api/uploads/${methodology.image_url}`);
+                                e.currentTarget.style.display = 'none';
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                    parent.innerHTML = '📚';
+                                }
+                            }}
+                        />
+                    ) : (
+                        '📚'
+                    )}
+                </MethodologyImage>
                 <MethodologyTitle>{methodology.title}</MethodologyTitle>
                 <MethodologyMeta>
                     <MetaBadge type="category">{methodology.category}</MetaBadge>
@@ -98,7 +160,7 @@ export const MethodologyDetailsPage: FC<MethodologyDetailsPageProps> = ({
                         <ContentItem key={item.id || index}>
                             {item.type === "heading" && <ContentHeading>{item.content}</ContentHeading>}
                             {item.type === "text" && <ContentText>{item.content}</ContentText>}
-                            {item.type === "image" && (
+                            {item.type === "image" && item.content && (
                                 <ContentImage
                                     src={`/api/uploads/${item.content}`}
                                     alt="Иллюстрация"
