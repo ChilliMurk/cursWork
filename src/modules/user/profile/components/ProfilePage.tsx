@@ -1,4 +1,4 @@
-import { FC, useState, useRef, ChangeEvent, useEffect } from 'react';
+import {FC, useState, useRef, ChangeEvent, useEffect} from 'react';
 import {
     ActionButtons,
     BioText,
@@ -30,14 +30,15 @@ import {
     useGetCurrentUserQuery,
     useUpdateCurrentUserMutation,
 } from "@/store/reducers/userApi/userApi.ts";
-import { useUploadImageMutation } from "@/store/reducers/uploadApi/uploadApi.ts";
-import { useConnectFaceItMutation } from "@/store/reducers/faceItApi/faceItApi.ts";
-import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
-import { FaceItConnectModal } from "@/modules/user/profile/components/FaceItConnectModal/FaceItConnectModal.tsx";
+import {useUploadImageMutation} from "@/store/reducers/uploadApi/uploadApi.ts";
+import {useConnectFaceItMutation} from "@/store/reducers/faceItApi/faceItApi.ts";
+import {format} from 'date-fns';
+import {ru} from 'date-fns/locale';
+import {FaceItConnectModal} from "@/modules/user/profile/components/FaceItConnectModal/FaceItConnectModal.tsx";
+import {PlayerStats} from "@/modules/user/profile/components/PlayerStats/PlayerStats.tsx";
 
 export const ProfilePage: FC = () => {
-    const { data: userData, isLoading, refetch } = useGetCurrentUserQuery();
+    const {data: userData, isLoading, refetch} = useGetCurrentUserQuery();
     const [updateCurrentUser] = useUpdateCurrentUserMutation();
     const [uploadImage] = useUploadImageMutation();
     const [connectFaceIt] = useConnectFaceItMutation();
@@ -62,7 +63,7 @@ export const ProfilePage: FC = () => {
 
     const handleSaveProfile = async () => {
         try {
-            await updateCurrentUser({ bio: bioText }).unwrap();
+            await updateCurrentUser({bio: bioText}).unwrap();
             setIsEditing(false);
             alert("Изменения профиля сохранены!");
             refetch();
@@ -88,7 +89,6 @@ export const ProfilePage: FC = () => {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        // Валидация
         if (!file.type.startsWith('image/')) {
             alert('Пожалуйста, выберите изображение');
             return;
@@ -99,7 +99,6 @@ export const ProfilePage: FC = () => {
             return;
         }
 
-        // Показываем превью
         const reader = new FileReader();
         reader.onloadend = () => {
             setAvatarPreview(reader.result as string);
@@ -109,24 +108,16 @@ export const ProfilePage: FC = () => {
         setIsUploading(true);
 
         try {
-            // 1. Сначала загружаем изображение на сервер
             const uploadResult = await uploadImage(file).unwrap();
             const imageFilename = uploadResult.image_url;
-
-            // 2. Обновляем профиль пользователя с новым avatar_url
-            await updateCurrentUser({ avatar_url: imageFilename }).unwrap();
-
-            // 3. Обновляем данные пользователя в store
+            await updateCurrentUser({avatar_url: imageFilename}).unwrap();
             await refetch();
-
             alert('Аватар успешно обновлен!');
             setAvatarPreview(null);
         } catch (error: any) {
             console.error('Ошибка при загрузке аватара:', error);
-            // Проверяем статус ошибки
             if (error.status === 401) {
                 alert('Сессия истекла. Пожалуйста, войдите снова.');
-                // Здесь можно добавить редирект на страницу логина
             } else {
                 alert(error.data?.message || 'Произошла ошибка при загрузке аватара');
             }
@@ -139,7 +130,7 @@ export const ProfilePage: FC = () => {
     const handleConnectFaceIt = async (nickname: string) => {
         setIsConnecting(true);
         try {
-            const result = await connectFaceIt({ faceit_nickname: nickname }).unwrap();
+            const result = await connectFaceIt({faceit_nickname: nickname}).unwrap();
             setFaceItNickname(nickname);
             alert(result.message || `FaceIt аккаунт "${nickname}" успешно подключен!`);
             setIsFaceItModalOpen(false);
@@ -157,7 +148,7 @@ export const ProfilePage: FC = () => {
         if (!dateString) return '—';
         try {
             const date = new Date(dateString);
-            return format(date, 'dd MMMM yyyy', { locale: ru });
+            return format(date, 'dd MMMM yyyy', {locale: ru});
         } catch {
             return dateString;
         }
@@ -172,11 +163,11 @@ export const ProfilePage: FC = () => {
             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
             if (days === 0) {
-                return format(date, "'Сегодня,' HH:mm", { locale: ru });
+                return format(date, "'Сегодня,' HH:mm", {locale: ru});
             } else if (days === 1) {
-                return format(date, "'Вчера,' HH:mm", { locale: ru });
+                return format(date, "'Вчера,' HH:mm", {locale: ru});
             } else {
-                return format(date, 'dd MMMM yyyy', { locale: ru });
+                return format(date, 'dd MMMM yyyy', {locale: ru});
             }
         } catch {
             return dateString;
@@ -199,7 +190,7 @@ export const ProfilePage: FC = () => {
         if (isUploading) {
             return (
                 <ProfileAvatarPlaceholder>
-                    <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem' }}></i>
+                    <i className="fas fa-spinner fa-spin" style={{fontSize: '2rem'}}></i>
                 </ProfileAvatarPlaceholder>
             );
         }
@@ -231,8 +222,8 @@ export const ProfilePage: FC = () => {
     if (isLoading) {
         return (
             <ProfileContainer>
-                <div style={{ textAlign: 'center', padding: '50px', color: '#00e6ff' }}>
-                    <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem' }}></i>
+                <div style={{textAlign: 'center', padding: '50px', color: '#00e6ff'}}>
+                    <i className="fas fa-spinner fa-spin" style={{fontSize: '2rem'}}></i>
                     <p>Загрузка профиля...</p>
                 </div>
             </ProfileContainer>
@@ -242,8 +233,8 @@ export const ProfilePage: FC = () => {
     if (!userData) {
         return (
             <ProfileContainer>
-                <div style={{ textAlign: 'center', padding: '50px', color: '#e0e0e0' }}>
-                    <i className="fas fa-exclamation-triangle" style={{ fontSize: '2rem', color: '#ff7e5f' }}></i>
+                <div style={{textAlign: 'center', padding: '50px', color: '#e0e0e0'}}>
+                    <i className="fas fa-exclamation-triangle" style={{fontSize: '2rem', color: '#ff7e5f'}}></i>
                     <p>Не удалось загрузить данные профиля</p>
                 </div>
             </ProfileContainer>
@@ -291,7 +282,7 @@ export const ProfilePage: FC = () => {
 
                         {isFaceItConnected ? (
                             <FaceItConnected>
-                                <i className="fab fa-faceit" style={{ fontSize: '1.2rem' }}></i>
+                                <i className="fab fa-faceit" style={{fontSize: '1.2rem'}}></i>
                                 <FaceItNickname>{displayFaceItNickname}</FaceItNickname>
                                 <FaceItStatus>Подключен</FaceItStatus>
                             </FaceItConnected>
@@ -332,7 +323,7 @@ export const ProfilePage: FC = () => {
                             </CardTitle>
 
                             <div>
-                                <h4 style={{ color: '#00e6ff', marginBottom: '10px' }}>О себе:</h4>
+                                <h4 style={{color: '#00e6ff', marginBottom: '10px'}}>О себе:</h4>
                                 {isEditing ? (
                                     <textarea
                                         value={bioText}
@@ -377,10 +368,7 @@ export const ProfilePage: FC = () => {
                                 <i className="fas fa-chart-line"></i>
                                 Статистика игрока
                             </CardTitle>
-                            <div style={{ textAlign: 'center', padding: '20px', color: '#a0a0a0' }}>
-                                <i className="fas fa-chart-simple" style={{ fontSize: '3rem', marginBottom: '10px' }}></i>
-                                <p>Статистика игр будет доступна после подключения FaceIt аккаунта</p>
-                            </div>
+                            <PlayerStats userId={userData.id}/>
                         </ProfileCard>
                     </ProfileContent>
                 </ProfileGrid>

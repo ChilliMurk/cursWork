@@ -414,9 +414,6 @@ export const EventsPage: FC = () => {
                 <CreateEventButton onClick={handleCreateEvent}>
                     Создать свое событие
                 </CreateEventButton>
-                <button onClick={handleRefresh} style={{padding: '10px 20px'}}>
-                    Обновить события
-                </button>
             </div>
 
             {isFetching && <div>Обновление...</div>}

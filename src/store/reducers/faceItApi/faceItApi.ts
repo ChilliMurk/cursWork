@@ -40,7 +40,6 @@ export const faceItApi = createApi({
                 body,
             }),
             invalidatesTags: ['FaceIt'],
-            // Трансформируем ответ в единый формат
             transformResponse: (response: any) => {
                 if (response.message || typeof response === 'string') {
                     return {
