@@ -57,6 +57,9 @@ export const EventsPage: FC = () => {
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [eventType, setEventType] = useState<'common' | 'team'>('common');
 
+    // Храним ID событий, для которых выполняется запрос на участие
+    const [participatingInProgress, setParticipatingInProgress] = useState<Set<number>>(new Set());
+
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
@@ -211,17 +214,44 @@ export const EventsPage: FC = () => {
     };
 
     const handleParticipate = async (eventId: number) => {
+        // Проверяем, не выполняется ли уже запрос для этого события
+        if (participatingInProgress.has(eventId)) {
+            console.log('Запрос на участие уже выполняется');
+            return;
+        }
+
+        // Проверяем, не участвует ли уже пользователь
+        if (participatingEventIds.includes(eventId)) {
+            console.log('Пользователь уже участвует в этом событии');
+            return;
+        }
+
         try {
+            // Добавляем ID в Set, чтобы заблокировать повторные нажатия
+            setParticipatingInProgress(prev => new Set(prev).add(eventId));
+
             await participateInEvent(eventId).unwrap();
             alert('Вы успешно зарегистрировались на событие!');
-            refetchAll();
-            refetchCommon();
-            refetchTeam();
-            refetchParticipating();
-            refetchOrganized();
+
+            // Обновляем все списки событий
+            await Promise.all([
+                refetchAll(),
+                refetchCommon(),
+                refetchTeam(),
+                refetchParticipating(),
+                refetchOrganized()
+            ]);
         } catch (error: any) {
             console.error('Error participating in event:', error);
-            alert(error.data?.message || 'Ошибка при регистрации на событие');
+            const errorMessage = error.data?.message || 'Ошибка при регистрации на событие';
+            alert(errorMessage);
+        } finally {
+            // Удаляем ID из Set, разблокируем кнопку
+            setParticipatingInProgress(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(eventId);
+                return newSet;
+            });
         }
     };
 
@@ -313,6 +343,7 @@ export const EventsPage: FC = () => {
                 onBack={handleBackToList}
                 onParticipate={handleParticipate}
                 isParticipating={participatingEventIds.includes(selectedEvent.id)}
+                isParticipatingInProgress={participatingInProgress.has(selectedEvent.id)}
             />
         );
     }
@@ -423,8 +454,14 @@ export const EventsPage: FC = () => {
                     {currentEvents.map((event) => {
                         const isParticipating = participatingEventIds.includes(event.id);
                         const eventPast = isEventPast(event.date);
+                        const isInProgress = participatingInProgress.has(event.id);
 
-                        const isDisabled = event.status === 'completed' || eventPast || isParticipating;
+                        // Кнопка недоступна если:
+                        // 1. Уже участвует
+                        // 2. Событие завершено
+                        // 3. Событие прошло по дате
+                        // 4. Запрос на участие уже выполняется
+                        const isDisabled = isParticipating || event.status === 'completed' || eventPast || isInProgress;
 
                         let buttonText = 'Участвовать';
                         if (isParticipating) {
@@ -433,6 +470,8 @@ export const EventsPage: FC = () => {
                             buttonText = 'Событие завершено';
                         } else if (eventPast) {
                             buttonText = 'Событие прошло';
+                        } else if (isInProgress) {
+                            buttonText = 'Регистрация...';
                         }
 
                         return (

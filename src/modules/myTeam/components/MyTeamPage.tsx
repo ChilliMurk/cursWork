@@ -202,6 +202,7 @@ export const MyTeamPage: FC<MyTeamPageProps> = ({onTeamDeleted}) => {
         return (
             <TeamRequestsPage
                 teamName={team.name}
+                teamId={team.id}  // Добавьте эту строку
                 onBack={() => setShowRequests(false)}
                 onRequestAccepted={async () => {
                     console.log('Заявка принята, обновляем данные');

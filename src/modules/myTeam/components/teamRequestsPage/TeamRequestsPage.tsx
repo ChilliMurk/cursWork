@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC } from 'react';
 import {
     RequestsContainer,
     NavBar,
@@ -30,43 +30,51 @@ import {
     EmptyIcon,
     EmptyTitle,
     EmptyText,
-    InviteButton,
     FooterNote,
-    InviteModal,
-    ModalContent,
-    ModalTitle,
-    ModalInput,
-    ModalTextArea,
-    ModalButtons,
-    ModalButton
 } from "@/modules/myTeam/components/teamRequestsPage/style.ts";
 import {
     useGetTeamRequestsQuery,
     useAcceptTeamRequestMutation,
     useDeclineTeamRequestMutation,
-    TeamRequestInfoResponse
+    TeamRequestInfoResponse,
+    useGetMyTeamQuery,
+    useGetResponseTimeQuery,
 } from "@/store/reducers/myTeamApi/myTeamApi";
-import { useGetMyTeamQuery } from "@/store/reducers/myTeamApi/myTeamApi";
 
 interface TeamRequestsPageProps {
     teamName: string;
+    teamId: number;
     onBack: () => void;
     onRequestAccepted?: () => void;
 }
 
+const formatResponseTime = (minutes: number | null): string => {
+    if (minutes === null || minutes === 0) return 'нет данных';
+
+    if (minutes < 60) {
+        return `${minutes} мин.`;
+    } else {
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+        if (remainingMinutes === 0) {
+            return `${hours} ч.`;
+        }
+        return `${hours} ч. ${remainingMinutes} мин.`;
+    }
+};
+
 export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
                                                                 teamName,
+                                                                teamId,
                                                                 onBack,
                                                                 onRequestAccepted
                                                             }) => {
     const { refetch: refetchTeam } = useGetMyTeamQuery();
     const { data: requests = [], isLoading, refetch: refetchRequests } = useGetTeamRequestsQuery();
+    const { data: responseTimeMinutes, isLoading: isResponseTimeLoading } = useGetResponseTimeQuery(teamId);
+
     const [acceptRequest] = useAcceptTeamRequestMutation();
     const [declineRequest] = useDeclineTeamRequestMutation();
-
-    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-    const [inviteNickname, setInviteNickname] = useState('');
-    const [inviteCoverLetter, setInviteCoverLetter] = useState('');
 
     const { data: teamData } = useGetMyTeamQuery();
     const teamMembersCount = teamData?.members?.length || 0;
@@ -126,16 +134,10 @@ export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
         }
     };
 
-    const handleInviteSubmit = () => {
-        if (!inviteNickname) {
-            alert("Укажите никнейм игрока.");
-            return;
-        }
-        alert(`Приглашение отправлено игроку ${inviteNickname}!`);
-        setIsInviteModalOpen(false);
-        setInviteNickname('');
-        setInviteCoverLetter('');
-    };
+    // Подсчет активных заявок (только AWAITING)
+    const activeRequestsCount = requests.filter(r => r.status === 'AWAITING').length;
+
+    const formattedResponseTime = formatResponseTime(responseTimeMinutes ?? null);
 
     if (isLoading) {
         return (
@@ -163,68 +165,85 @@ export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
     }
 
     return (
-        <>
-            <RequestsContainer>
-                <NavBar>
-                    <BackLink onClick={onBack}>
-                        <i className="fas fa-arrow-left"></i>
-                        Назад к команде
-                    </BackLink>
-                    <PageTitle>
-                        <i className="fas fa-door-open"></i>
-                        Заявки на вступление
-                        <TeamBadge>
-                            <i className="fas fa-paw"></i> {teamName}
-                        </TeamBadge>
-                    </PageTitle>
-                    <div style={{ width: '30px' }}></div>
-                </NavBar>
+        <RequestsContainer>
+            <NavBar>
+                <BackLink onClick={onBack}>
+                    <i className="fas fa-arrow-left"></i>
+                    Назад к команде
+                </BackLink>
+                <PageTitle>
+                    <i className="fas fa-door-open"></i>
+                    Заявки на вступление
+                    <TeamBadge>
+                        <i className="fas fa-paw"></i> {teamName}
+                    </TeamBadge>
+                </PageTitle>
+                <div style={{ width: '30px' }}></div>
+            </NavBar>
 
-                <StatsRow>
-                    <StatCard>
-                        <StatIcon>
-                            <i className="fas fa-envelope-open-text"></i>
-                        </StatIcon>
-                        <StatInfo>
-                            <StatNumber>{requests.length}</StatNumber>
-                            <StatLabel>Активных заявок</StatLabel>
-                        </StatInfo>
-                    </StatCard>
+            <StatsRow>
+                <StatCard>
+                    <StatIcon>
+                        <i className="fas fa-envelope-open-text"></i>
+                    </StatIcon>
+                    <StatInfo>
+                        <StatNumber>{activeRequestsCount}</StatNumber>
+                        <StatLabel>Активных заявок</StatLabel>
+                    </StatInfo>
+                </StatCard>
 
-                    <StatCard>
-                        <StatIcon>
-                            <i className="fas fa-clock"></i>
-                        </StatIcon>
-                        <StatInfo>
-                            <StatNumber>~2 дн.</StatNumber>
-                            <StatLabel>Среднее время отклика</StatLabel>
-                        </StatInfo>
-                    </StatCard>
+                <StatCard>
+                    <StatIcon>
+                        <i className="fas fa-clock"></i>
+                    </StatIcon>
+                    <StatInfo>
+                        <StatNumber>
+                            {isResponseTimeLoading ? (
+                                <i className="fas fa-spinner fa-spin"></i>
+                            ) : (
+                                formattedResponseTime
+                            )}
+                        </StatNumber>
+                        <StatLabel>Среднее время отклика</StatLabel>
+                    </StatInfo>
+                </StatCard>
 
-                    <StatCard>
-                        <StatIcon>
-                            <i className="fas fa-users"></i>
-                        </StatIcon>
-                        <StatInfo>
-                            <StatNumber>{teamMembersCount}</StatNumber>
-                            <StatLabel>Участников в команде</StatLabel>
-                        </StatInfo>
-                    </StatCard>
-                </StatsRow>
+                <StatCard>
+                    <StatIcon>
+                        <i className="fas fa-users"></i>
+                    </StatIcon>
+                    <StatInfo>
+                        <StatNumber>{teamMembersCount}</StatNumber>
+                        <StatLabel>Участников в команде</StatLabel>
+                    </StatInfo>
+                </StatCard>
+            </StatsRow>
 
-                <RequestsList>
-                    {requests.length === 0 ? (
-                        <EmptyState>
-                            <EmptyIcon>
-                                <i className="fas fa-inbox"></i>
-                            </EmptyIcon>
-                            <EmptyTitle>Нет входящих заявок</EmptyTitle>
-                            <EmptyText>
-                                Пригласите игроков, и они смогут отправить заявку с сопроводительным письмом
-                            </EmptyText>
-                        </EmptyState>
-                    ) : (
-                        requests.map((request: TeamRequestInfoResponse) => (
+            <RequestsList>
+                {requests.length === 0 ? (
+                    <EmptyState>
+                        <EmptyIcon>
+                            <i className="fas fa-inbox"></i>
+                        </EmptyIcon>
+                        <EmptyTitle>Нет входящих заявок</EmptyTitle>
+                        <EmptyText>
+                            Когда игроки отправят заявки на вступление, они появятся здесь
+                        </EmptyText>
+                    </EmptyState>
+                ) : (
+                    requests.map((request: TeamRequestInfoResponse) => {
+                        const isAwaiting = request.status === 'AWAITING';
+                        const isAccepted = request.status === 'ACCEPTED';
+                        const isDeclined = request.status === 'DECLINED';
+
+                        let statusBadge = null;
+                        if (isAccepted) {
+                            statusBadge = <span style={{ color: '#4caf50', fontSize: '0.8rem', marginLeft: '10px' }}>✓ Принят</span>;
+                        } else if (isDeclined) {
+                            statusBadge = <span style={{ color: '#f44336', fontSize: '0.8rem', marginLeft: '10px' }}>✗ Отклонен</span>;
+                        }
+
+                        return (
                             <RequestCard key={request.id}>
                                 <RequestHeader>
                                     <PlayerInfo>
@@ -232,7 +251,10 @@ export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
                                             {request.user_name?.charAt(0)?.toUpperCase() || '?'}
                                         </PlayerAvatar>
                                         <PlayerDetails>
-                                            <PlayerName>{request.user_name}</PlayerName>
+                                            <PlayerName>
+                                                {request.user_name}
+                                                {statusBadge}
+                                            </PlayerName>
                                             <PlayerNick>
                                                 <i className="fas fa-id-card"></i>
                                                 Заявка от {formatDate(request.created_date)}
@@ -256,65 +278,64 @@ export const TeamRequestsPage: FC<TeamRequestsPageProps> = ({
                                     </CoverLetter>
                                 )}
 
-                                <RequestActions>
-                                    <AcceptButton onClick={() => handleAcceptRequest(request.id, request.user_name)}>
-                                        <i className="fas fa-check-circle"></i>
-                                        Принять в команду
-                                    </AcceptButton>
-                                    <DeclineButton onClick={() => handleDeclineRequest(request.id, request.user_name)}>
-                                        <i className="fas fa-times-circle"></i>
-                                        Отклонить
-                                    </DeclineButton>
-                                </RequestActions>
+                                {/* Кнопки действий только для заявок в статусе AWAITING */}
+                                {isAwaiting && (
+                                    <RequestActions>
+                                        <AcceptButton onClick={() => handleAcceptRequest(request.id, request.user_name)}>
+                                            <i className="fas fa-check-circle"></i>
+                                            Принять в команду
+                                        </AcceptButton>
+                                        <DeclineButton onClick={() => handleDeclineRequest(request.id, request.user_name)}>
+                                            <i className="fas fa-times-circle"></i>
+                                            Отклонить
+                                        </DeclineButton>
+                                    </RequestActions>
+                                )}
+
+                                {isAccepted && (
+                                    <RequestActions>
+                                        <div style={{
+                                            padding: '10px',
+                                            background: 'rgba(76, 175, 80, 0.1)',
+                                            borderRadius: '8px',
+                                            color: '#4caf50',
+                                            textAlign: 'center',
+                                            width: '100%'
+                                        }}>
+                                            <i className="fas fa-check-circle"></i> Заявка принята, игрок добавлен в команду
+                                        </div>
+                                    </RequestActions>
+                                )}
+
+                                {isDeclined && (
+                                    <RequestActions>
+                                        <div style={{
+                                            padding: '10px',
+                                            background: 'rgba(244, 67, 54, 0.1)',
+                                            borderRadius: '8px',
+                                            color: '#f44336',
+                                            textAlign: 'center',
+                                            width: '100%'
+                                        }}>
+                                            <i className="fas fa-times-circle"></i> Заявка отклонена
+                                        </div>
+                                    </RequestActions>
+                                )}
                             </RequestCard>
-                        ))
-                    )}
-                </RequestsList>
+                        );
+                    })
+                )}
+            </RequestsList>
 
-                <div style={{ textAlign: 'center' }}>
-                    <InviteButton onClick={() => setIsInviteModalOpen(true)}>
-                        <i className="fas fa-user-plus"></i>
-                        Пригласить игрока
-                    </InviteButton>
-                </div>
-
-                <FooterNote>
-                    <i className="fas fa-file-alt"></i>
-                    Кандидаты оставляют сопроводительное письмо. Вы можете принять или отклонить заявку.
-                </FooterNote>
-            </RequestsContainer>
-
-            <InviteModal isOpen={isInviteModalOpen}>
-                <ModalContent>
-                    <ModalTitle>
-                        <i className="fas fa-paper-plane"></i>
-                        Пригласить игрока
-                    </ModalTitle>
-                    <p style={{ fontSize: '0.85rem', marginBottom: '1rem', color: '#a0a0a0' }}>
-                        Игрок получит приглашение и оставит своё сопроводительное письмо.
-                    </p>
-                    <ModalInput
-                        type="text"
-                        placeholder="Никнейм игрока"
-                        value={inviteNickname}
-                        onChange={(e) => setInviteNickname(e.target.value)}
-                    />
-                    <ModalTextArea
-                        rows={4}
-                        placeholder="Сопроводительное письмо (что хотите видеть в команде, почему приглашаете?)"
-                        value={inviteCoverLetter}
-                        onChange={(e) => setInviteCoverLetter(e.target.value)}
-                    />
-                    <ModalButtons>
-                        <ModalButton variant="secondary" onClick={() => setIsInviteModalOpen(false)}>
-                            Отмена
-                        </ModalButton>
-                        <ModalButton variant="primary" onClick={handleInviteSubmit}>
-                            Отправить приглашение
-                        </ModalButton>
-                    </ModalButtons>
-                </ModalContent>
-            </InviteModal>
-        </>
+            <FooterNote>
+                <i className="fas fa-file-alt"></i>
+                Кандидаты оставляют сопроводительное письмо. Вы можете принять или отклонить заявку.
+                {activeRequestsCount === 0 && requests.length > 0 && (
+                    <span style={{ display: 'block', marginTop: '8px', color: '#ff9800' }}>
+                        <i className="fas fa-info-circle"></i> Все заявки уже обработаны
+                    </span>
+                )}
+            </FooterNote>
+        </RequestsContainer>
     );
 };

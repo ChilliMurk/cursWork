@@ -42,6 +42,7 @@ interface EventDetailsPageProps {
     onBack: () => void;
     onParticipate: (eventId: number) => Promise<void>;
     isParticipating: boolean;
+    isParticipatingInProgress?: boolean; // Добавляем пропс для блокировки повторных нажатий
 }
 
 const getStatusText = (status: string) => {
@@ -79,22 +80,20 @@ export const EventDetailsPage: FC<EventDetailsPageProps> = ({
                                                                 event,
                                                                 onBack,
                                                                 onParticipate,
-                                                                isParticipating
+                                                                isParticipating,
+                                                                isParticipatingInProgress = false
                                                             }) => {
     const participantsCount = event.participants;
     const eventPast = isEventPast(event.date);
 
     // Кнопка недоступна если:
-    // 1. Событие завершено (status === 'completed')
-    // 2. ИЛИ событие уже прошло по дате
-    // 3. ИЛИ пользователь уже участвует
-    const isDisabled = event.status === 'completed' || eventPast || isParticipating;
+    // 1. Событие завершено
+    // 2. Событие уже прошло по дате
+    // 3. Пользователь уже участвует
+    // 4. Запрос на участие уже выполняется
+    const isDisabled = event.status === 'completed' || eventPast || isParticipating || isParticipatingInProgress;
 
-    // Текст кнопки:
-    // - Если уже участвуем: "Вы участвуете"
-    // - Если событие завершено: "Событие завершено"
-    // - Если событие прошло: "Событие прошло"
-    // - Иначе: "Участвовать в событии"
+    // Текст кнопки
     let buttonText = 'Участвовать в событии';
     if (isParticipating) {
         buttonText = '✓ Вы участвуете';
@@ -102,10 +101,12 @@ export const EventDetailsPage: FC<EventDetailsPageProps> = ({
         buttonText = 'Событие завершено';
     } else if (eventPast) {
         buttonText = 'Событие прошло';
+    } else if (isParticipatingInProgress) {
+        buttonText = 'Регистрация...';
     }
 
     const handleParticipate = () => {
-        if (!isDisabled && !isParticipating) {
+        if (!isDisabled && !isParticipating && !isParticipatingInProgress) {
             onParticipate(event.id);
         }
     };

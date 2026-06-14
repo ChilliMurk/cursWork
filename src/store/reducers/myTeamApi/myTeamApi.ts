@@ -42,7 +42,7 @@ export interface TeamRequestInfoResponse {
     user_name: string;
     message: string;
     created_date: string;
-    status: string;
+    status: string; // AWAITING, ACCEPTED, DECLINED
 }
 
 export interface TeamRoleChangesRequest {
@@ -88,7 +88,7 @@ export const myTeamApi = createApi({
             return headers;
         },
     }),
-    tagTypes: ['MyTeam', 'MyTeamMembers', 'TeamRequests'],
+    tagTypes: ['MyTeam', 'MyTeamMembers', 'TeamRequests', 'ResponseTime'],
     endpoints: (builder) => ({
         getMyTeam: builder.query<TeamInfoResponse | null, void>({
             query: () => '/teams/my_team',
@@ -221,6 +221,17 @@ export const myTeamApi = createApi({
                 }
             },
         }),
+
+        // Получение среднего времени отклика на заявку
+        getResponseTime: builder.query<number | null, number>({
+            query: (teamId) => `/teams/${teamId}/response_time`,
+            providesTags: (_result, _error, teamId) => [{ type: 'ResponseTime', id: teamId }],
+            transformResponse: (response: number | string) => {
+                if (response === null || response === undefined) return null;
+                const minutes = typeof response === 'string' ? parseInt(response, 10) : response;
+                return isNaN(minutes) ? null : minutes;
+            },
+        }),
     }),
 });
 
@@ -235,4 +246,5 @@ export const {
     useDeclineTeamRequestMutation,
     useChangeMemberRoleMutation,
     useLeaveTeamMutation,
+    useGetResponseTimeQuery,
 } = myTeamApi;

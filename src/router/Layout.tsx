@@ -5,54 +5,43 @@ import {useAppSelector} from "@/common/hooks/useAppSelector.ts";
 export const Layout: FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [isChecking, setIsChecking] = useState(true);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     const authState = useAppSelector((state) => state.authReducer);
     const isAuthenticated = authState?.isAuthenticated ?? false;
-    const user = authState?.user;
 
     useEffect(() => {
-        console.log('Layout - isAuthenticated:', isAuthenticated);
-        console.log('Layout - user:', user);
-        console.log('Layout - location:', location.pathname);
-    }, [isAuthenticated, user, location]);
-
-    useEffect(() => {
+        // Даем время для восстановления состояния из localStorage
         const timer = setTimeout(() => {
-            setIsChecking(false);
-        }, 100);
+            setIsInitialized(true);
+        }, 300);
 
         return () => clearTimeout(timer);
     }, []);
 
     useEffect(() => {
-        if (isChecking) return;
+        if (!isInitialized) return;
 
-        const publicPaths = ['/'];
-        const isPublicPath = publicPaths.includes(location.pathname);
+        console.log('Layout - isAuthenticated:', isAuthenticated);
+        console.log('Layout - location:', location.pathname);
 
-        console.log('Layout - checking navigation:', { isAuthenticated, isPublicPath, location: location.pathname });
+        // Если пользователь авторизован и пытается зайти на главную страницу
+        if (isAuthenticated && location.pathname === '/') {
+            console.log('Layout - redirecting to /user');
+            navigate('/user', {replace: true});
+            return;
+        }
 
-        if (!isAuthenticated && !isPublicPath) {
+        // Если пользователь НЕ авторизован и пытается зайти на защищенный маршрут
+        if (!isAuthenticated && location.pathname !== '/') {
             console.log('Layout - redirecting to / (not authenticated)');
             navigate('/', {replace: true});
             return;
         }
+    }, [isAuthenticated, location.pathname, navigate, isInitialized]);
 
-        if (isAuthenticated && location.pathname === '/') {
-            console.log('Layout - redirecting to /user (authenticated on home)');
-            navigate('/user', {replace: true});
-            return;
-        }
-
-        if (isAuthenticated && location.pathname === '/login') {
-            console.log('Layout - redirecting to /user (authenticated on login)');
-            navigate('/user', {replace: true});
-            return;
-        }
-    }, [isAuthenticated, location.pathname, navigate, isChecking]);
-
-    if (isChecking) {
+    // Показываем спиннер только во время начальной инициализации
+    if (!isInitialized) {
         return (
             <div style={{
                 display: 'flex',
@@ -67,9 +56,5 @@ export const Layout: FC = () => {
         );
     }
 
-    return (
-        <div>
-            <Outlet />
-        </div>
-    );
+    return <Outlet />;
 };

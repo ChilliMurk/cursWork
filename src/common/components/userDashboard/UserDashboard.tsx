@@ -63,8 +63,6 @@ const GlobalStyles = () => (
                 color: #e0e0e0;
                 line-height: 1.6;
                 overflow-x: hidden;
-                background-image: radial-gradient(circle at 15% 30%, rgba(0, 180, 216, 0.1) 0%, transparent 25%),
-                radial-gradient(circle at 85% 70%, rgba(0, 102, 204, 0.1) 0%, transparent 25%);
             }
 
             #root {
@@ -81,18 +79,7 @@ export const UserDashboard: FC = () => {
     // Получаем текущего пользователя из Redux store для проверки
     const authUser = useAppSelector((state) => state.authReducer.user);
     const authToken = authUser?.token;
-
-    // Используем skip, если нет токена
-    const {
-        data: userData,
-        isLoading: isUserLoading,
-        refetch: refetchUser,
-        isFetching
-    } = useGetCurrentUserQuery(undefined, {
-        skip: !authToken,
-        // Важно: не использовать кэш, всегда запрашивать свежие данные
-        refetchOnMountOrArgChange: true
-    });
+    const isAuthenticated = useAppSelector((state) => state.authReducer.isAuthenticated);
 
     const [activeSection, setActiveSection] = useState('main');
     const [selectedTeam, setSelectedTeam] = useState<TeamInfoResponse | null>(null);
@@ -100,17 +87,35 @@ export const UserDashboard: FC = () => {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
 
-    // При монтировании и при изменении токена принудительно обновляем данные
+    // Если нет авторизации, ничего не рендерим (Layout должен был перенаправить)
+    if (!isAuthenticated || !authToken) {
+        console.log('UserDashboard - no auth, returning null');
+        return null;
+    }
+
+    // Загружаем данные только если есть токен и пользователь авторизован
+    const {
+        data: userData,
+        isLoading: isUserLoading,
+        isFetching,
+        error: userError,
+        isError
+    } = useGetCurrentUserQuery(undefined, {
+        skip: !authToken || !isAuthenticated,
+    });
+
+    // Обработка ошибки 401
     useEffect(() => {
-        if (authToken) {
-            // Инвалидируем кэш текущего пользователя
-            dispatch(userApi.util.invalidateTags(['CurrentUser']));
-            refetchUser();
+        if (isError && userError) {
+            console.error('Error loading user data:', userError);
+            if ((userError as any)?.status === 401) {
+                dispatch(logout());
+                navigate('/', { replace: true });
+            }
         }
-    }, [authToken, dispatch, refetchUser]);
+    }, [isError, userError, dispatch, navigate]);
 
     const handleLogout = () => {
-        // Инвалидируем все кэши перед выходом
         dispatch(userApi.util.resetApiState());
         dispatch(myTeamApi.util.resetApiState());
         dispatch(logout());
@@ -161,7 +166,9 @@ export const UserDashboard: FC = () => {
     };
 
     const getUserStatus = () => {
-        if (!userData) return 'Загрузка...';
+        if (!userData) {
+            return 'Активный игрок';
+        }
 
         if (userData.roles?.includes('ADMIN')) {
             return 'Администратор';
@@ -175,7 +182,7 @@ export const UserDashboard: FC = () => {
     const getAvatarContent = () => {
         const avatarUrl = getAvatarUrl();
 
-        if (isUserLoading || isFetching) {
+        if ((isUserLoading || isFetching) && !userData) {
             return (
                 <UserAvatarPlaceholder>
                     <i className="fas fa-spinner fa-spin" style={{fontSize: '1.5rem'}}></i>
@@ -191,38 +198,15 @@ export const UserDashboard: FC = () => {
                     onError={(e) => {
                         console.error('Avatar load error:', avatarUrl);
                         e.currentTarget.style.display = 'none';
-                        const parent = e.currentTarget.parentElement;
-                        if (parent) {
-                            const placeholder = document.createElement('div');
-                            placeholder.className = 'avatar-placeholder';
-                            placeholder.textContent = userData?.username?.slice(0, 2).toUpperCase() || 'U';
-                            parent.appendChild(placeholder);
-                        }
                     }}
                 />
             );
         }
 
-        const initials = userData?.username?.slice(0, 2).toUpperCase() || 'U';
+        const initials = userData?.username?.slice(0, 2).toUpperCase() ||
+            authUser?.username?.slice(0, 2).toUpperCase() || 'U';
         return <UserAvatarPlaceholder>{initials}</UserAvatarPlaceholder>;
     };
-
-    // Показываем загрузку, если нет данных пользователя, но есть токен
-    if ((!userData && authToken) && (isUserLoading || isFetching)) {
-        return (
-            <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '100vh',
-                background: '#0a1929',
-                color: '#00e6ff'
-            }}>
-                <i className="fas fa-spinner fa-spin" style={{fontSize: '2rem'}}></i>
-                <p style={{marginLeft: '10px'}}>Загрузка профиля...</p>
-            </div>
-        );
-    }
 
     const particles = [];
     const particleCount = 25;
@@ -251,6 +235,9 @@ export const UserDashboard: FC = () => {
         contact: apiTeam.contacts || "Контактная информация не указана",
         rating: 4.5,
     });
+
+    const displayUsername = userData?.username || authUser?.username || 'Пользователь';
+    const isLoadingData = (isUserLoading || isFetching) && !userData;
 
     return (
         <>
@@ -399,7 +386,6 @@ export const UserDashboard: FC = () => {
                                 <span>Профиль</span>
                             </CustomNavLink>
                         </NavItem>
-
                     </NavList>
 
                     <LogoutButton onClick={handleLogoutClick}>
@@ -425,7 +411,14 @@ export const UserDashboard: FC = () => {
                         <UserInfoTop>
                             {getAvatarContent()}
                             <UserDetailsTop>
-                                <UserNameTop>{userData?.username || 'Загрузка...'}</UserNameTop>
+                                <UserNameTop>
+                                    {displayUsername}
+                                    {isLoadingData && (
+                                        <span style={{fontSize: '0.7rem', marginLeft: '8px', color: '#ff9800'}}>
+                                            <i className="fas fa-spinner fa-spin"></i>
+                                        </span>
+                                    )}
+                                </UserNameTop>
                                 <UserStatusTop>{getUserStatus()}</UserStatusTop>
                             </UserDetailsTop>
                         </UserInfoTop>
@@ -496,7 +489,6 @@ export const UserDashboard: FC = () => {
                         <DashboardSection id="profile-section" isActive={activeSection === 'profile'}>
                             <ProfilePage/>
                         </DashboardSection>
-
                     </ContentArea>
                 </MainContent>
             </AppContainer>

@@ -34,11 +34,18 @@ export const userApi = createApi({
             return headers;
         },
     }),
-    tagTypes: ['User', 'CurrentUser'], // Добавили CurrentUser тег
+    tagTypes: ['User', 'CurrentUser'],
     endpoints: (builder) => ({
         getCurrentUser: builder.query<UserInfoResponse, void>({
             query: () => '/auth/me',
-            providesTags: ['CurrentUser'], // Используем отдельный тег для текущего пользователя
+            providesTags: ['CurrentUser'],
+            // Обрабатываем ошибку 401
+            transformErrorResponse: (response) => {
+                if (response.status === 401) {
+                    return { status: 401, message: 'Не авторизован' };
+                }
+                return response;
+            },
         }),
         getUserById: builder.query<UserInfoResponse, number>({
             query: (userId) => `/users/${userId}`,
@@ -50,7 +57,7 @@ export const userApi = createApi({
                 method: 'PUT',
                 body,
             }),
-            invalidatesTags: ['CurrentUser'], // Инвалидируем кэш текущего пользователя
+            invalidatesTags: ['CurrentUser'],
         }),
     }),
 });
