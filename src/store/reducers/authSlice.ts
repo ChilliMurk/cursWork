@@ -34,6 +34,7 @@ export const authSlice = createSlice({
             state.error = null;
         },
         loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
+            console.log('loginSuccess called with user:', action.payload.user.username);
             state.isLoading = false;
             state.isAuthenticated = true;
             state.user = {...action.payload.user, token: action.payload.token};
@@ -46,6 +47,7 @@ export const authSlice = createSlice({
             state.error = action.payload;
         },
         logout: (state) => {
+            console.log('logout called');
             state.isAuthenticated = false;
             state.user = null;
             state.error = null;
@@ -55,6 +57,7 @@ export const authSlice = createSlice({
             state.error = null;
         },
         registerSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
+            console.log('registerSuccess called with user:', action.payload.user.username);
             state.isLoading = false;
             state.isAuthenticated = true;
             state.user = {...action.payload.user, token: action.payload.token};
@@ -93,3 +96,4 @@ export const {
 } = authSlice.actions;
 
 export const authReducer = authSlice.reducer;
+

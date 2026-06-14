@@ -34,11 +34,11 @@ export const userApi = createApi({
             return headers;
         },
     }),
-    tagTypes: ['User'],
+    tagTypes: ['User', 'CurrentUser'], // Добавили CurrentUser тег
     endpoints: (builder) => ({
         getCurrentUser: builder.query<UserInfoResponse, void>({
             query: () => '/auth/me',
-            providesTags: ['User'],
+            providesTags: ['CurrentUser'], // Используем отдельный тег для текущего пользователя
         }),
         getUserById: builder.query<UserInfoResponse, number>({
             query: (userId) => `/users/${userId}`,
@@ -50,7 +50,7 @@ export const userApi = createApi({
                 method: 'PUT',
                 body,
             }),
-            invalidatesTags: ['User'],
+            invalidatesTags: ['CurrentUser'], // Инвалидируем кэш текущего пользователя
         }),
     }),
 });

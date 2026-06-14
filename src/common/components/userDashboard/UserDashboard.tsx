@@ -1,6 +1,6 @@
-import {FC, useState} from 'react';
+import {FC, useState, useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {useAppDispatch} from "@/common/hooks/useAppSelector.ts";
+import {useAppDispatch, useAppSelector} from "@/common/hooks/useAppSelector.ts";
 import {logout} from "@/store/reducers/authSlice.ts";
 import {css, Global} from "@emotion/react";
 import {Particle, ParticlesContainer} from "@/common/components/mainPage/style.ts";
@@ -42,7 +42,8 @@ import {Methodology} from "@/store/reducers/methodologyApi/methodologyApi.ts";
 import {useGetCurrentUserQuery} from "@/store/reducers/userApi/userApi.ts";
 import {TeamInfoResponse} from "@/store/reducers/teamApi/teamApi.ts";
 import {StatsPage} from "@/modules/user/statistics/StatsPage.tsx";
-import {resetStore} from "@/store/store.ts"; // Добавлен импорт
+import {userApi} from "@/store/reducers/userApi/userApi";
+import {myTeamApi} from "@/store/reducers/myTeamApi/myTeamApi";
 
 const GlobalStyles = () => (
     <>
@@ -76,16 +77,43 @@ const GlobalStyles = () => (
 export const UserDashboard: FC = () => {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const {data: userData, isLoading: isUserLoading} = useGetCurrentUserQuery();
+
+    // Получаем текущего пользователя из Redux store для проверки
+    const authUser = useAppSelector((state) => state.authReducer.user);
+    const authToken = authUser?.token;
+
+    // Используем skip, если нет токена
+    const {
+        data: userData,
+        isLoading: isUserLoading,
+        refetch: refetchUser,
+        isFetching
+    } = useGetCurrentUserQuery(undefined, {
+        skip: !authToken,
+        // Важно: не использовать кэш, всегда запрашивать свежие данные
+        refetchOnMountOrArgChange: true
+    });
+
     const [activeSection, setActiveSection] = useState('main');
-    const [selectedTeam, setSelectedTeam] = useState<TeamInfoResponse | null>(null); // Изменен тип
+    const [selectedTeam, setSelectedTeam] = useState<TeamInfoResponse | null>(null);
     const [selectedMethodology, setSelectedMethodology] = useState<Methodology | null>(null);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
 
+    // При монтировании и при изменении токена принудительно обновляем данные
+    useEffect(() => {
+        if (authToken) {
+            // Инвалидируем кэш текущего пользователя
+            dispatch(userApi.util.invalidateTags(['CurrentUser']));
+            refetchUser();
+        }
+    }, [authToken, dispatch, refetchUser]);
+
     const handleLogout = () => {
+        // Инвалидируем все кэши перед выходом
+        dispatch(userApi.util.resetApiState());
+        dispatch(myTeamApi.util.resetApiState());
         dispatch(logout());
-        resetStore();
         navigate('/');
     };
 
@@ -108,7 +136,7 @@ export const UserDashboard: FC = () => {
         setSelectedMethodology(null);
     };
 
-    const handleTeamSelect = (team: TeamInfoResponse) => { // Изменен тип параметра
+    const handleTeamSelect = (team: TeamInfoResponse) => {
         setSelectedTeam(team);
     };
 
@@ -147,7 +175,7 @@ export const UserDashboard: FC = () => {
     const getAvatarContent = () => {
         const avatarUrl = getAvatarUrl();
 
-        if (isUserLoading) {
+        if (isUserLoading || isFetching) {
             return (
                 <UserAvatarPlaceholder>
                     <i className="fas fa-spinner fa-spin" style={{fontSize: '1.5rem'}}></i>
@@ -179,6 +207,23 @@ export const UserDashboard: FC = () => {
         return <UserAvatarPlaceholder>{initials}</UserAvatarPlaceholder>;
     };
 
+    // Показываем загрузку, если нет данных пользователя, но есть токен
+    if ((!userData && authToken) && (isUserLoading || isFetching)) {
+        return (
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh',
+                background: '#0a1929',
+                color: '#00e6ff'
+            }}>
+                <i className="fas fa-spinner fa-spin" style={{fontSize: '2rem'}}></i>
+                <p style={{marginLeft: '10px'}}>Загрузка профиля...</p>
+            </div>
+        );
+    }
+
     const particles = [];
     const particleCount = 25;
     const colors = ['#00b4d8', '#0066cc', '#00e6ff'];
@@ -194,7 +239,6 @@ export const UserDashboard: FC = () => {
         particles.push({size, color, left, top, duration, delay});
     }
 
-    // Функция для преобразования TeamInfoResponse в формат, понятный TeamDetailsPage
     const transformTeamForDetails = (apiTeam: TeamInfoResponse) => ({
         id: apiTeam.id,
         name: apiTeam.name,

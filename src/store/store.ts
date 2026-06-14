@@ -21,15 +21,6 @@ const rememberedReducers = [
     'methodologyReducer',
     'myTeamReducer',
     'statsReducer',
-    'authApi',
-    'eventsApi',
-    'methodologyApi',
-    'uploadApi',
-    'userApi',
-    'teamApi',
-    'myTeamApi',
-    'faceItApi',
-    'statsApi',
 ];
 
 const rootReducer = combineReducers({
@@ -78,6 +69,7 @@ export type AppStore = typeof store;
 export type AppDispatch = AppStore['dispatch'];
 
 export const resetStore = () => {
+    // Очищаем API состояния
     store.dispatch(authApi.util.resetApiState());
     store.dispatch(eventsApi.util.resetApiState());
     store.dispatch(methodologyApi.util.resetApiState());
@@ -88,12 +80,18 @@ export const resetStore = () => {
     store.dispatch(faceItApi.util.resetApiState());
     store.dispatch(statsApi.util.resetApiState());
 
+    // Очищаем auth состояние
     store.dispatch(clearAuth());
 
-    localStorage.removeItem('persist:root');
-    Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('persist:') || key.includes('redux')) {
-            localStorage.removeItem(key);
-        }
+    // Очищаем localStorage
+    const keysToRemove = Object.keys(localStorage).filter(key =>
+        key.startsWith('persist:') ||
+        key.includes('redux') ||
+        key === 'token'
+    );
+
+    keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
     });
 };
+

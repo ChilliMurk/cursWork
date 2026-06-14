@@ -12,7 +12,6 @@ import {
 import {useAppDispatch} from "@/common/hooks/useAppSelector.ts";
 import {registerSuccess, registerFailure} from '@/store/reducers/authSlice';
 import {useRegisterMutation} from "@/store/reducers/auth/auth.ts";
-import {resetStore} from "@/store/store";
 
 interface RegisterModalProps {
     isOpen: boolean;
@@ -146,7 +145,6 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
     //     }
     // };
 
-    // В handleSubmit после успешной регистрации:
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateForm()) return;
@@ -157,8 +155,6 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
                 email: formData.email,
                 password: formData.password
             }).unwrap();
-
-            resetStore();
 
             dispatch(registerSuccess({
                 user: {
@@ -174,11 +170,10 @@ export const RegisterModal: FC<RegisterModalProps> = ({isOpen, onClose, onSwitch
 
             onClose();
 
+            // Даем время Redux для сохранения состояния
             setTimeout(() => {
-                window.location.reload();
+                onSuccess();
             }, 100);
-
-            onSuccess();
 
         } catch (error: any) {
             const errorMessage = error.data?.message || 'Ошибка регистрации';

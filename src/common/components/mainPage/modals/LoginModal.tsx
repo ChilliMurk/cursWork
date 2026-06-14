@@ -11,7 +11,6 @@ import {
 import {loginSuccess} from "@/store/reducers/authSlice.ts";
 import {useAppDispatch} from "@/common/hooks/useAppSelector.ts";
 import {useLoginMutation} from "@/store/reducers/auth/auth.ts";
-import {resetStore} from "@/store/store";
 
 interface LoginModalProps {
     isOpen: boolean;
@@ -38,8 +37,7 @@ export const LoginModal: FC<LoginModalProps> = ({isOpen, onClose, onSwitchToRegi
                 password: password
             }).unwrap();
 
-            resetStore();
-
+            // Сохраняем данные пользователя
             dispatch(loginSuccess({
                 user: {
                     id: response.id,
@@ -53,15 +51,14 @@ export const LoginModal: FC<LoginModalProps> = ({isOpen, onClose, onSwitchToRegi
             }));
 
             onClose();
-
-            setTimeout(() => {
-                window.location.reload();
-            }, 100);
-
-            onSuccess();
-
             setUsername('');
             setPassword('');
+
+            // Даем время Redux для сохранения состояния
+            // Используем setTimeout, чтобы дать возможность Redux обновить store
+            setTimeout(() => {
+                onSuccess();
+            }, 100);
 
         } catch (err: any) {
             setError(err.data?.message || 'Ошибка при входе. Проверьте логин и пароль.');

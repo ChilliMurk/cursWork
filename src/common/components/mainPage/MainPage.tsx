@@ -111,7 +111,8 @@ export const MainPage: FC = () => {
 
     const handleAuthSuccess = () => {
         console.log('Auth success, navigating to /user');
-        navigate('/user');
+        // Используем replace вместо обычного navigate, чтобы избежать дублирования в истории
+        navigate('/user', { replace: true });
     };
 
     const handleJoinClick = () => {
